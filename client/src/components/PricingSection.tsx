@@ -3,48 +3,57 @@ import { Check } from "lucide-react";
 import { Link } from "wouter";
 
 export default function PricingSection() {
+  // Функция для форматирования российских цен
+  const formatRussianPrice = (price: string) => {
+    return price.replace(',', ' ') + '₽';
+  };
+
   const plans = [
     {
-      name: 'Стандарт',
-      price: '1,990',
+      name: 'Базовый',
+      price: '1,790',
       period: 'месяц',
       description: 'Для частных лиц',
       features: [
-        'Мониторинг 200+ сайтов',
-        'Автоматическое удаление',
-        'Месячные отчеты',
-        'Email поддержка'
+        'Мониторинг 150+ брокеров данных',
+        'Автоматическое удаление данных',
+        'Соответствие 152-ФЗ "О персональных данных"',
+        'Ежемесячные отчеты о прогрессе',
+        'Email поддержка (2 рабочих дня)'
       ],
       popular: false,
-      buttonText: 'Начать'
+      buttonText: 'Начать защиту'
     },
     {
-      name: 'Семья',
-      price: '3,490',
+      name: 'Семейный',
+      price: '2,990',
       period: 'месяц',
       description: 'Для семьи до 5 человек',
       features: [
-        'Все из тарифа Стандарт',
-        'До 5 членов семьи',
-        'Семейный дашборд',
-        'Родительский контроль'
+        'Все функции Базового плана',
+        'Защита до 5 членов семьи',
+        'Объединенный семейный дашборд',
+        'Родительский контроль данных детей',
+        'Приоритетная поддержка (1 рабочий день)'
       ],
       popular: true,
-      buttonText: 'Выбрать план'
+      buttonText: 'Защитить семью'
     },
     {
-      name: 'Профессионал',
-      price: '5,990',
+      name: 'Профессиональный',
+      price: '4,990',
       period: 'месяц',
       description: 'Максимальная защита',
       features: [
-        'Все из тарифа Семья',
-        'Мониторинг 500+ сайтов',
-        'Приоритетная поддержка',
-        'API доступ'
+        'Все функции Семейного плана',
+        'Мониторинг 300+ источников данных',
+        'Ручное удаление сложных случаев',
+        'API доступ для интеграции',
+        'Персональный менеджер',
+        'SLA поддержка 24/7 (4 часа ответ)'
       ],
       popular: false,
-      buttonText: 'Начать'
+      buttonText: 'Максимальная защита'
     }
   ];
 
@@ -57,7 +66,7 @@ export default function PricingSection() {
             Прозрачное ценообразование
           </h2>
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            Выберите подходящий тариф для защиты ваших данных
+            Выберите тариф для автоматической защиты ваших персональных данных в интернете
           </p>
         </div>
 
@@ -73,7 +82,10 @@ export default function PricingSection() {
             >
               {plan.popular && (
                 <div className="mb-4">
-                  <span className="inline-flex items-center rounded-full bg-foreground px-3 py-1 text-sm font-medium text-background">
+                  <span 
+                    className="inline-flex items-center rounded-full bg-foreground px-3 py-1 text-sm font-medium text-background"
+                    data-testid="badge-popular"
+                  >
                     Популярный
                   </span>
                 </div>
@@ -87,11 +99,14 @@ export default function PricingSection() {
                   {plan.description}
                 </p>
                 <p className="mt-6 flex items-baseline gap-x-1">
-                  <span className="text-4xl font-bold tracking-tight text-foreground">
-                    {plan.price}
+                  <span 
+                    className="text-4xl font-bold tracking-tight text-foreground"
+                    data-testid={`text-price-${plan.name.toLowerCase()}`}
+                  >
+                    {formatRussianPrice(plan.price)}
                   </span>
                   <span className="text-sm font-semibold leading-6 text-muted-foreground">
-                    ₽/{plan.period}
+                    /{plan.period}
                   </span>
                 </p>
               </div>
@@ -105,17 +120,16 @@ export default function PricingSection() {
                 ))}
               </ul>
               
-              <Link href="/reports">
-                <Button 
-                  className={`w-full ${
-                    plan.popular ? '' : ''
-                  }`}
-                  variant={plan.popular ? 'default' : 'outline'}
-                  data-testid={`button-${plan.name.toLowerCase()}`}
-                >
+              <Button 
+                asChild
+                className="w-full"
+                variant={plan.popular ? 'default' : 'outline'}
+                data-testid={`button-${plan.name.toLowerCase()}`}
+              >
+                <Link href="/reports">
                   {plan.buttonText}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           ))}
         </div>
@@ -123,7 +137,7 @@ export default function PricingSection() {
         {/* Simple footer note */}
         <div className="mt-16 text-center">
           <p className="text-sm leading-6 text-muted-foreground">
-            Все цены в рублях с НДС. Отмена в любое время.
+            Все цены в рублях с НДС. 30-дневная гарантия возврата средств. Отмена в любое время.
           </p>
         </div>
       </div>
