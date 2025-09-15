@@ -1,6 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, FileText, Trash2, Shield, BarChart3, RefreshCw } from "lucide-react";
-import processImage from '@assets/generated_images/Data_monitoring_process_illustration_55c35c41.png';
+import { Search, FileText, Trash2, Shield } from "lucide-react";
 
 export default function HowItWorks() {
   const steps = [
@@ -8,117 +6,61 @@ export default function HowItWorks() {
       step: 1,
       icon: Search,
       title: 'Сканирование',
-      description: 'Мы сканируем сайты брокеров данных на предмет наличия вашей личной информации',
-      time: '~ 1-2 дня до обнаружения'
+      description: 'Автоматически сканируем брокеров данных на предмет наличия вашей информации'
     },
     {
       step: 2,
       icon: FileText,
       title: 'Отправка запросов',
-      description: 'Отправляем автоматические запросы на удаление согласно 152-ФЗ',
-      time: '~ 5-14 дней до обработки'
+      description: 'Отправляем запросы на удаление данных согласно 152-ФЗ'
     },
     {
       step: 3,
-      icon: RefreshCw,
-      title: 'Повторные проверки',
-      description: 'Регулярно повторяем процесс, чтобы новые данные не появлялись',
-      time: 'Каждые 30 дней'
+      icon: Trash2,
+      title: 'Удаление данных',
+      description: 'Контролируем процесс удаления и получаем подтверждения'
     },
     {
       step: 4,
-      icon: Trash2,
-      title: 'Подтверждение удаления',
-      description: 'Получаем подтверждения об успешном удалении ваших данных',
-      time: 'Отчет каждые 7 дней'
-    },
-    {
-      step: 5,
-      icon: BarChart3,
-      title: 'Отчеты о прогрессе',
-      description: 'Получаете детальные отчеты о процессе защиты ваших данных',
-      time: 'В реальном времени'
-    },
-    {
-      step: 6,
       icon: Shield,
-      title: 'Непрерывная защита',
-      description: 'Мониторим новые сайты и добавляем их в список мониторинга',
-      time: 'Постоянно'
+      title: 'Мониторинг',
+      description: 'Постоянно отслеживаем появление новых данных и удаляем их'
     }
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-secondary/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Как мы защищаем ваши данные
+    <section id="how-it-works" className="py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Header - Cal.com style */}
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Как это работает
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Полностью автоматизированный процесс очистки ваших персональных данных 
-            с сотен сайтов брокеров данных
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+            Простой процесс защиты ваших персональных данных
           </p>
         </div>
 
-        {/* Process illustration */}
-        <div className="mb-16 flex justify-center">
-          <div className="relative max-w-2xl">
-            <img 
-              src={processImage} 
-              alt="Процесс мониторинга и удаления данных" 
-              className="w-full h-auto rounded-xl shadow-lg"
-            />
-            <div className="absolute -top-2 -right-2 w-24 h-24 bg-primary/20 rounded-full blur-2xl" />
-          </div>
-        </div>
-
-        {/* Steps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {steps.map((step, index) => {
-            const IconComponent = step.icon;
-            return (
-              <Card key={index} className="relative overflow-hidden hover-elevate transition-all duration-300" data-testid={`card-step-${step.step}`}>
-                <CardContent className="p-6">
-                  {/* Step number */}
-                  <div className="absolute top-4 right-4">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-primary">{step.step}</span>
+        {/* Steps - minimal Cal.com style */}
+        <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
+          <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-4">
+            {steps.map((step) => {
+              const IconComponent = step.icon;
+              return (
+                <div key={step.step} className="flex flex-col" data-testid={`step-${step.step}`}>
+                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-foreground">
+                    <div className="h-5 w-5 flex-none">
+                      <IconComponent className="h-5 w-5 text-muted-foreground" />
                     </div>
-                  </div>
-                  
-                  {/* Icon */}
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                    <IconComponent className="h-6 w-6 text-primary" />
-                  </div>
-                  
-                  {/* Content */}
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     {step.title}
-                  </h3>
-                  <p className="text-muted-foreground mb-4 leading-relaxed">
-                    {step.description}
-                  </p>
-                  
-                  {/* Time indicator */}
-                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                    {step.time}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Additional info */}
-        <div className="mt-16 text-center">
-          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-chart-2/10 rounded-full">
-            <Shield className="h-5 w-5 text-chart-2" />
-            <span className="text-sm font-medium text-chart-2">
-              Полное соответствие Федеральному закону № 152-ФЗ "О персональных данных"
-            </span>
-          </div>
+                  </dt>
+                  <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-muted-foreground">
+                    <p className="flex-auto">{step.description}</p>
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
         </div>
       </div>
     </section>

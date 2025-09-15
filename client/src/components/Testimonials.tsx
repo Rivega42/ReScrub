@@ -1,122 +1,76 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Star, Quote } from "lucide-react";
-
 export default function Testimonials() {
-  //todo: remove mock testimonials data
   const testimonials = [
     {
       name: 'Александр П.',
       role: 'IT-директор',
-      company: 'Московская компания',
-      content: 'Решил проблему с назойливыми звонками и спамом. Теперь мои данные под надежной защитой.',
-      rating: 5,
-      avatar: 'AP'
+      content: 'Решил проблему с назойливыми звонками и спамом. Теперь мои данные под надежной защитой.'
     },
     {
       name: 'Мария С.',
       role: 'Маркетолог',
-      company: 'Консалтинговая фирма',
-      content: 'Очень довольна сервисом! После удаления моих данных значительно сократилось количество спама.',
-      rating: 5,
-      avatar: 'MS'
+      content: 'Очень довольна сервисом! После удаления моих данных значительно сократилось количество спама.'
     },
     {
       name: 'Дмитрий К.',
       role: 'Предприниматель',
-      company: 'Собственный бизнес',
-      content: 'ResCrub помог мне вернуть контроль над моими личными данными. Отличный сервис с понятным интерфейсом.',
-      rating: 5,
-      avatar: 'DK'
+      content: 'ReScrub помог мне вернуть контроль над моими личными данными. Отличный сервис с понятным интерфейсом.'
     },
     {
       name: 'Елена Р.',
       role: 'Юрист',
-      company: 'Юридическая консультация',
-      content: 'Как юрист, оцениваю соответствие 152-ФЗ. Сервис действительно помогает защитить права граждан.',
-      rating: 5,
-      avatar: 'ER'
+      content: 'Как юрист, оцениваю соответствие 152-ФЗ. Сервис действительно помогает защитить права граждан.'
     }
   ];
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-muted-foreground'
-        }`}
-      />
-    ));
-  };
-
   return (
-    <section className="py-24 bg-secondary/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Отзывы наших клиентов
+    <section className="py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Header - Cal.com style */}
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Что говорят клиенты
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Почитайте, как ResCrub помог россиянам вернуть контроль над своими персональными данными
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+            Отзывы тех, кто доверил нам защиту своих данных
           </p>
         </div>
 
-        {/* Testimonials Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {testimonials.map((testimonial, index) => (
-            <Card key={index} className="relative overflow-hidden hover-elevate transition-all duration-300" data-testid={`card-testimonial-${index}`}>
-              <CardContent className="p-6">
-                {/* Quote icon */}
-                <div className="absolute top-4 right-4 opacity-10">
-                  <Quote className="h-8 w-8" />
-                </div>
-                
-                {/* Rating */}
-                <div className="flex items-center space-x-1 mb-4">
-                  {renderStars(testimonial.rating)}
-                </div>
-                
-                {/* Content */}
-                <blockquote className="text-foreground mb-6 leading-relaxed">
-                  "{testimonial.content}"
-                </blockquote>
-                
-                {/* Author info */}
-                <div className="flex items-center space-x-3">
-                  {/* Avatar */}
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary">
-                      {testimonial.avatar}
-                    </span>
-                  </div>
-                  
-                  {/* Name and role */}
-                  <div>
-                    <div className="font-medium text-foreground">
-                      {testimonial.name}
+        {/* Testimonials grid - minimal Cal.com style */}
+        <div className="mx-auto mt-16 flow-root max-w-2xl sm:mt-20 lg:mx-0 lg:max-w-none">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={index}
+                className="pt-8 sm:inline-block sm:w-full sm:px-4"
+                data-testid={`testimonial-${index}`}
+              >
+                <figure className="text-center">
+                  <blockquote className="text-lg font-semibold leading-8 text-foreground sm:text-xl sm:leading-9">
+                    <p>"{testimonial.content}"</p>
+                  </blockquote>
+                  <figcaption className="mt-10">
+                    <div className="mt-4 flex items-center justify-center space-x-3 text-base">
+                      <div className="font-semibold text-foreground">
+                        {testimonial.name}
+                      </div>
+                      <svg
+                        viewBox="0 0 2 2"
+                        width={3}
+                        height={3}
+                        aria-hidden="true"
+                        className="fill-muted-foreground"
+                      >
+                        <circle cx={1} cy={1} r={1} />
+                      </svg>
+                      <div className="text-muted-foreground">
+                        {testimonial.role}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {testimonial.role}, {testimonial.company}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        {/* Trust indicators */}
-        <div className="mt-16 text-center">
-          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-chart-2/10 rounded-full mb-4">
-            <Star className="h-4 w-4 text-chart-2" />
-            <span className="text-sm font-medium text-chart-2">
-              Средняя оценка: 4.9/5 на основе 2,500+ отзывов
-            </span>
+                  </figcaption>
+                </figure>
+              </div>
+            ))}
           </div>
-          <p className="text-sm text-muted-foreground">
-            Проверенные отзывы от реальных клиентов
-          </p>
         </div>
       </div>
     </section>
