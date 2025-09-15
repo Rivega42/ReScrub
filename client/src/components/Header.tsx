@@ -25,7 +25,7 @@ function ThemeToggle() {
       size="icon"
       onClick={toggleTheme}
       data-testid="button-theme-toggle"
-      className="hover-elevate"
+      className="h-8 w-8"
     >
       {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </Button>
@@ -38,57 +38,58 @@ export default function Header() {
   
   const isActive = (path: string) => location === path;
   
+  // Cal.com style - minimal navigation
   const navigation = [
-    { name: 'Главная', href: '/' },
-    { name: 'Как это работает', href: '#how-it-works' },
-    { name: 'Тарифы', href: '#pricing' },
+    { name: 'Тарифы', href: '/#pricing' },
     { name: 'О нас', href: '/about' },
     { name: 'Поддержка', href: '/support' },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between">
+          {/* Logo - Cal.com minimalist style */}
           <div className="flex items-center">
             <Link href="/" data-testid="link-home">
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-lg">R</span>
-                </div>
-                <span className="font-bold text-xl text-foreground">ResCrub</span>
-              </div>
+              <span className="text-display text-lg font-semibold text-foreground">
+                ReScrub
+              </span>
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          {/* Desktop Navigation - centered like Cal.com */}
+          <nav className="hidden md:flex items-center space-x-1">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive(item.href) ? 'text-primary' : 'text-muted-foreground'
-                }`}
                 data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
               >
-                {item.name}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-3 text-sm font-medium ${
+                    isActive(item.href) ? 'text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  {item.name}
+                </Button>
               </Link>
             ))}
           </nav>
 
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop Actions - minimal like Cal.com */}
+          <div className="hidden md:flex items-center space-x-2">
             <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" data-testid="button-login">
+              <Button variant="ghost" size="sm" data-testid="button-login" className="h-8 px-3">
                 Войти
               </Button>
             </Link>
-            <Link href="/signup">
-              <Button data-testid="button-signup">
-                Начать защиту
+            <Link href="/reports">
+              <Button size="sm" data-testid="button-get-started" className="h-8 px-3">
+                Начать
               </Button>
             </Link>
           </div>
@@ -101,40 +102,45 @@ export default function Header() {
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               data-testid="button-mobile-menu"
+              className="h-8 w-8"
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - Cal.com style */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-background">
-            <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="md:hidden">
+            <div className="space-y-1 border-t border-border px-2 py-3">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`block px-3 py-2 text-base font-medium rounded-md transition-colors ${
-                    isActive(item.href)
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground hover:text-primary hover:bg-accent'
-                  }`}
                   onClick={() => setMobileMenuOpen(false)}
                   data-testid={`link-mobile-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
-                  {item.name}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`w-full justify-start h-9 ${
+                      isActive(item.href) ? 'text-foreground bg-muted' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {item.name}
+                  </Button>
                 </Link>
               ))}
-              <div className="px-3 py-2 space-y-2">
+              
+              <div className="border-t border-border pt-3 mt-3 space-y-1">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button variant="ghost" size="sm" className="w-full justify-start h-9">
                     Войти
                   </Button>
                 </Link>
-                <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full">
-                    Начать защиту
+                <Link href="/reports" onClick={() => setMobileMenuOpen(false)}>
+                  <Button size="sm" className="w-full h-9">
+                    Начать
                   </Button>
                 </Link>
               </div>
