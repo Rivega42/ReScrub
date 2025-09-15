@@ -19,8 +19,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, queryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Phone, 
@@ -124,13 +124,8 @@ export default function Support() {
   // Support ticket mutation
   const supportMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
-      return apiRequest('/api/support', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiRequest('POST', '/api/support', data);
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({

@@ -40,11 +40,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ticketId: ticket.id,
         message: "Обращение успешно отправлено. Мы ответим в ближайшее время." 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating support ticket:", error);
       
       // Handle validation errors
-      if (error.name === 'ZodError') {
+      if (error?.name === 'ZodError') {
         return res.status(400).json({ 
           success: false, 
           message: "Некорректные данные формы", 
