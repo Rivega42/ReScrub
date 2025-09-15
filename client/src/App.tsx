@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import About from "@/pages/About";
+import Blog from "@/pages/Blog";
 import Reports from "@/pages/Reports";
 import FAQ from "@/pages/FAQ";
 import Support from "@/pages/Support";
@@ -24,6 +25,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/blog" component={Blog} />
       <Route path="/about" component={About} />
       <Route path="/faq" component={FAQ} />
       <Route path="/support" component={Support} />

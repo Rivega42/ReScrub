@@ -39,6 +39,7 @@ export default function Header() {
   
   // Cal.com style - minimal navigation
   const navigation = [
+    { name: 'Блог', href: '/blog' },
     { name: 'Тарифы', href: '/#pricing' },
     { name: 'О нас', href: '/about' },
     { name: 'FAQ', href: '/faq' },
