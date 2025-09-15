@@ -130,7 +130,7 @@ export default function Support() {
     onSuccess: (data) => {
       toast({
         title: "Обращение отправлено",
-        description: data.message || "Мы получили ваше сообщение и ответим в ближайшее время.",
+        description: `${data.message || "Мы получили ваше сообщение и ответим в ближайшее время."} ${data.ticketId ? `\nID обращения: ${data.ticketId}` : ''}`,
       });
       form.reset();
     },
