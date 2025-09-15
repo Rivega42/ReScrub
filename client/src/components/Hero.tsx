@@ -28,7 +28,6 @@ export default function Hero() {
               <Button 
                 size="lg" 
                 data-testid="button-hero-get-started"
-                className="h-11 px-8"
               >
                 Начать защиту
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -39,7 +38,6 @@ export default function Hero() {
                 variant="ghost" 
                 size="lg" 
                 data-testid="button-hero-pricing"
-                className="h-11 px-8"
               >
                 Смотреть тарифы
               </Button>

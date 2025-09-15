@@ -25,7 +25,6 @@ function ThemeToggle() {
       size="icon"
       onClick={toggleTheme}
       data-testid="button-theme-toggle"
-      className="h-8 w-8"
     >
       {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </Button>
@@ -69,7 +68,7 @@ export default function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`h-8 px-3 text-sm font-medium ${
+                  className={`text-sm font-medium ${
                     isActive(item.href) ? 'text-foreground' : 'text-muted-foreground'
                   }`}
                 >
@@ -83,12 +82,12 @@ export default function Header() {
           <div className="hidden md:flex items-center space-x-2">
             <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" size="sm" data-testid="button-login" className="h-8 px-3">
+              <Button variant="ghost" size="sm" data-testid="button-login">
                 Войти
               </Button>
             </Link>
             <Link href="/reports">
-              <Button size="sm" data-testid="button-get-started" className="h-8 px-3">
+              <Button size="sm" data-testid="button-get-started">
                 Начать
               </Button>
             </Link>
@@ -102,7 +101,6 @@ export default function Header() {
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               data-testid="button-mobile-menu"
-              className="h-8 w-8"
             >
               {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
@@ -123,7 +121,7 @@ export default function Header() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`w-full justify-start h-9 ${
+                    className={`w-full justify-start ${
                       isActive(item.href) ? 'text-foreground bg-muted' : 'text-muted-foreground'
                     }`}
                   >
@@ -134,12 +132,12 @@ export default function Header() {
               
               <div className="border-t border-border pt-3 mt-3 space-y-1">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-9">
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
                     Войти
                   </Button>
                 </Link>
                 <Link href="/reports" onClick={() => setMobileMenuOpen(false)}>
-                  <Button size="sm" className="w-full h-9">
+                  <Button size="sm" className="w-full">
                     Начать
                   </Button>
                 </Link>
