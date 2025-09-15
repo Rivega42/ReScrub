@@ -15,6 +15,7 @@ import Contacts from "@/pages/Contacts";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import Whitepaper from "@/pages/Whitepaper";
+import Status from "@/pages/Status";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/whitepaper" component={Whitepaper} />
       <Route path="/reports" component={Reports} />
+      <Route path="/status" component={Status} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
