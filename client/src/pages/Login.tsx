@@ -86,18 +86,15 @@ export default function Login() {
   });
 
   const onLoginSubmit = (data: LoginFormData) => {
-    console.log('Login:', data);
-    // TODO: Интеграция с API
+    // TODO: Интеграция с API аутентификации
   };
 
   const onRegisterSubmit = (data: RegisterFormData) => {
-    console.log('Register:', data);
-    // TODO: Интеграция с API
+    // TODO: Интеграция с API регистрации
   };
 
   const onRecoverySubmit = (data: RecoveryFormData) => {
-    console.log('Recovery:', data);
-    // TODO: Интеграция с API
+    // TODO: Интеграция с API восстановления пароля
   };
 
   const getTitle = () => {
@@ -118,8 +115,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Левая половина - изображение с паралакс эффектом */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-red-900 via-red-800 to-red-950">
+      {/* Левая половина - Cal.com style с крабом и паралакс эффектом */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-muted/30 border-r border-border">
         {/* Паралакс изображение */}
         <div 
           className="absolute inset-0 flex items-center justify-center"
@@ -130,16 +127,16 @@ export default function Login() {
           <img 
             src={crabImage} 
             alt="Красный пиксельный краб подметает документы" 
-            className="w-full max-w-lg h-auto object-contain filter drop-shadow-2xl"
+            className="w-full max-w-lg h-auto object-contain filter drop-shadow-lg opacity-80"
           />
         </div>
         
-        {/* Цифровые частицы */}
+        {/* Цифровые частицы в нейтральных тонах */}
         <div className="absolute inset-0 pointer-events-none">
           {particlePositions.map((particle, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-red-400 rounded-full opacity-50"
+              className="absolute w-1 h-1 bg-muted-foreground/30 rounded-full"
               style={{
                 left: `${particle.left}%`,
                 top: `${particle.top}%`,
@@ -149,10 +146,12 @@ export default function Login() {
           ))}
         </div>
 
-        {/* Текст на изображении */}
-        <div className="absolute bottom-8 left-8 right-8 text-white">
-          <h2 className="text-3xl font-bold mb-2">Защитите свои данные</h2>
-          <p className="text-red-100 opacity-90">
+        {/* Текст на изображении - Cal.com style */}
+        <div className="absolute bottom-8 left-8 right-8">
+          <h2 className="text-display text-3xl font-semibold text-foreground mb-2">
+            Защитите свои данные
+          </h2>
+          <p className="text-base text-muted-foreground">
             Автоматическое удаление персональной информации с сайтов брокеров данных
           </p>
         </div>
@@ -161,10 +160,10 @@ export default function Login() {
       {/* Правая половина - формы */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
-          {/* Кнопка назад */}
+          {/* Кнопка назад - Cal.com style */}
           <Button 
             variant="ghost" 
-            className="mb-6 hover-elevate"
+            className="mb-6"
             data-testid="button-back-home"
             asChild
           >
@@ -174,12 +173,12 @@ export default function Login() {
             </Link>
           </Button>
 
-          <Card className="border-border">
-            <CardHeader className="space-y-4">
-              <CardTitle className="text-2xl font-bold text-center">
+          <Card className="border-border shadow-sm">
+            <CardHeader className="space-y-4 text-center">
+              <CardTitle className="text-display text-2xl font-semibold">
                 {getTitle()}
               </CardTitle>
-              <p className="text-muted-foreground text-center text-sm">
+              <p className="text-sm text-muted-foreground">
                 {getSubtitle()}
               </p>
             </CardHeader>
@@ -189,7 +188,7 @@ export default function Login() {
               {mode === 'login' && (
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -205,7 +204,7 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Пароль</Label>
+                    <Label htmlFor="password" className="text-sm font-medium">Пароль</Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -218,7 +217,7 @@ export default function Login() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
                         onClick={() => setShowPassword(!showPassword)}
                         data-testid="button-toggle-password"
                       >
@@ -251,7 +250,7 @@ export default function Login() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
+                      className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground"
                       onClick={() => setMode('recovery')}
                       data-testid="button-forgot-password"
                     >
@@ -274,7 +273,7 @@ export default function Login() {
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Имя</Label>
+                      <Label htmlFor="firstName" className="text-sm font-medium">Имя</Label>
                       <Input
                         id="firstName"
                         placeholder="Иван"
@@ -288,7 +287,7 @@ export default function Login() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Фамилия</Label>
+                      <Label htmlFor="lastName" className="text-sm font-medium">Фамилия</Label>
                       <Input
                         id="lastName"
                         placeholder="Иванов"
@@ -304,7 +303,7 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email-reg">Email</Label>
+                    <Label htmlFor="email-reg" className="text-sm font-medium">Email</Label>
                     <Input
                       id="email-reg"
                       type="email"
@@ -320,7 +319,7 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Телефон</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">Телефон</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -336,7 +335,7 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password-reg">Пароль</Label>
+                    <Label htmlFor="password-reg" className="text-sm font-medium">Пароль</Label>
                     <div className="relative">
                       <Input
                         id="password-reg"
@@ -349,8 +348,9 @@ export default function Login() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
                         onClick={() => setShowPassword(!showPassword)}
+                        data-testid="button-toggle-password-register"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
@@ -363,7 +363,7 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Подтверждение пароля</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Подтверждение пароля</Label>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
@@ -376,8 +376,9 @@ export default function Login() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        data-testid="button-toggle-confirm-password-register"
                       >
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
@@ -404,11 +405,11 @@ export default function Login() {
                     />
                     <Label htmlFor="agree" className="text-sm leading-normal">
                       Я согласен с{' '}
-                      <Link href="/terms" className="text-primary hover:underline">
+                      <Link href="/terms" className="text-foreground hover:text-muted-foreground underline underline-offset-4">
                         условиями использования
                       </Link>{' '}
                       и{' '}
-                      <Link href="/privacy" className="text-primary hover:underline">
+                      <Link href="/privacy" className="text-foreground hover:text-muted-foreground underline underline-offset-4">
                         политикой конфиденциальности
                       </Link>
                     </Label>
@@ -433,7 +434,7 @@ export default function Login() {
               {mode === 'recovery' && (
                 <form onSubmit={recoveryForm.handleSubmit(onRecoverySubmit)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email-recovery">Email</Label>
+                    <Label htmlFor="email-recovery" className="text-sm font-medium">Email</Label>
                     <Input
                       id="email-recovery"
                       type="email"
@@ -458,7 +459,7 @@ export default function Login() {
                 </form>
               )}
 
-              {/* Переключение между режимами */}
+              {/* Переключение между режимами - Cal.com style */}
               <div className="text-center text-sm text-muted-foreground">
                 {mode === 'login' && (
                   <p>
@@ -466,7 +467,7 @@ export default function Login() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
+                      className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
                       onClick={() => setMode('register')}
                       data-testid="button-switch-register"
                     >
@@ -480,7 +481,7 @@ export default function Login() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
+                      className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
                       onClick={() => setMode('login')}
                       data-testid="button-switch-login"
                     >
@@ -494,7 +495,7 @@ export default function Login() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
+                      className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
                       onClick={() => setMode('login')}
                       data-testid="button-switch-login-from-recovery"
                     >
@@ -507,7 +508,6 @@ export default function Login() {
           </Card>
         </div>
       </div>
-
     </div>
   );
 }
