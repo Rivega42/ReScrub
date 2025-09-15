@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.png';
@@ -42,11 +42,18 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 type RecoveryFormData = z.infer<typeof recoverySchema>;
 
 export default function Login() {
-  const [, setLocation] = useLocation();
   const [mode, setMode] = useState<FormMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
+
+  // Мемоизируем позиции частиц для избежания пересчета при рендере
+  const particlePositions = useMemo(() => 
+    Array.from({ length: 20 }, () => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 2
+    })), []);
 
   // Паралакс эффект
   useEffect(() => {
@@ -129,15 +136,14 @@ export default function Login() {
         
         {/* Цифровые частицы */}
         <div className="absolute inset-0 pointer-events-none">
-          {Array.from({ length: 20 }).map((_, i) => (
+          {particlePositions.map((particle, i) => (
             <div
               key={i}
               className="absolute w-1 h-1 bg-red-400 rounded-full opacity-50"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animation: 'float 3s ease-in-out infinite'
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animation: `float 3s ease-in-out infinite ${particle.delay}s`
               }}
             />
           ))}
@@ -156,16 +162,17 @@ export default function Login() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
           {/* Кнопка назад */}
-          <Link href="/">
-            <Button 
-              variant="ghost" 
-              className="mb-6 hover-elevate"
-              data-testid="button-back-home"
-            >
+          <Button 
+            variant="ghost" 
+            className="mb-6 hover-elevate"
+            data-testid="button-back-home"
+            asChild
+          >
+            <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-2" />
               На главную
-            </Button>
-          </Link>
+            </Link>
+          </Button>
 
           <Card className="border-border">
             <CardHeader className="space-y-4">
@@ -227,10 +234,17 @@ export default function Login() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="remember" 
-                        data-testid="checkbox-remember"
-                        {...loginForm.register('remember')}
+                      <Controller
+                        name="remember"
+                        control={loginForm.control}
+                        render={({ field }) => (
+                          <Checkbox 
+                            id="remember" 
+                            data-testid="checkbox-remember"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
                       />
                       <Label htmlFor="remember" className="text-sm">Запомнить меня</Label>
                     </div>
@@ -376,10 +390,17 @@ export default function Login() {
                   </div>
 
                   <div className="flex items-start space-x-2">
-                    <Checkbox 
-                      id="agree" 
-                      data-testid="checkbox-agree"
-                      {...registerForm.register('agree')}
+                    <Controller
+                      name="agree"
+                      control={registerForm.control}
+                      render={({ field }) => (
+                        <Checkbox 
+                          id="agree" 
+                          data-testid="checkbox-agree"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
                     />
                     <Label htmlFor="agree" className="text-sm leading-normal">
                       Я согласен с{' '}
