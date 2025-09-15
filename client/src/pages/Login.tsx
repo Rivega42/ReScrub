@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link } from "wouter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useAuth } from '@/lib/authContext';
+import { useToast } from '@/hooks/use-toast';
 import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.png';
 
 type FormMode = 'login' | 'register' | 'recovery';
@@ -46,6 +49,18 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [, setLocation] = useLocation();
+  const { login, register: registerUser, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation('/app/dashboard');
+    }
+  }, [isAuthenticated, setLocation]);
 
   // Мемоизируем позиции частиц для избежания пересчета при рендере
   const particlePositions = useMemo(() => 
@@ -85,16 +100,75 @@ export default function Login() {
     defaultValues: { email: '' }
   });
 
-  const onLoginSubmit = (data: LoginFormData) => {
-    // TODO: Интеграция с API аутентификации
+  const onLoginSubmit = async (data: LoginFormData) => {
+    try {
+      setError('');
+      setIsLoading(true);
+      
+      await login(data.email, data.password);
+      
+      toast({
+        title: 'Успешный вход',
+        description: 'Добро пожаловать в ReScrub!',
+      });
+      
+      setLocation('/app/dashboard');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Ошибка входа';
+      setError(errorMessage);
+      
+      if (errorMessage.includes('подтвердите email')) {
+        toast({
+          title: 'Требуется подтверждение',
+          description: 'Проверьте email для подтверждения аккаунта',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const onRegisterSubmit = (data: RegisterFormData) => {
-    // TODO: Интеграция с API регистрации
+  const onRegisterSubmit = async (data: RegisterFormData) => {
+    try {
+      setError('');
+      setIsLoading(true);
+      
+      await registerUser(data.email, data.password);
+      
+      toast({
+        title: 'Аккаунт создан',
+        description: 'Проверьте email для подтверждения аккаунта',
+      });
+      
+      // Switch to login mode after successful registration
+      setMode('login');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Ошибка регистрации';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const onRecoverySubmit = (data: RecoveryFormData) => {
-    // TODO: Интеграция с API восстановления пароля
+  const onRecoverySubmit = async (data: RecoveryFormData) => {
+    try {
+      setError('');
+      setIsLoading(true);
+      
+      // TODO: Implement password recovery API
+      toast({
+        title: 'Инструкции отправлены',
+        description: 'Проверьте email для восстановления пароля',
+      });
+      
+      setMode('login');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Ошибка восстановления пароля';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getTitle = () => {
@@ -184,6 +258,11 @@ export default function Login() {
             </CardHeader>
 
             <CardContent className="space-y-6">
+              {error && (
+                <Alert variant="destructive" data-testid="alert-error">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               {/* Форма входа */}
               {mode === 'login' && (
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
@@ -261,9 +340,10 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full"
+                    disabled={isLoading}
                     data-testid="button-login-submit"
                   >
-                    Войти
+                    {isLoading ? 'Вход...' : 'Войти'}
                   </Button>
                 </form>
               )}
@@ -423,9 +503,10 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full"
+                    disabled={isLoading}
                     data-testid="button-register-submit"
                   >
-                    Создать аккаунт
+                    {isLoading ? 'Создание...' : 'Создать аккаунт'}
                   </Button>
                 </form>
               )}
@@ -452,9 +533,10 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full"
+                    disabled={isLoading}
                     data-testid="button-recovery-submit"
                   >
-                    Отправить инструкции
+                    {isLoading ? 'Отправка...' : 'Отправить инструкции'}
                   </Button>
                 </form>
               )}

@@ -418,6 +418,7 @@ export class MemStorage implements IStorage {
       passwordHash,
       emailVerified: false,
       emailVerificationToken: null,
+      emailVerificationExpires: null,
       passwordResetToken: null,
       passwordResetExpires: null,
       lastLoginAt: null,
