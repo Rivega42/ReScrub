@@ -9,6 +9,7 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import About from "@/pages/About";
 import Reports from "@/pages/Reports";
+import FAQ from "@/pages/FAQ";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/about" component={About} />
+      <Route path="/faq" component={FAQ} />
       <Route path="/reports" component={Reports} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />

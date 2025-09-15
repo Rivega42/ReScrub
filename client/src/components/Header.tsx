@@ -41,7 +41,7 @@ export default function Header() {
   const navigation = [
     { name: 'Тарифы', href: '/#pricing' },
     { name: 'О нас', href: '/about' },
-    { name: 'Поддержка', href: '/support' },
+    { name: 'FAQ', href: '/faq' },
   ];
 
   return (
