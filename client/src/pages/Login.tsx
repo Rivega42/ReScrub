@@ -236,8 +236,8 @@ export default function Login() {
                     </div>
                     <Button
                       type="button"
-                      variant="link"
-                      className="p-0 h-auto text-sm"
+                      variant="ghost"
+                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
                       onClick={() => setMode('recovery')}
                       data-testid="button-forgot-password"
                     >
@@ -444,8 +444,8 @@ export default function Login() {
                     Нет аккаунта?{' '}
                     <Button
                       type="button"
-                      variant="link"
-                      className="p-0 h-auto text-sm"
+                      variant="ghost"
+                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
                       onClick={() => setMode('register')}
                       data-testid="button-switch-register"
                     >
@@ -458,8 +458,8 @@ export default function Login() {
                     Уже есть аккаунт?{' '}
                     <Button
                       type="button"
-                      variant="link"
-                      className="p-0 h-auto text-sm"
+                      variant="ghost"
+                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
                       onClick={() => setMode('login')}
                       data-testid="button-switch-login"
                     >
@@ -472,8 +472,8 @@ export default function Login() {
                     Вспомнили пароль?{' '}
                     <Button
                       type="button"
-                      variant="link"
-                      className="p-0 h-auto text-sm"
+                      variant="ghost"
+                      className="p-0 h-auto text-sm text-primary hover:text-primary/80"
                       onClick={() => setMode('login')}
                       data-testid="button-switch-login-from-recovery"
                     >
@@ -487,12 +487,6 @@ export default function Login() {
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-      `}</style>
     </div>
   );
 }
