@@ -42,6 +42,7 @@ export default function Header() {
     { name: 'Тарифы', href: '/#pricing' },
     { name: 'О нас', href: '/about' },
     { name: 'FAQ', href: '/faq' },
+    { name: 'Поддержка', href: '/support' },
   ];
 
   return (

@@ -1,7 +1,10 @@
 import {
   users,
+  supportTickets,
   type User,
   type UpsertUser,
+  type InsertSupportTicket,
+  type SupportTicket,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -11,7 +14,9 @@ export interface IStorage {
   // User operations for Replit Auth
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  // Other operations can be added here
+  
+  // Support ticket operations
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -34,6 +39,15 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  // Support ticket operations
+  async createSupportTicket(ticketData: InsertSupportTicket): Promise<SupportTicket> {
+    const [ticket] = await db
+      .insert(supportTickets)
+      .values(ticketData)
+      .returning();
+    return ticket;
   }
 }
 
