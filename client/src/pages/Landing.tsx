@@ -1,5 +1,6 @@
 import Header from '../components/Header';
 import Hero from '../components/Hero';
+import WhatsAtStake from '../components/WhatsAtStake';
 import HowItWorks from '../components/HowItWorks';
 import PricingSection from '../components/PricingSection';
 import Testimonials from '../components/Testimonials';
@@ -11,6 +12,7 @@ export default function Landing() {
       <Header />
       <main>
         <Hero />
+        <WhatsAtStake />
         <HowItWorks />
         <PricingSection />
         <Testimonials />
