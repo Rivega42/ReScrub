@@ -12,6 +12,7 @@ import Reports from "@/pages/Reports";
 import FAQ from "@/pages/FAQ";
 import Support from "@/pages/Support";
 import Contacts from "@/pages/Contacts";
+import Privacy from "@/pages/Privacy";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/support" component={Support} />
       <Route path="/contacts" component={Contacts} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/reports" component={Reports} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
