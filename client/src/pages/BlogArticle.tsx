@@ -1,5 +1,4 @@
 import { useParams, Link } from 'wouter';
-import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { BlogSEO } from '@/components/SEO';
 import ReactMarkdown from 'react-markdown';
 
 // Types for blog articles
@@ -487,63 +487,46 @@ export default function BlogArticle() {
   
   // Find the article by slug
   const article = mockArticles.find(a => a.slug === slug);
-
-  // Update SEO metadata when article loads
-  useEffect(() => {
-    if (article) {
-      // Update page title
-      document.title = `${article.title} | ReScrub Blog`;
-      
-      // Update meta description
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute('content', article.description);
-      }
-
-      // Add/update Open Graph tags
-      const addOrUpdateMeta = (property: string, content: string) => {
-        let meta = document.querySelector(`meta[property="${property}"]`);
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.setAttribute('property', property);
-          document.head.appendChild(meta);
-        }
-        meta.setAttribute('content', content);
-      };
-
-      addOrUpdateMeta('og:title', article.title);
-      addOrUpdateMeta('og:description', article.description);
-      addOrUpdateMeta('og:type', 'article');
-      addOrUpdateMeta('og:url', window.location.href);
-      addOrUpdateMeta('article:author', article.author);
-      addOrUpdateMeta('article:published_time', article.publishedAt);
-      addOrUpdateMeta('article:section', article.category);
-      
-      // Add article tags
-      article.tags.forEach((tag, index) => {
-        addOrUpdateMeta(`article:tag`, tag);
-      });
-
-      // Twitter Card tags
-      addOrUpdateMeta('twitter:card', 'summary_large_image');
-      addOrUpdateMeta('twitter:title', article.title);
-      addOrUpdateMeta('twitter:description', article.description);
-    }
-
-    // Cleanup function to restore default title
-    return () => {
-      document.title = 'ReScrub - Защита ваших персональных данных';
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute('content', 'ReScrub - российская платформа для защиты персональных данных в соответствии с 152-ФЗ. Автоматическое удаление данных с сайтов брокеров данных.');
-      }
-    };
-  }, [article]);
   
-  if (!article) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
+  // Format published date
+  const publishedDate = article ? new Date(article.publishedAt).toLocaleDateString('ru-RU', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }) : '';
+  
+  // Handle share functionality
+  const handleShare = () => {
+    if (navigator.share && article) {
+      navigator.share({
+        title: article.title,
+        text: article.description,
+        url: window.location.href,
+      });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Use our optimized SEO component with FIXED JSON-LD serialization */}
+      {article && (
+        <BlogSEO
+          title={article.title}
+          description={article.description}
+          author={article.author}
+          publishedTime={article.publishedAt}
+          keywords={article.tags}
+          path={`/blog/${article.slug}`}
+          data-testid="blog-seo"
+        />
+      )}
+      
+      <Header />
+      
+      {!article ? (
         <main className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto text-center">
             <h1 className="text-2xl font-bold mb-4">Статья не найдена</h1>
@@ -558,39 +541,9 @@ export default function BlogArticle() {
             </Link>
           </div>
         </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  const publishedDate = new Date(article.publishedAt).toLocaleDateString('ru-RU', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: article.title,
-          text: article.description,
-          url: window.location.href,
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
-    } else {
-      // Fallback - copy URL to clipboard
-      navigator.clipboard.writeText(window.location.href);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container mx-auto px-4 py-8">
+      ) : (
+        <>
+          <main className="container mx-auto px-4 py-8">
         {/* Back button */}
         <div className="mb-8">
           <Link href="/blog">
@@ -734,6 +687,8 @@ export default function BlogArticle() {
           </footer>
         </article>
       </main>
+      </>
+      )}
       
       <Footer />
     </div>
