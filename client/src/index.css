@@ -318,4 +318,51 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* Mobile-specific optimizations for ResCrub */
+  
+  /* Safe area support for iPhone/iOS */
+  .pb-safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mb-safe-area-inset-bottom {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Minimum touch target size for accessibility */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Mobile viewport units using dvh for better mobile support */
+  .min-h-screen-mobile {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+  
+  /* Bottom navigation spacing */
+  .pb-bottom-nav {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Mobile-optimized focus states */
+  @media (max-width: 768px) {
+    /* Larger touch targets on mobile */
+    button, [role="button"], a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Better scroll behavior on mobile */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Prevent horizontal scrolling */
+    body {
+      overflow-x: hidden;
+    }
+  }
 }

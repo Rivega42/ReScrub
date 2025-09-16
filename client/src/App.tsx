@@ -29,6 +29,7 @@ import CreateRequest from "@/pages/CreateRequest";
 import Notifications from "@/pages/Notifications";
 import Monitoring from "@/pages/Monitoring";
 import { AppSidebar } from "@/components/AppSidebar";
+import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
 function Router() {
@@ -81,21 +82,22 @@ function AppRoutes() {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex min-h-screen-mobile w-full">
         <AppSidebar />
         <SidebarInset>
-          <div className="flex flex-col">
-            <header className="flex items-center justify-between p-4 border-b">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
+          <div className="flex flex-col min-h-full">
+            <header className="flex items-center justify-between p-4 border-b bg-background sticky top-0 z-40">
+              <SidebarTrigger data-testid="button-sidebar-toggle" className="touch-target" />
               <div className="text-sm text-muted-foreground">
                 Личный кабинет ReScrub
               </div>
             </header>
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 overflow-auto pb-20 md:pb-0">
               <AppRoutesInner />
             </main>
           </div>
         </SidebarInset>
+        <BottomNav />
       </div>
     </SidebarProvider>
   );
