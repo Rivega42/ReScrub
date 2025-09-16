@@ -119,11 +119,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
             Панель управления
           </h1>
           <p className="text-muted-foreground">
@@ -131,14 +131,16 @@ export default function Dashboard() {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <Button 
             variant="outline" 
-            size="sm"
+            size="lg"
+            className="w-full sm:w-auto touch-target"
             data-testid="button-dashboard-view-notifications"
           >
             <Bell className="h-4 w-4 mr-2" />
-            Уведомления
+            <span className="hidden sm:inline">Уведомления</span>
+            <span className="sm:hidden">Увед.</span>
             {stats.unreadNotifications > 0 && (
               <Badge variant="destructive" className="ml-2 text-xs">
                 {stats.unreadNotifications}
@@ -146,11 +148,13 @@ export default function Dashboard() {
             )}
           </Button>
           <Button 
-            size="sm"
+            size="lg"
+            className="w-full sm:w-auto touch-target"
             data-testid="button-dashboard-new-request"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Новый запрос
+            <span className="hidden sm:inline">Новый запрос</span>
+            <span className="sm:hidden">Создать</span>
           </Button>
         </div>
       </div>
@@ -219,8 +223,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Requests & Notifications */}
-      <div className="grid gap-8 lg:grid-cols-3">
+      {/* Recent Requests & Notifications - Mobile Optimized */}
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Deletion Requests */}
         <div className="lg:col-span-2">
           <Card>
@@ -241,8 +245,8 @@ export default function Dashboard() {
                     <p className="font-medium">Запросов пока нет</p>
                     <p className="text-sm">Создайте первый запрос на удаление данных</p>
                     <Button 
-                      className="mt-3" 
-                      size="sm"
+                      className="mt-3 touch-target" 
+                      size="lg"
                       data-testid="button-create-first-request"
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -367,7 +371,8 @@ export default function Dashboard() {
                       <div className="text-center pt-2">
                         <Button 
                           variant="outline" 
-                          size="sm"
+                          size="lg"
+                          className="touch-target"
                           data-testid="button-view-all-notifications"
                         >
                           Все уведомления
