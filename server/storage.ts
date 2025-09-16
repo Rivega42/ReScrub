@@ -501,6 +501,170 @@ export class DatabaseStorage implements IStorage {
   async deleteDataBroker(id: string): Promise<void> {
     await db.delete(dataBrokers).where(eq(dataBrokers.id, id));
   }
+
+  // Demo account seeding for development
+  async seedDemoAccount(): Promise<void> {
+    console.log('🌱 Seeding demo account...');
+    
+    const demoEmail = 'demo@rescrub.ru';
+    const demoPassword = 'demo123';
+    
+    // Check if demo user already exists
+    let userAccount = await this.getUserAccountByEmail(demoEmail);
+    
+    if (!userAccount) {
+      // Create demo user account
+      userAccount = await this.createUserAccount({
+        email: demoEmail,
+        password: demoPassword,
+      });
+      
+      // Verify email immediately
+      await this.updateUserAccount(userAccount.id, {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      });
+      console.log(`✅ Created verified demo user: ${demoEmail}`);
+    } else {
+      console.log(`✅ Demo user already exists: ${demoEmail}`);
+    }
+
+    // Create or update demo user profile
+    let userProfile = await this.getUserProfile(userAccount.id);
+    if (!userProfile) {
+      userProfile = await this.createUserProfile({
+        userId: userAccount.id,
+        firstName: 'Демо',
+        lastName: 'Пользователь',
+        phone: '+7 900 000-00-00',
+      });
+      console.log('✅ Created demo user profile');
+    }
+
+    // Seed demo data
+    await this.seedDemoData(userAccount.id);
+    console.log('🎉 Demo account seeding completed!');
+    console.log(`📧 Login: ${demoEmail}`);
+    console.log(`🔑 Password: ${demoPassword}`);
+  }
+
+  private async seedDemoData(userId: string): Promise<void> {
+    // Clear existing demo data for idempotency
+    const existingRequests = await this.getUserDeletionRequests(userId);
+    if (existingRequests.length > 0) {
+      console.log('✅ Demo data already exists, skipping seeding');
+      return;
+    }
+
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Create deletion requests in various statuses
+    const sberRequest = await this.createDeletionRequest({
+      userId,
+      brokerName: 'Сбербанк',
+      requestType: 'deletion',
+      requestMethod: 'email',
+      requestDetails: { 
+        contactEmail: 'personaldata@sberbank.ru', 
+        personalInfo: { firstName: 'Демо', lastName: 'Пользователь', email: 'demo@rescrub.ru' } 
+      },
+    });
+    await this.updateDeletionRequest(sberRequest.id, {
+      status: 'sent',
+      sentAt: weekAgo,
+    });
+
+    const mtsRequest = await this.createDeletionRequest({
+      userId,
+      brokerName: 'МТС',  
+      requestType: 'deletion',
+      requestMethod: 'phone',
+      requestDetails: {
+        contactPhone: '8-800-250-0890',
+        personalInfo: { firstName: 'Демо', lastName: 'Пользователь', phone: '+7 900 000-00-00' }
+      },
+    });
+    await this.updateDeletionRequest(mtsRequest.id, {
+      status: 'processing',
+      followUpRequired: true,
+      followUpDate: weekLater,
+    });
+
+    const yandexRequest = await this.createDeletionRequest({
+      userId,
+      brokerName: 'Яндекс',
+      requestType: 'deletion',
+      requestMethod: 'email',
+      requestDetails: {
+        contactEmail: 'dataprotection@yandex.ru',
+        personalInfo: { firstName: 'Демо', lastName: 'Пользователь', email: 'demo@rescrub.ru' }
+      },
+    });
+    await this.updateDeletionRequest(yandexRequest.id, {
+      status: 'completed',
+      completedAt: now,
+    });
+
+    // Create demo documents
+    const passportDoc = await this.createDocument({
+      userId,
+      category: 'passport',
+      filename: 'passport_scan.pdf',
+      originalName: 'Паспорт_РФ_сканкопия.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 2048576,
+      filePath: '/uploads/passport_scan.pdf',
+      description: 'Сканкопия паспорта РФ',
+    });
+    await this.updateDocumentStatus(passportDoc.id, 'verified', 'Документ успешно верифицирован');
+
+    const powerDoc = await this.createDocument({
+      userId,
+      category: 'power_of_attorney',
+      filename: 'power_of_attorney.pdf',
+      originalName: 'Доверенность_нотариальная.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024768,
+      filePath: '/uploads/power_of_attorney.pdf',
+      description: 'Нотариальная доверенность',
+    });
+    await this.updateDocumentStatus(powerDoc.id, 'processing', 'Документ на проверке');
+
+    // Create demo data broker scan
+    const scan = await this.createDataBrokerScan({
+      userId,
+      brokerName: 'Комплексное сканирование',
+      dataFound: true,
+      recordsFound: 5,
+      dataTypes: ['email', 'phone', 'address'],
+    });
+    await this.updateScanStatus(scan.id, 'completed', {
+      brokers: ['Сбербанк', 'МТС', 'Яндекс'],
+      summary: 'Найдены персональные данные в 3 источниках'
+    });
+
+    // Create demo notifications
+    await this.createNotification({
+      userId,
+      type: 'in_app',
+      category: 'scan_completed',
+      title: 'Сканирование завершено',
+      message: 'Найдены персональные данные в 3 источниках. Рекомендуем отправить запросы на удаление.',
+    });
+
+    await this.createNotification({
+      userId,
+      type: 'in_app',
+      category: 'deletion_request',
+      title: 'Запрос отправлен в Сбербанк',
+      message: 'Ваш запрос на удаление персональных данных успешно отправлен.',
+    });
+
+    console.log('✅ Demo data seeded successfully');
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -1042,7 +1206,9 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const broker: DataBroker = {
       id: `broker_${this.idCounter++}_${Date.now()}`,
-      ...brokerData,
+      name: brokerData.name,
+      category: brokerData.category,
+      difficultyLevel: brokerData.difficultyLevel ?? 'medium',
       legalName: brokerData.legalName ?? null,
       description: brokerData.description ?? null,
       website: brokerData.website ?? null,
@@ -1094,6 +1260,169 @@ export class MemStorage implements IStorage {
     if (index !== -1) {
       this.dataBrokersData.splice(index, 1);
     }
+  }
+
+  // Demo account seeding for development (MemStorage)
+  async seedDemoAccount(): Promise<void> {
+    console.log('🌱 Seeding demo account (MemStorage)...');
+    
+    const demoEmail = 'demo@rescrub.ru';
+    const demoPassword = 'demo123';
+    
+    // Check if demo user already exists
+    let userAccount = this.userAccountsData.find(acc => acc.email === demoEmail);
+    
+    if (!userAccount) {
+      userAccount = await this.createUserAccount({
+        email: demoEmail,
+        password: demoPassword,
+      });
+      
+      // Verify email immediately
+      const verifiedAccount = await this.updateUserAccount(userAccount.id, {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      });
+      console.log(`✅ Created verified demo user: ${demoEmail}`);
+    } else {
+      console.log(`✅ Demo user already exists: ${demoEmail}`);
+    }
+
+    // Create or update demo user profile
+    let userProfile = this.userProfilesData.find(profile => profile.userId === userAccount.id);
+    if (!userProfile) {
+      userProfile = await this.createUserProfile({
+        userId: userAccount.id,
+        firstName: 'Демо',
+        lastName: 'Пользователь',
+        phone: '+7 900 000-00-00',
+      });
+      console.log('✅ Created demo user profile');
+    }
+
+    // Seed demo data
+    await this.seedDemoData(userAccount.id);
+    console.log('🎉 Demo account seeding completed!');
+    console.log(`📧 Login: ${demoEmail}`);
+    console.log(`🔑 Password: ${demoPassword}`);
+  }
+
+  private async seedDemoData(userId: string): Promise<void> {
+    // Clear existing demo data for idempotency  
+    const existingRequests = this.deletionRequestsData.filter(req => req.userId === userId);
+    if (existingRequests.length > 0) {
+      console.log('✅ Demo data already exists, skipping seeding');
+      return;
+    }
+
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Create deletion requests in various statuses
+    const sberRequest = await this.createDeletionRequest({
+      userId,
+      brokerName: 'Сбербанк',
+      requestType: 'deletion',
+      requestMethod: 'email',
+      requestDetails: {
+        contactEmail: 'personaldata@sberbank.ru',
+        personalInfo: { firstName: 'Демо', lastName: 'Пользователь', email: 'demo@rescrub.ru' }
+      },
+    });
+    await this.updateDeletionRequest(sberRequest.id, {
+      status: 'sent',
+      sentAt: weekAgo,
+    });
+
+    const mtsRequest = await this.createDeletionRequest({
+      userId,
+      brokerName: 'МТС',  
+      requestType: 'deletion',
+      requestMethod: 'phone',
+      requestDetails: {
+        contactPhone: '8-800-250-0890',
+        personalInfo: { firstName: 'Демо', lastName: 'Пользователь', phone: '+7 900 000-00-00' }
+      },
+    });
+    await this.updateDeletionRequest(mtsRequest.id, {
+      status: 'processing',
+      followUpRequired: true,
+      followUpDate: weekLater,
+    });
+
+    const yandexRequest = await this.createDeletionRequest({
+      userId,
+      brokerName: 'Яндекс',
+      requestType: 'deletion',
+      requestMethod: 'email',
+      requestDetails: {
+        contactEmail: 'dataprotection@yandex.ru',
+        personalInfo: { firstName: 'Демо', lastName: 'Пользователь', email: 'demo@rescrub.ru' }
+      },
+    });
+    await this.updateDeletionRequest(yandexRequest.id, {
+      status: 'completed',
+      completedAt: now,
+    });
+
+    // Create demo documents
+    const passportDoc = await this.createDocument({
+      userId,
+      category: 'passport',
+      filename: 'passport_scan.pdf',
+      originalName: 'Паспорт_РФ_сканкопия.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 2048576,
+      filePath: '/uploads/passport_scan.pdf',
+      description: 'Сканкопия паспорта РФ',
+    });
+    await this.updateDocumentStatus(passportDoc.id, 'verified', 'Документ успешно верифицирован');
+
+    const powerDoc = await this.createDocument({
+      userId,
+      category: 'power_of_attorney',
+      filename: 'power_of_attorney.pdf',
+      originalName: 'Доверенность_нотариальная.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024768,
+      filePath: '/uploads/power_of_attorney.pdf',
+      description: 'Нотариальная доверенность',
+    });
+    await this.updateDocumentStatus(powerDoc.id, 'processing', 'Документ на проверке');
+
+    // Create demo data broker scan
+    const scan = await this.createDataBrokerScan({
+      userId,
+      brokerName: 'Комплексное сканирование',
+      dataFound: true,
+      recordsFound: 5,
+      dataTypes: ['email', 'phone', 'address'],
+    });
+    await this.updateScanStatus(scan.id, 'completed', {
+      brokers: ['Сбербанк', 'МТС', 'Яндекс'],
+      summary: 'Найдены персональные данные в 3 источниках'
+    });
+
+    // Create demo notifications
+    await this.createNotification({
+      userId,
+      type: 'in_app',
+      category: 'scan_completed',
+      title: 'Сканирование завершено',
+      message: 'Найдены персональные данные в 3 источниках. Рекомендуем отправить запросы на удаление.',
+    });
+
+    await this.createNotification({
+      userId,
+      type: 'in_app',
+      category: 'deletion_request',
+      title: 'Запрос отправлен в Сбербанк',
+      message: 'Ваш запрос на удаление персональных данных успешно отправлен.',
+    });
+
+    console.log('✅ Demo data seeded successfully');
   }
 }
 
