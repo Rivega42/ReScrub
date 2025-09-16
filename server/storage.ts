@@ -5,6 +5,7 @@ import {
   userProfiles,
   phoneVerifications,
   documents,
+  dataBrokers,
   dataBrokerScans,
   deletionRequests,
   notifications,
@@ -20,6 +21,8 @@ import {
   type PhoneVerification,
   type Document,
   type InsertDocument,
+  type DataBroker,
+  type InsertDataBroker,
   type DataBrokerScan,
   type DeletionRequest,
   type InsertDeletionRequest,
@@ -87,6 +90,17 @@ export interface IStorage {
   listUserOAuthAccounts(userId: string): Promise<OAuthAccount[]>;
   unlinkOAuthAccount(oauthAccountId: string): Promise<boolean>;
   updateOAuthTokens(oauthAccountId: string, tokens: { accessTokenHash?: string; refreshTokenHash?: string; expiresAt?: Date }): Promise<OAuthAccount | undefined>;
+
+  // Data brokers directory operations
+  getAllDataBrokers(filters?: {
+    search?: string;
+    category?: string;
+    difficulty?: string;
+  }): Promise<DataBroker[]>;
+  getDataBrokerById(id: string): Promise<DataBroker | null>;
+  insertDataBroker(broker: InsertDataBroker): Promise<DataBroker>;
+  updateDataBroker(id: string, updates: Partial<InsertDataBroker>): Promise<DataBroker>;
+  deleteDataBroker(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -424,6 +438,69 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return account;
   }
+
+  // Data brokers directory operations
+  async getAllDataBrokers(filters?: {
+    search?: string;
+    category?: string;
+    difficulty?: string;
+  }): Promise<DataBroker[]> {
+    let query = db.select().from(dataBrokers).where(eq(dataBrokers.isActive, true));
+
+    // Apply filters
+    const conditions = [eq(dataBrokers.isActive, true)];
+    
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      conditions.push(
+        sql`(
+          LOWER(${dataBrokers.name}) LIKE ${searchTerm} OR
+          LOWER(${dataBrokers.description}) LIKE ${searchTerm} OR
+          ${dataBrokers.tags} && ARRAY[${filters.search.toLowerCase()}]
+        )`
+      );
+    }
+    
+    if (filters?.category && filters.category !== 'all') {
+      conditions.push(eq(dataBrokers.category, filters.category));
+    }
+    
+    if (filters?.difficulty && filters.difficulty !== 'all') {
+      conditions.push(eq(dataBrokers.difficultyLevel, filters.difficulty));
+    }
+
+    if (conditions.length > 1) {
+      query = db.select().from(dataBrokers).where(and(...conditions));
+    }
+
+    return query.orderBy(dataBrokers.name);
+  }
+
+  async getDataBrokerById(id: string): Promise<DataBroker | null> {
+    const [broker] = await db.select().from(dataBrokers).where(eq(dataBrokers.id, id));
+    return broker || null;
+  }
+
+  async insertDataBroker(brokerData: InsertDataBroker): Promise<DataBroker> {
+    const [broker] = await db
+      .insert(dataBrokers)
+      .values(brokerData)
+      .returning();
+    return broker;
+  }
+
+  async updateDataBroker(id: string, updates: Partial<InsertDataBroker>): Promise<DataBroker> {
+    const [broker] = await db
+      .update(dataBrokers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(dataBrokers.id, id))
+      .returning();
+    return broker;
+  }
+
+  async deleteDataBroker(id: string): Promise<void> {
+    await db.delete(dataBrokers).where(eq(dataBrokers.id, id));
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -432,12 +509,81 @@ export class MemStorage implements IStorage {
   private userProfilesData: UserProfile[] = [];
   private phoneVerificationsData: PhoneVerification[] = [];
   private documentsData: Document[] = [];
+  private dataBrokersData: DataBroker[] = [];
   private dataBrokerScansData: DataBrokerScan[] = [];
   private deletionRequestsData: DeletionRequest[] = [];
   private notificationsData: Notification[] = [];
   private oauthAccountsData: OAuthAccount[] = [];
   private ticketIdCounter = 1;
   private idCounter = 1;
+
+  constructor() {
+    // Seed data brokers for development
+    this.seedDataBrokers();
+  }
+
+  private seedDataBrokers() {
+    const now = new Date();
+    this.dataBrokersData = [
+      {
+        id: 'broker_1',
+        name: 'Сбербанк',
+        legalName: 'ПАО "Сбербанк России"',
+        category: 'банк',
+        description: 'Крупнейший банк России. Обрабатывает персональные данные клиентов для предоставления банковских услуг.',
+        website: 'https://sberbank.ru',
+        email: 'personaldata@sberbank.ru',
+        phone: '8-800-555-5550',
+        address: 'г. Москва, ул. Вавилова, д. 19',
+        privacyPolicyUrl: 'https://sberbank.ru/privacy',
+        removalInstructions: 'Подача заявления через отделение банка или письменное обращение с копией паспорта.',
+        isActive: true,
+        difficultyLevel: 'medium',
+        responseTime: '1-2 недели',
+        tags: ['банк', 'кредитная история', 'финансовые данные'],
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'broker_2',
+        name: 'МТС',
+        legalName: 'ПАО "Мобильные ТелеСистемы"',
+        category: 'телеком',
+        description: 'Крупнейший оператор сотовой связи. Хранит данные абонентов, историю звонков, SMS.',
+        website: 'https://mts.ru',
+        email: 'privacy@mts.ru',
+        phone: '8-800-250-0890',
+        address: 'г. Москва, ул. Марксистская, д. 4',
+        privacyPolicyUrl: 'https://mts.ru/personal-data',
+        removalInstructions: 'Обращение в офис МТС с паспортом или через личный кабинет.',
+        isActive: true,
+        difficultyLevel: 'easy',
+        responseTime: '3-5 дней',
+        tags: ['телеком', 'мобильная связь', 'геолокация'],
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'broker_3',
+        name: 'Яндекс',
+        legalName: 'ООО "Яндекс"',
+        category: 'технологии',
+        description: 'Интернет-компания. Собирает поисковые запросы, данные браузера, поведенческие данные.',
+        website: 'https://yandex.ru',
+        email: 'dataprotection@yandex.ru',
+        phone: '8-800-234-24-80',
+        address: 'г. Москва, ул. Льва Толстого, д. 16',
+        privacyPolicyUrl: 'https://yandex.ru/legal/confidential',
+        removalInstructions: 'Удаление аккаунта через настройки Яндекс ID.',
+        isActive: true,
+        difficultyLevel: 'medium',
+        responseTime: '1-2 недели',
+        tags: ['поисковик', 'реклама', 'поведенческие данные'],
+        createdAt: now,
+        updatedAt: now,
+      }
+    ];
+  }
 
   // Legacy Replit Auth (forwarded to database)
   async getUser(id: string): Promise<User | undefined> {
@@ -858,6 +1004,96 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     return this.oauthAccountsData[index];
+  }
+
+  // Data brokers directory operations (in-memory)
+  async getAllDataBrokers(filters?: {
+    search?: string;
+    category?: string;
+    difficulty?: string;
+  }): Promise<DataBroker[]> {
+    let result = this.dataBrokersData.filter(broker => broker.isActive);
+    
+    if (filters?.search) {
+      const searchTerm = filters.search.toLowerCase();
+      result = result.filter(broker => 
+        broker.name.toLowerCase().includes(searchTerm) ||
+        broker.description?.toLowerCase().includes(searchTerm) ||
+        broker.tags?.some(tag => tag.toLowerCase().includes(searchTerm))
+      );
+    }
+    
+    if (filters?.category && filters.category !== 'all') {
+      result = result.filter(broker => broker.category === filters.category);
+    }
+    
+    if (filters?.difficulty && filters.difficulty !== 'all') {
+      result = result.filter(broker => broker.difficultyLevel === filters.difficulty);
+    }
+    
+    return result.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getDataBrokerById(id: string): Promise<DataBroker | null> {
+    return this.dataBrokersData.find(broker => broker.id === id) || null;
+  }
+
+  async insertDataBroker(brokerData: InsertDataBroker): Promise<DataBroker> {
+    const now = new Date();
+    const broker: DataBroker = {
+      id: `broker_${this.idCounter++}_${Date.now()}`,
+      ...brokerData,
+      legalName: brokerData.legalName ?? null,
+      description: brokerData.description ?? null,
+      website: brokerData.website ?? null,
+      email: brokerData.email ?? null,
+      phone: brokerData.phone ?? null,
+      address: brokerData.address ?? null,
+      privacyPolicyUrl: brokerData.privacyPolicyUrl ?? null,
+      removalInstructions: brokerData.removalInstructions ?? null,
+      responseTime: brokerData.responseTime ?? null,
+      tags: brokerData.tags ?? null,
+      isActive: brokerData.isActive ?? true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.dataBrokersData.push(broker);
+    return broker;
+  }
+
+  async updateDataBroker(id: string, updates: Partial<InsertDataBroker>): Promise<DataBroker> {
+    const index = this.dataBrokersData.findIndex(broker => broker.id === id);
+    if (index === -1) {
+      throw new Error(`Data broker with id ${id} not found`);
+    }
+    
+    this.dataBrokersData[index] = {
+      ...this.dataBrokersData[index],
+      ...updates,
+      name: updates.name ?? this.dataBrokersData[index].name,
+      category: updates.category ?? this.dataBrokersData[index].category,
+      difficultyLevel: updates.difficultyLevel ?? this.dataBrokersData[index].difficultyLevel,
+      legalName: updates.legalName ?? this.dataBrokersData[index].legalName,
+      description: updates.description ?? this.dataBrokersData[index].description,
+      website: updates.website ?? this.dataBrokersData[index].website,
+      email: updates.email ?? this.dataBrokersData[index].email,
+      phone: updates.phone ?? this.dataBrokersData[index].phone,
+      address: updates.address ?? this.dataBrokersData[index].address,
+      privacyPolicyUrl: updates.privacyPolicyUrl ?? this.dataBrokersData[index].privacyPolicyUrl,
+      removalInstructions: updates.removalInstructions ?? this.dataBrokersData[index].removalInstructions,
+      responseTime: updates.responseTime ?? this.dataBrokersData[index].responseTime,
+      tags: updates.tags ?? this.dataBrokersData[index].tags,
+      updatedAt: new Date(),
+    };
+    return this.dataBrokersData[index];
+  }
+
+  async deleteDataBroker(id: string): Promise<void> {
+    const index = this.dataBrokersData.findIndex(broker => broker.id === id);
+    if (index !== -1) {
+      this.dataBrokersData.splice(index, 1);
+    }
   }
 }
 

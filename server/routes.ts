@@ -7,7 +7,9 @@ import {
   insertSupportTicketSchema, 
   insertUserAccountSchema, 
   insertUserProfileSchema,
-  type UserAccount 
+  insertDataBrokerSchema,
+  type UserAccount,
+  type DataBroker
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -395,6 +397,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error processing Mailganer webhook:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Data brokers directory API
+  app.get('/api/data-brokers', async (req, res) => {
+    try {
+      const { search, category, difficulty } = req.query as {
+        search?: string;
+        category?: string;
+        difficulty?: string;
+      };
+
+      const brokers = await storage.getAllDataBrokers({ search, category, difficulty });
+      res.json(brokers);
+    } catch (error) {
+      console.error('Error fetching data brokers:', error);
+      res.status(500).json({ message: 'Failed to fetch data brokers' });
+    }
+  });
+
+  app.get('/api/data-brokers/:id', async (req, res) => {
+    try {
+      const broker = await storage.getDataBrokerById(req.params.id);
+      if (!broker) {
+        return res.status(404).json({ message: 'Data broker not found' });
+      }
+      res.json(broker);
+    } catch (error) {
+      console.error('Error fetching data broker:', error);
+      res.status(500).json({ message: 'Failed to fetch data broker' });
     }
   });
 

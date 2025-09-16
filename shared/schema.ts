@@ -137,6 +137,27 @@ export const documents = pgTable("documents", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Data brokers directory (Russian operators reference)
+export const dataBrokers = pgTable("data_brokers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  legalName: varchar("legal_name"),
+  category: varchar("category").notNull(), // "банк", "телеком", "ритейл", "недвижимость", "государственный", "другое"
+  description: text("description"),
+  website: varchar("website"),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  address: text("address"),
+  privacyPolicyUrl: varchar("privacy_policy_url"),
+  removalInstructions: text("removal_instructions"),
+  isActive: boolean("is_active").default(true),
+  difficultyLevel: varchar("difficulty_level").notNull().default("medium"), // "easy", "medium", "hard"
+  responseTime: varchar("response_time"), // "1-3 дня", "неделя", "месяц", "не отвечают"
+  tags: text("tags").array(), // ["банк", "кредитная история", "персональные данные"]
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Data broker scan results
 export const dataBrokerScans = pgTable("data_broker_scans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -289,6 +310,12 @@ export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts).omit({
   updatedAt: true,
 });
 
+export const insertDataBrokerSchema = createInsertSchema(dataBrokers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UserAccount = typeof userAccounts.$inferSelect;
 export type InsertUserAccount = z.infer<typeof insertUserAccountSchema>;
@@ -306,3 +333,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = z.infer<typeof insertOAuthAccountSchema>;
+export type DataBroker = typeof dataBrokers.$inferSelect;
+export type InsertDataBroker = z.infer<typeof insertDataBrokerSchema>;
