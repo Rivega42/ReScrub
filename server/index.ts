@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { getSession } from "./replitAuth";
 
 const app = express();
 
@@ -65,6 +66,12 @@ app.use('/api/', generalLimiter);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Trust proxy for Replit environment
+app.set('trust proxy', 1);
+
+// Session middleware - CRITICAL: must be before routes!
+app.use(getSession());
 
 // Function to redact sensitive fields from logging
 function redactSensitiveData(path: string, data: Record<string, any>): Record<string, any> {
