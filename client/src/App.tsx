@@ -22,6 +22,8 @@ import Whitepaper from "@/pages/Whitepaper";
 import Status from "@/pages/Status";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -65,6 +67,36 @@ function Router() {
 
 // Protected app routes component
 function AppRoutes() {
+  // Custom sidebar width for personal cabinet
+  const style = {
+    "--sidebar-width": "20rem",       // 320px for better content
+    "--sidebar-width-icon": "4rem",   // default icon width
+  };
+
+  return (
+    <SidebarProvider style={style as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <SidebarInset>
+          <div className="flex flex-col">
+            <header className="flex items-center justify-between p-4 border-b">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div className="text-sm text-muted-foreground">
+                Личный кабинет ReScrub
+              </div>
+            </header>
+            <main className="flex-1 overflow-auto">
+              <AppRoutesInner />
+            </main>
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+// Inner routes without sidebar wrapper
+function AppRoutesInner() {
   return (
     <Switch>
       <Route path="/app/dashboard" component={Dashboard} />
