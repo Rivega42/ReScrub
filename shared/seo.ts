@@ -39,6 +39,20 @@ export interface TwitterCardMeta {
   image?: string;
 }
 
+export interface VKMeta {
+  title: string;
+  description: string;
+  image?: string;
+  url: string;
+}
+
+export interface TelegramMeta {
+  title: string;
+  description: string;
+  image?: string;
+  url: string;
+}
+
 export type RouteMetaMap = {
   [path: string]: PageMeta;
 };
@@ -302,7 +316,7 @@ export const SEO_CONSTANTS = {
   OG_IMAGE: {
     WIDTH: 1200,
     HEIGHT: 630,
-    DEFAULT_URL: '/og-image-default.png'
+    DEFAULT_URL: '/images/hero-og.png'
   },
   
   // Core Russian keywords for data protection
@@ -397,7 +411,8 @@ export const ROUTE_META: RouteMetaMap = {
     title: 'Блог ResCrub — Новости и советы по защите данных',
     description: 'Актуальные новости о защите персональных данных в России. Практические советы по соблюдению 152-ФЗ и защите приватности.',
     keywords: [...SEO_CONSTANTS.CORE_KEYWORDS, 'блог', 'новости', 'советы', 'статьи'],
-    type: 'website'
+    type: 'website',
+    ogImage: '/images/mascot-og.png'
   },
   
   '/faq': {
@@ -455,7 +470,8 @@ export const ROUTE_META: RouteMetaMap = {
     description: 'Войдите в личный кабинет ResCrub для управления защитой персональных данных и мониторинга соблюдения 152-ФЗ.',
     keywords: [...SEO_CONSTANTS.CORE_KEYWORDS, 'вход', 'авторизация', 'личный кабинет'],
     type: 'website',
-    robots: 'noindex, nofollow'
+    robots: 'noindex, nofollow',
+    ogImage: '/images/hero-og.png'
   },
   
   '/verify-email': {
@@ -472,7 +488,8 @@ export const ROUTE_META: RouteMetaMap = {
     description: 'Главная панель управления ResCrub. Обзор статуса защиты персональных данных и мониторинг соблюдения 152-ФЗ.',
     keywords: [...SEO_CONSTANTS.CORE_KEYWORDS, 'панель управления', 'dashboard', 'обзор'],
     type: 'profile',
-    robots: 'noindex, nofollow'
+    robots: 'noindex, nofollow',
+    ogImage: '/images/dashboard-og.png'
   },
   
   '/app/profile': {
@@ -512,7 +529,8 @@ export const ROUTE_META: RouteMetaMap = {
     description: 'Непрерывный мониторинг утечек персональных данных в интернете. Раннее обнаружение нарушений 152-ФЗ.',
     keywords: [...SEO_CONSTANTS.CORE_KEYWORDS, 'мониторинг', 'отслеживание', 'утечки', 'обнаружение'],
     type: 'service',
-    robots: 'noindex, nofollow'
+    robots: 'noindex, nofollow',
+    ogImage: '/images/monitoring-og.png'
   },
   
   '/app/notifications': {
@@ -555,6 +573,31 @@ export function buildTwitterTags(meta: PageMeta, path: string, baseUrl: string =
     image: meta.ogImage ? `${baseUrl}${meta.ogImage}` : `${baseUrl}${SEO_CONSTANTS.OG_IMAGE.DEFAULT_URL}`
   };
 }
+
+/**
+ * Build VK-specific meta tags (relies on Open Graph but with VK optimizations)
+ */
+export function buildVKTags(meta: PageMeta, path: string, baseUrl: string = SEO_CONSTANTS.BASE_URL): VKMeta {
+  return {
+    title: meta.title,
+    description: meta.description,
+    image: meta.ogImage ? `${baseUrl}${meta.ogImage}` : `${baseUrl}${SEO_CONSTANTS.OG_IMAGE.DEFAULT_URL}`,
+    url: meta.canonical || canonicalFromPath(path, baseUrl)
+  };
+}
+
+/**
+ * Build Telegram-specific meta tags
+ */
+export function buildTelegramTags(meta: PageMeta, path: string, baseUrl: string = SEO_CONSTANTS.BASE_URL): TelegramMeta {
+  return {
+    title: meta.title,
+    description: meta.description,
+    image: meta.ogImage ? `${baseUrl}${meta.ogImage}` : `${baseUrl}${SEO_CONSTANTS.OG_IMAGE.DEFAULT_URL}`,
+    url: meta.canonical || canonicalFromPath(path, baseUrl)
+  };
+}
+
 
 /**
  * Generate canonical URL from path
