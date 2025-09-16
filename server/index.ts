@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { getSession } from "./replitAuth";
+import { seoMetaInjection } from "./middleware/seo";
 
 const app = express();
 
@@ -72,6 +73,10 @@ app.set('trust proxy', 1);
 
 // Session middleware - CRITICAL: must be before routes!
 app.use(getSession());
+
+// SEO Meta Injection Middleware - must be before route handlers
+// Detects social media bots and injects dynamic meta tags for rich previews
+app.use(seoMetaInjection());
 
 // Function to redact sensitive fields from logging
 function redactSensitiveData(path: string, data: Record<string, any>): Record<string, any> {
