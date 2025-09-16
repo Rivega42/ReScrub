@@ -21,6 +21,7 @@ import Terms from "@/pages/Terms";
 import Whitepaper from "@/pages/Whitepaper";
 import Status from "@/pages/Status";
 import NotFound from "@/pages/not-found";
+import Dashboard from "@/pages/Dashboard";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -66,13 +67,7 @@ function Router() {
 function AppRoutes() {
   return (
     <Switch>
-      <Route path="/app/dashboard">
-        <div className="p-8">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Добро пожаловать в вашу панель управления ReScrub</p>
-          {/* TODO: Implement dashboard */}
-        </div>
-      </Route>
+      <Route path="/app/dashboard" component={Dashboard} />
       <Route path="/app/profile">
         <div className="p-8">
           <h1 className="text-2xl font-bold">Профиль</h1>
