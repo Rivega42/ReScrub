@@ -27,6 +27,7 @@ import Profile from "@/pages/Profile";
 import Documents from "@/pages/Documents";
 import CreateRequest from "@/pages/CreateRequest";
 import Notifications from "@/pages/Notifications";
+import Monitoring from "@/pages/Monitoring";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
@@ -107,13 +108,7 @@ function AppRoutesInner() {
       <Route path="/app/dashboard" component={Dashboard} />
       <Route path="/app/profile" component={Profile} />
       <Route path="/app/documents" component={Documents} />
-      <Route path="/app/monitoring">
-        <div className="p-8">
-          <h1 className="text-2xl font-bold">Мониторинг</h1>
-          <p className="text-muted-foreground">Отслеживание процесса удаления данных</p>
-          {/* TODO: Implement monitoring */}
-        </div>
-      </Route>
+      <Route path="/app/monitoring" component={Monitoring} />
       <Route path="/app/requests" component={Requests} />
       <Route path="/app/create-request" component={CreateRequest} />
       <Route path="/app/notifications" component={Notifications} />
