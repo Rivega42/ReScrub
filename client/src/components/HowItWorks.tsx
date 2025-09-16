@@ -4,51 +4,51 @@ import { Link } from "wouter";
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 sm:py-32">
+    <section id="how-it-works" className="py-16 sm:py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header - Cal.com style */}
+        {/* Header - Mobile optimized */}
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
             Защита данных не должна быть сложной
           </h2>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
             Мы обеспечиваем это с помощью автоматического удаления данных
           </p>
         </div>
 
-        {/* 5-step process based on incogni.com */}
-        <div className="mx-auto mt-16 max-w-4xl">
-          <div className="space-y-12">
+        {/* Mobile-optimized process steps */}
+        <div className="mx-auto mt-12 sm:mt-16 max-w-4xl">
+          <div className="space-y-8 sm:space-y-12">
             
-            {/* Step 1 */}
-            <div className="flex flex-col lg:flex-row lg:items-center gap-8" data-testid="step-1">
-              <div className="lg:w-1/2">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-                    <Search className="h-6 w-6 text-primary-foreground" />
+            {/* Step 1 - Mobile-first design */}
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8" data-testid="step-1">
+              <div className="md:w-1/2">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-4">
+                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-primary flex-shrink-0">
+                    <Search className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground">1. Начинаем со сканирования</h3>
-                    <p className="text-sm text-muted-foreground">~ 14 дней до решения</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg sm:text-xl font-semibold text-foreground">1. Начинаем со сканирования</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">~ 14 дней до решения</p>
                   </div>
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                   Мы сканируем сайты поиска людей на предмет вашей персональной информации 
                   и отправляем запросы на удаление при обнаружении записей.
                 </p>
               </div>
-              <div className="lg:w-1/2">
+              <div className="md:w-1/2">
                 <div className="aspect-video bg-muted/50 rounded-lg flex items-center justify-center">
                   <div className="text-center">
-                    <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground">Сканирование брокеров данных</p>
+                    <Search className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-2 sm:mb-4" />
+                    <p className="text-xs sm:text-sm text-muted-foreground">Сканирование брокеров данных</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Step 2 */}
-            <div className="flex flex-col lg:flex-row-reverse lg:items-center gap-8" data-testid="step-2">
+            <div className="flex flex-col md:flex-row-reverse md:items-center gap-6 md:gap-8" data-testid="step-2">
               <div className="lg:w-1/2">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
@@ -73,7 +73,7 @@ export default function HowItWorks() {
             </div>
 
             {/* Step 3 */}
-            <div className="flex flex-col lg:flex-row lg:items-center gap-8" data-testid="step-3">
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8" data-testid="step-3">
               <div className="lg:w-1/2">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">

@@ -4,19 +4,19 @@ import { Link } from "wouter";
 
 export default function WhatsAtStake() {
   return (
-    <section className="py-24 sm:py-32 bg-muted/30">
+    <section className="py-16 sm:py-24 md:py-32 bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
             Вот что поставлено на карту
           </h2>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
             Ваши персональные данные в открытом доступе создают серьезные риски для вашей безопасности, 
             финансового благополучия и приватности.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:gap-12">
+        <div className="mt-12 sm:mt-16 grid gap-6 sm:grid-cols-2 sm:gap-8 lg:gap-12">
           {/* Повседневные неудобства */}
           <div className="relative overflow-hidden rounded-lg bg-background border border-border p-8 shadow-sm" data-testid="card-risk-daily">
             <div className="flex items-center mb-6">

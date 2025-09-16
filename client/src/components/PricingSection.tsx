@@ -58,20 +58,20 @@ export default function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-20">
+    <section id="pricing" className="py-16 sm:py-20 md:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header - Cal.com style */}
+        {/* Header - Mobile optimized */}
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground">
             Прозрачное ценообразование
           </h2>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
             Выберите тариф для автоматической защиты ваших персональных данных в интернете
           </p>
         </div>
 
-        {/* Pricing grid - Cal.com style minimal */}
-        <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-8 lg:max-w-4xl lg:grid-cols-3">
+        {/* Mobile-responsive pricing grid */}
+        <div className="mx-auto mt-12 sm:mt-16 grid max-w-lg grid-cols-1 gap-6 sm:gap-8 lg:max-w-4xl lg:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -122,7 +122,8 @@ export default function PricingSection() {
               
               <Button 
                 asChild
-                className="w-full"
+                size="lg"
+                className="w-full touch-target"
                 variant={plan.popular ? 'default' : 'outline'}
                 data-testid={`button-${plan.name.toLowerCase()}`}
               >

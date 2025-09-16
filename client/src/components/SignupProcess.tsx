@@ -6,25 +6,25 @@ import { Link } from "wouter";
 
 export default function SignupProcess() {
   return (
-    <section id="signup-process" className="py-24 sm:py-32">
+    <section id="signup-process" className="py-16 sm:py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header - Cal.com style */}
+        {/* Header - Mobile optimized */}
         <div className="mx-auto max-w-2xl text-center">
-          <Badge className="mb-8" data-testid="badge-152-fz">
+          <Badge className="mb-6 sm:mb-8" data-testid="badge-152-fz">
             <Shield className="mr-2 h-4 w-4" />
             Соответствует 152-ФЗ
           </Badge>
-          <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="text-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
             Начните защиту за 3 простых шага
           </h2>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
             Процесс регистрации займёт всего 5 минут, а первые результаты вы увидите уже через 24 часа
           </p>
         </div>
 
-        {/* 3-step process grid */}
-        <div className="mx-auto mt-16 max-w-5xl">
-          <div className="grid gap-8 md:grid-cols-3">
+        {/* Mobile-responsive 3-step process grid */}
+        <div className="mx-auto mt-12 sm:mt-16 max-w-5xl">
+          <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
             
             {/* Step 1: Registration and Data Input */}
             <Card className="relative hover-elevate" data-testid="step-1">
