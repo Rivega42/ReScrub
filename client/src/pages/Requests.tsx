@@ -45,6 +45,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -106,11 +115,115 @@ const statusConfig = {
   },
 };
 
+// Mobile Card Component for Request List
+function RequestMobileCard({ 
+  request, 
+  onView, 
+  onStatusUpdate, 
+  isUpdating 
+}: { 
+  request: DeletionRequest; 
+  onView: (request: DeletionRequest) => void; 
+  onStatusUpdate: (id: string, status: string) => void;
+  isUpdating: boolean;
+}) {
+  const statusInfo = statusConfig[request.status];
+  const IconComponent = statusInfo.icon;
+  
+  return (
+    <Card className="hover-elevate" data-testid={`request-card-${request.id}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Globe className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base font-medium truncate" data-testid={`request-broker-${request.id}`}>
+                {request.dataBroker?.name || 'Неизвестный провайдер'}
+              </CardTitle>
+              <CardDescription className="text-sm truncate">
+                {request.dataBroker?.website || 'Нет данных'}
+              </CardDescription>
+            </div>
+          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex-shrink-0 touch-target"
+                data-testid={`button-actions-${request.id}`}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onView(request)}>
+                <Eye className="h-4 w-4 mr-2" />
+                Просмотр
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onStatusUpdate(request.id, 'processing')}
+                disabled={isUpdating}
+              >
+                <Activity className="h-4 w-4 mr-2" />
+                В обработке
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => onStatusUpdate(request.id, 'completed')}
+                disabled={isUpdating}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Выполнено
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <IconComponent className="h-4 w-4" />
+            <Badge 
+              variant={statusInfo.color}
+              data-testid={`request-status-${request.id}`}
+            >
+              {statusInfo.label}
+            </Badge>
+            {request.followUpRequired && (
+              <Badge variant="outline" className="text-xs">
+                Требует действий
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            <span>{new Date(request.createdAt).toLocaleDateString('ru-RU')}</span>
+          </div>
+          {request.completedAt && (
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              <span>{new Date(request.completedAt).toLocaleDateString('ru-RU')}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Requests() {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<DeletionRequest | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Fetch deletion requests
   const { data: requests = [], isLoading, error, refetch } = useQuery<DeletionRequest[]>({
@@ -213,31 +326,93 @@ export default function Requests() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
             Запросы на удаление
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             Управление запросами на удаление персональных данных
           </p>
         </div>
         
-        <Button 
-          asChild
-          data-testid="button-create-request"
-        >
-          <Link href="/app/create-request">
-            <Plus className="h-4 w-4 mr-2" />
-            Создать запрос
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                  data-testid="button-filters-mobile"
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Фильтры
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[80vh]">
+                <SheetHeader>
+                  <SheetTitle>Фильтры</SheetTitle>
+                  <SheetDescription>
+                    Найдите нужные запросы
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <Label htmlFor="mobile-search">Поиск</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="mobile-search"
+                        placeholder="Поиск по названию или сайту брокера..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-search-requests-mobile"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="mobile-status-filter">Статус</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger data-testid="select-status-filter-mobile">
+                        <SelectValue placeholder="Все статусы" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все статусы</SelectItem>
+                        <SelectItem value="pending">В ожидании</SelectItem>
+                        <SelectItem value="sent">Отправлен</SelectItem>
+                        <SelectItem value="processing">Обрабатывается</SelectItem>
+                        <SelectItem value="completed">Выполнен</SelectItem>
+                        <SelectItem value="rejected">Отклонен</SelectItem>
+                        <SelectItem value="failed">Ошибка</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+          
+          <Button 
+            asChild
+            size={isMobile ? "sm" : "default"}
+            className="flex-1 sm:flex-none"
+            data-testid="button-create-request"
+          >
+            <Link href="/app/create-request">
+              <Plus className="h-4 w-4 mr-2" />
+              {isMobile ? "Создать" : "Создать запрос"}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 grid-cols-2 md:gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card data-testid="card-stat-total-requests">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Всего</CardTitle>
@@ -304,51 +479,53 @@ export default function Requests() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Фильтры
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Label htmlFor="search">Поиск</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Поиск по названию или сайту брокера..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-requests"
-                />
+      {/* Desktop Filters - Hidden on Mobile */}
+      {!isMobile && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Фильтры
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="search">Поиск</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Поиск по названию или сайту брокера..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-requests"
+                  />
+                </div>
+              </div>
+              
+              <div className="w-full md:w-48">
+                <Label htmlFor="status-filter">Статус</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger data-testid="select-status-filter">
+                    <SelectValue placeholder="Все статусы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все статусы</SelectItem>
+                    <SelectItem value="pending">В ожидании</SelectItem>
+                    <SelectItem value="sent">Отправлен</SelectItem>
+                    <SelectItem value="processing">Обрабатывается</SelectItem>
+                    <SelectItem value="completed">Выполнен</SelectItem>
+                    <SelectItem value="rejected">Отклонен</SelectItem>
+                    <SelectItem value="failed">Ошибка</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="w-full md:w-48">
-              <Label htmlFor="status-filter">Статус</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger data-testid="select-status-filter">
-                  <SelectValue placeholder="Все статусы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="pending">В ожидании</SelectItem>
-                  <SelectItem value="sent">Отправлен</SelectItem>
-                  <SelectItem value="processing">Обрабатывается</SelectItem>
-                  <SelectItem value="completed">Выполнен</SelectItem>
-                  <SelectItem value="rejected">Отклонен</SelectItem>
-                  <SelectItem value="failed">Ошибка</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Requests Table */}
       <Card>
@@ -391,141 +568,159 @@ export default function Requests() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Брокер</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Создан</TableHead>
-                    <TableHead>Обновлен</TableHead>
-                    <TableHead>Действия</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => {
-                    const statusInfo = statusConfig[request.status];
-                    const IconComponent = statusInfo.icon;
-                    
-                    return (
-                      <TableRow 
-                        key={request.id}
-                        className="hover-elevate cursor-pointer"
-                        onClick={() => setSelectedRequest(request)}
-                        data-testid={`request-row-${request.id}`}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Globe className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium" data-testid={`request-broker-${request.id}`}>
-                                {request.dataBroker?.name || 'Неизвестный провайдер'}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {request.dataBroker?.website || 'Нет данных'}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <IconComponent className="h-4 w-4" />
-                            <Badge 
-                              variant={statusInfo.color}
-                              data-testid={`request-status-${request.id}`}
-                            >
-                              {statusInfo.label}
-                            </Badge>
-                            {request.followUpRequired && (
-                              <Badge variant="outline" className="text-xs">
-                                Требует действий
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="text-sm">
-                            {new Date(request.createdAt).toLocaleDateString('ru-RU')}
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="text-sm">
-                            {request.completedAt 
-                              ? new Date(request.completedAt).toLocaleDateString('ru-RU')
-                              : '—'
-                            }
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedRequest(request);
-                              }}
-                              data-testid={`button-view-${request.id}`}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              disabled={['completed', 'rejected', 'failed'].includes(request.status)}
-                              data-testid={`button-edit-${request.id}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                data-testid={`button-actions-${request.id}`}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSelectedRequest(request)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Просмотр
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(request.id, 'processing')}
-                                disabled={updateRequestMutation.isPending}
-                              >
-                                <Activity className="h-4 w-4 mr-2" />
-                                Отметить как обрабатывается
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusUpdate(request.id, 'completed')}
-                                disabled={updateRequestMutation.isPending}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Отметить как выполнено
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+            <>
+              {/* Mobile Card List */}
+              {isMobile ? (
+                <div className="space-y-3" data-testid="requests-mobile-list">
+                  {filteredRequests.map((request) => (
+                    <RequestMobileCard
+                      key={request.id}
+                      request={request}
+                      onView={setSelectedRequest}
+                      onStatusUpdate={handleStatusUpdate}
+                      isUpdating={updateRequestMutation.isPending}
+                    />
+                  ))}
+                </div>
+              ) : (
+                /* Desktop Table */
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Брокер</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead>Создан</TableHead>
+                        <TableHead>Обновлен</TableHead>
+                        <TableHead>Действия</TableHead>
+                        <TableHead></TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests.map((request) => {
+                        const statusInfo = statusConfig[request.status];
+                        const IconComponent = statusInfo.icon;
+                        
+                        return (
+                          <TableRow 
+                            key={request.id}
+                            className="hover-elevate cursor-pointer"
+                            onClick={() => setSelectedRequest(request)}
+                            data-testid={`request-row-${request.id}`}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Globe className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <p className="font-medium" data-testid={`request-broker-${request.id}`}>
+                                    {request.dataBroker?.name || 'Неизвестный провайдер'}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {request.dataBroker?.website || 'Нет данных'}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <IconComponent className="h-4 w-4" />
+                                <Badge 
+                                  variant={statusInfo.color}
+                                  data-testid={`request-status-${request.id}`}
+                                >
+                                  {statusInfo.label}
+                                </Badge>
+                                {request.followUpRequired && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Требует действий
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            
+                            <TableCell>
+                              <div className="text-sm">
+                                {new Date(request.createdAt).toLocaleDateString('ru-RU')}
+                              </div>
+                            </TableCell>
+                            
+                            <TableCell>
+                              <div className="text-sm">
+                                {request.completedAt 
+                                  ? new Date(request.completedAt).toLocaleDateString('ru-RU')
+                                  : '—'
+                                }
+                              </div>
+                            </TableCell>
+                            
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedRequest(request);
+                                  }}
+                                  data-testid={`button-view-${request.id}`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  disabled={['completed', 'rejected', 'failed'].includes(request.status)}
+                                  data-testid={`button-edit-${request.id}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    data-testid={`button-actions-${request.id}`}
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setSelectedRequest(request)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Просмотр
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleStatusUpdate(request.id, 'processing')}
+                                    disabled={updateRequestMutation.isPending}
+                                  >
+                                    <Activity className="h-4 w-4 mr-2" />
+                                    Отметить как обрабатывается
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleStatusUpdate(request.id, 'completed')}
+                                    disabled={updateRequestMutation.isPending}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Отметить как выполнено
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
