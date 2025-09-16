@@ -22,6 +22,7 @@ import Whitepaper from "@/pages/Whitepaper";
 import Status from "@/pages/Status";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
+import Requests from "@/pages/Requests";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
@@ -121,11 +122,12 @@ function AppRoutesInner() {
           {/* TODO: Implement monitoring */}
         </div>
       </Route>
-      <Route path="/app/requests">
+      <Route path="/app/requests" component={Requests} />
+      <Route path="/app/create-request">
         <div className="p-8">
-          <h1 className="text-2xl font-bold">Запросы</h1>
-          <p className="text-muted-foreground">История запросов на удаление</p>
-          {/* TODO: Implement requests */}
+          <h1 className="text-2xl font-bold">Создать запрос</h1>
+          <p className="text-muted-foreground">Форма создания нового запроса на удаление данных</p>
+          {/* TODO: Implement create request form */}
         </div>
       </Route>
       {/* Default app route */}
