@@ -512,6 +512,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ========================================
+  // TECHNICAL SEO ROUTES
+  // ========================================
+
+  // Robots.txt endpoint for search engine crawling instructions
+  app.get('/robots.txt', (req, res) => {
+    try {
+      const baseUrl = req.protocol + '://' + req.get('host');
+      
+      const robotsContent = `# ResCrub - Russian Data Protection Platform
+# Robots.txt for SEO compliance and crawling guidance
+
+User-agent: *
+
+# Allow public pages
+Allow: /
+Allow: /about
+Allow: /blog
+Allow: /contacts
+Allow: /support
+Allow: /data-brokers
+Allow: /whitepaper
+Allow: /system-status
+Allow: /faq
+Allow: /privacy
+Allow: /terms
+Allow: /status
+
+# Allow static assets
+Allow: /assets/
+Allow: /images/
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.webp$
+Allow: /*.svg$
+Allow: /*.ico$
+
+# Disallow protected application routes
+Disallow: /app/
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+
+# Disallow API endpoints and sensitive paths
+Disallow: /api/
+Disallow: /_vite/
+Disallow: /node_modules/
+Disallow: /.git/
+
+# Russian search engines support
+# Yandex-specific directives
+User-agent: YandexBot
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: ${baseUrl}/sitemap.xml
+
+# Host directive for primary domain (helps with canonicalization)
+Host: ${baseUrl.replace(/^https?:\/\//, '')}`;
+
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      res.send(robotsContent);
+    } catch (error) {
+      console.error('Error generating robots.txt:', error);
+      res.status(500).send('# Error generating robots.txt');
+    }
+  });
+
+  // Dynamic sitemap.xml generation for search engines
+  app.get('/sitemap.xml', (req, res) => {
+    try {
+      const baseUrl = req.protocol + '://' + req.get('host');
+      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Define public pages with SEO metadata
+      const publicPages = [
+        { 
+          url: '/', 
+          priority: '1.0', 
+          changefreq: 'daily',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/about', 
+          priority: '0.8', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/blog', 
+          priority: '0.9', 
+          changefreq: 'weekly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/data-brokers', 
+          priority: '0.8', 
+          changefreq: 'weekly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/contacts', 
+          priority: '0.7', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/support', 
+          priority: '0.7', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/whitepaper', 
+          priority: '0.8', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/faq', 
+          priority: '0.7', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/privacy', 
+          priority: '0.6', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/terms', 
+          priority: '0.6', 
+          changefreq: 'monthly',
+          lastmod: currentDate 
+        },
+        { 
+          url: '/status', 
+          priority: '0.5', 
+          changefreq: 'daily',
+          lastmod: currentDate 
+        }
+      ];
+
+      // Generate XML sitemap content
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${publicPages.map(page => `  <url>
+    <loc>${baseUrl}${page.url}</loc>
+    <lastmod>${page.lastmod}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+    <!-- Russian language targeting for international SEO -->
+    <xhtml:link rel="alternate" hreflang="ru" href="${baseUrl}${page.url}" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}${page.url}" />
+  </url>`).join('\n')}
+</urlset>`;
+
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.send(sitemapXml);
+    } catch (error) {
+      console.error('Error generating sitemap.xml:', error);
+      res.status(500).send('<?xml version="1.0" encoding="UTF-8"?><error>Failed to generate sitemap</error>');
+    }
+  });
+
+  // ========================================
   // MAILGANER.RU WEBHOOK ROUTES
   // ========================================
   
