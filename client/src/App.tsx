@@ -10,6 +10,7 @@ import Login from "@/pages/Login";
 import VerifyEmail from "@/pages/VerifyEmail";
 import About from "@/pages/About";
 import Blog from "@/pages/Blog";
+import BlogArticle from "@/pages/BlogArticle";
 import Reports from "@/pages/Reports";
 import FAQ from "@/pages/FAQ";
 import Support from "@/pages/Support";
@@ -28,6 +29,7 @@ function Router() {
       {/* Public routes */}
       <Route path="/login" component={Login} />
       <Route path="/verify-email" component={VerifyEmail} />
+      <Route path="/blog/:slug" component={BlogArticle} />
       <Route path="/blog" component={Blog} />
       <Route path="/about" component={About} />
       <Route path="/faq" component={FAQ} />
