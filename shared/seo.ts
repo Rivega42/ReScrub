@@ -51,17 +51,53 @@ export interface JsonLdOrganization {
   url: string;
   logo?: string;
   description: string;
+  legalName?: string;
+  foundingDate?: string;
+  taxID?: string;
   address?: {
     '@type': 'PostalAddress';
-    addressCountry: string;
+    streetAddress?: string;
     addressLocality?: string;
+    addressRegion?: string;
+    postalCode?: string;
+    addressCountry: string;
   };
   contactPoint?: {
     '@type': 'ContactPoint';
     contactType: string;
+    telephone?: string;
     email?: string;
     url?: string;
+    availableLanguage?: string[];
+    areaServed?: {
+      '@type': 'Country';
+      name: string;
+    };
+    hoursAvailable?: {
+      '@type': 'OpeningHoursSpecification';
+      dayOfWeek: string[];
+      opens: string;
+      closes: string;
+    }[];
+  }[] | {
+    '@type': 'ContactPoint';
+    contactType: string;
+    telephone?: string;
+    email?: string;
+    url?: string;
+    availableLanguage?: string[];
+    areaServed?: {
+      '@type': 'Country';
+      name: string;
+    };
+    hoursAvailable?: {
+      '@type': 'OpeningHoursSpecification';
+      dayOfWeek: string[];
+      opens: string;
+      closes: string;
+    }[];
   };
+  sameAs?: string[];
 }
 
 export interface JsonLdService {
@@ -73,11 +109,32 @@ export interface JsonLdService {
     '@type': 'Organization';
     name: string;
     url: string;
+    legalName?: string;
   };
   serviceType: string;
+  category?: string;
   areaServed: {
     '@type': 'Country';
     name: string;
+  };
+  availableLanguage?: string[];
+  termsOfService?: string;
+  privacyPolicy?: string;
+  serviceAudience?: {
+    '@type': 'Audience';
+    audienceType: string;
+  };
+  hasOfferCatalog?: {
+    '@type': 'OfferCatalog';
+    name: string;
+    itemListElement: {
+      '@type': 'Offer';
+      itemOffered: {
+        '@type': 'Service';
+        name: string;
+        description: string;
+      };
+    }[];
   };
 }
 
@@ -86,6 +143,7 @@ export interface JsonLdArticle {
   '@type': 'Article';
   headline: string;
   description: string;
+  inLanguage?: string;
   author: {
     '@type': 'Organization';
     name: string;
@@ -98,10 +156,136 @@ export interface JsonLdArticle {
     logo?: {
       '@type': 'ImageObject';
       url: string;
+      width?: number;
+      height?: number;
     };
   };
   datePublished: string;
   dateModified: string;
+  keywords?: string;
+  about?: {
+    '@type': 'Thing';
+    name: string;
+    description: string;
+  };
+  isPartOf?: {
+    '@type': 'WebSite';
+    name: string;
+    url: string;
+  };
+}
+
+export interface JsonLdWebSite {
+  '@context': 'https://schema.org';
+  '@type': 'WebSite';
+  name: string;
+  alternateName?: string;
+  url: string;
+  description: string;
+  inLanguage: string;
+  potentialAction?: {
+    '@type': 'SearchAction';
+    target: {
+      '@type': 'EntryPoint';
+      urlTemplate: string;
+    };
+    'query-input': string;
+  };
+  publisher: {
+    '@type': 'Organization';
+    name: string;
+    url: string;
+  };
+  copyrightYear?: number;
+  copyrightHolder?: {
+    '@type': 'Organization';
+    name: string;
+    url: string;
+  };
+  audience?: {
+    '@type': 'Audience';
+    audienceType: string;
+    geographicArea: {
+      '@type': 'Country';
+      name: string;
+    };
+  };
+  mainEntity?: {
+    '@type': 'Organization';
+    name: string;
+    description: string;
+  };
+}
+
+export interface JsonLdContactPoint {
+  '@context': 'https://schema.org';
+  '@type': 'ContactPoint';
+  contactType: string;
+  telephone?: string;
+  email?: string;
+  url?: string;
+  availableLanguage: string[];
+  hoursAvailable?: {
+    '@type': 'OpeningHoursSpecification';
+    dayOfWeek: string[];
+    opens: string;
+    closes: string;
+  }[];
+  areaServed: {
+    '@type': 'Country';
+    name: string;
+  };
+}
+
+export interface JsonLdBreadcrumbList {
+  '@context': 'https://schema.org';
+  '@type': 'BreadcrumbList';
+  itemListElement: {
+    '@type': 'ListItem';
+    position: number;
+    name: string;
+    item?: string;
+  }[];
+}
+
+export interface JsonLdWebPage {
+  '@context': 'https://schema.org';
+  '@type': 'WebPage' | 'HomePage' | 'AboutPage' | 'ContactPage' | 'ProfilePage';
+  name: string;
+  description: string;
+  url: string;
+  inLanguage: string;
+  isPartOf: {
+    '@type': 'WebSite';
+    name: string;
+    url: string;
+  };
+  breadcrumb?: {
+    '@type': 'BreadcrumbList';
+    itemListElement: {
+      '@type': 'ListItem';
+      position: number;
+      name: string;
+      item?: string;
+    }[];
+  };
+  mainEntity?: {
+    '@type': 'Organization' | 'Service' | 'Article';
+    name: string;
+    description: string;
+  };
+  datePublished?: string;
+  dateModified?: string;
+  primaryImageOfPage?: {
+    '@type': 'ImageObject';
+    url: string;
+    width: number;
+    height: number;
+  };
+  speakable?: {
+    '@type': 'SpeakableSpecification';
+    cssSelector: string[];
+  };
 }
 
 // ========== SEO Constants ==========
@@ -147,7 +331,33 @@ export const SEO_CONSTANTS = {
     'удаление из баз данных',
     'мониторинг утечек',
     'безопасность данных'
-  ]
+  ],
+  
+  // Russian business information for Schema.org
+  RUSSIAN_BUSINESS: {
+    LEGAL_NAME: 'ООО "РесКраб"',
+    LEGAL_ADDRESS: {
+      streetAddress: 'ул. Тверская, д. 10, стр. 1',
+      addressLocality: 'Москва',
+      addressRegion: 'Москва',
+      postalCode: '125009',
+      addressCountry: 'RU'
+    },
+    PHONE: '+7 (495) 123-45-67',
+    EMAIL: 'support@rescrub.ru',
+    SUPPORT_EMAIL: 'help@rescrub.ru',
+    LEGAL_EMAIL: 'legal@rescrub.ru',
+    TIMEZONE: 'Europe/Moscow',
+    BUSINESS_HOURS: {
+      opens: '09:00',
+      closes: '18:00',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    },
+    FOUNDED_YEAR: 2024,
+    TAX_ID: '7701234567', // Example INN
+    CURRENCIES: ['RUB'],
+    LANGUAGES: ['ru', 'en']
+  }
 };
 
 // ========== Route Meta Configuration ==========
@@ -394,13 +604,49 @@ export function buildJsonLd(
 ): JsonLdArticle;
 
 /**
+ * Build JSON-LD structured data - WebSite overload
+ */
+export function buildJsonLd(
+  type: 'WebSite',
+  data?: Partial<JsonLdWebSite>,
+  baseUrl?: string
+): JsonLdWebSite;
+
+/**
+ * Build JSON-LD structured data - ContactPoint overload
+ */
+export function buildJsonLd(
+  type: 'ContactPoint',
+  data?: Partial<JsonLdContactPoint>,
+  baseUrl?: string
+): JsonLdContactPoint;
+
+/**
+ * Build JSON-LD structured data - BreadcrumbList overload
+ */
+export function buildJsonLd(
+  type: 'BreadcrumbList',
+  data?: Partial<JsonLdBreadcrumbList>,
+  baseUrl?: string
+): JsonLdBreadcrumbList;
+
+/**
+ * Build JSON-LD structured data - WebPage overload
+ */
+export function buildJsonLd(
+  type: 'WebPage',
+  data?: Partial<JsonLdWebPage>,
+  baseUrl?: string
+): JsonLdWebPage;
+
+/**
  * Build JSON-LD structured data - Implementation
  */
 export function buildJsonLd(
-  type: 'Organization' | 'Service' | 'Article',
-  data: Partial<JsonLdOrganization> | Partial<JsonLdService> | Partial<JsonLdArticle> = {},
+  type: 'Organization' | 'Service' | 'Article' | 'WebSite' | 'ContactPoint' | 'BreadcrumbList' | 'WebPage',
+  data: Partial<JsonLdOrganization> | Partial<JsonLdService> | Partial<JsonLdArticle> | Partial<JsonLdWebSite> | Partial<JsonLdContactPoint> | Partial<JsonLdBreadcrumbList> | Partial<JsonLdWebPage> = {},
   baseUrl: string = SEO_CONSTANTS.BASE_URL
-): JsonLdOrganization | JsonLdService | JsonLdArticle {
+): JsonLdOrganization | JsonLdService | JsonLdArticle | JsonLdWebSite | JsonLdContactPoint | JsonLdBreadcrumbList | JsonLdWebPage {
   
   const commonOrgData = {
     name: SEO_CONSTANTS.SITE_NAME,
@@ -417,17 +663,62 @@ export function buildJsonLd(
         ...commonOrgData,
         alternateName: orgData.alternateName || 'ResCrub.ru',
         logo: orgData.logo || `${baseUrl}/logo.png`,
+        foundingDate: `${SEO_CONSTANTS.RUSSIAN_BUSINESS.FOUNDED_YEAR}-01-01`,
+        legalName: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_NAME,
+        taxID: SEO_CONSTANTS.RUSSIAN_BUSINESS.TAX_ID,
         address: orgData.address || {
           '@type': 'PostalAddress',
-          addressCountry: 'RU',
-          addressLocality: 'Москва'
+          streetAddress: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS.streetAddress,
+          addressLocality: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS.addressLocality,
+          addressRegion: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS.addressRegion,
+          postalCode: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS.postalCode,
+          addressCountry: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS.addressCountry
         },
-        contactPoint: orgData.contactPoint || {
-          '@type': 'ContactPoint',
-          contactType: 'customer service',
-          email: 'support@rescrub.ru',
-          url: `${baseUrl}/support`
-        }
+        contactPoint: [
+          {
+            '@type': 'ContactPoint',
+            contactType: 'customer service',
+            telephone: SEO_CONSTANTS.RUSSIAN_BUSINESS.PHONE,
+            email: SEO_CONSTANTS.RUSSIAN_BUSINESS.SUPPORT_EMAIL,
+            url: `${baseUrl}/support`,
+            availableLanguage: SEO_CONSTANTS.RUSSIAN_BUSINESS.LANGUAGES,
+            areaServed: {
+              '@type': 'Country',
+              name: 'Россия'
+            },
+            hoursAvailable: [{
+              '@type': 'OpeningHoursSpecification',
+              dayOfWeek: SEO_CONSTANTS.RUSSIAN_BUSINESS.BUSINESS_HOURS.dayOfWeek,
+              opens: SEO_CONSTANTS.RUSSIAN_BUSINESS.BUSINESS_HOURS.opens,
+              closes: SEO_CONSTANTS.RUSSIAN_BUSINESS.BUSINESS_HOURS.closes
+            }]
+          },
+          {
+            '@type': 'ContactPoint',
+            contactType: 'technical support',
+            email: SEO_CONSTANTS.RUSSIAN_BUSINESS.EMAIL,
+            url: `${baseUrl}/support`,
+            availableLanguage: ['ru'],
+            areaServed: {
+              '@type': 'Country',
+              name: 'Россия'
+            }
+          },
+          {
+            '@type': 'ContactPoint',
+            contactType: 'legal',
+            email: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_EMAIL,
+            availableLanguage: ['ru'],
+            areaServed: {
+              '@type': 'Country',
+              name: 'Россия'
+            }
+          }
+        ],
+        sameAs: [
+          `https://t.me/rescrub_ru`,
+          `https://vk.com/rescrub_ru`
+        ]
       };
     }
       
@@ -436,17 +727,48 @@ export function buildJsonLd(
       return {
         '@context': 'https://schema.org',
         '@type': 'Service',
-        name: serviceData.name || 'Защита персональных данных',
+        name: serviceData.name || 'Защита персональных данных согласно 152-ФЗ',
         description: serviceData.description || SEO_CONSTANTS.SITE_DESCRIPTION,
         provider: serviceData.provider || {
           '@type': 'Organization',
           name: SEO_CONSTANTS.SITE_NAME,
-          url: baseUrl
+          url: baseUrl,
+          legalName: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_NAME
         },
         serviceType: serviceData.serviceType || 'Data Protection Service',
+        category: 'Информационная безопасность',
         areaServed: serviceData.areaServed || {
           '@type': 'Country',
           name: 'Россия'
+        },
+        availableLanguage: ['ru', 'en'],
+        termsOfService: `${baseUrl}/terms`,
+        privacyPolicy: `${baseUrl}/privacy`,
+        serviceAudience: {
+          '@type': 'Audience',
+          audienceType: 'Физические и юридические лица'
+        },
+        hasOfferCatalog: {
+          '@type': 'OfferCatalog',
+          name: 'Услуги защиты персональных данных',
+          itemListElement: [
+            {
+              '@type': 'Offer',
+              itemOffered: {
+                '@type': 'Service',
+                name: 'Удаление персональных данных',
+                description: 'Автоматическое удаление личной информации из баз данных брокеров'
+              }
+            },
+            {
+              '@type': 'Offer',
+              itemOffered: {
+                '@type': 'Service',
+                name: 'Мониторинг утечек данных',
+                description: 'Непрерывный мониторинг появления персональных данных в интернете'
+              }
+            }
+          ]
         }
       };
     }
@@ -458,6 +780,7 @@ export function buildJsonLd(
         '@type': 'Article',
         headline: articleData.headline || 'Статья о защите персональных данных',
         description: articleData.description || SEO_CONSTANTS.SITE_DESCRIPTION,
+        inLanguage: 'ru',
         author: articleData.author || {
           '@type': 'Organization',
           name: SEO_CONSTANTS.SITE_NAME,
@@ -469,11 +792,139 @@ export function buildJsonLd(
           url: baseUrl,
           logo: {
             '@type': 'ImageObject',
-            url: `${baseUrl}/logo.png`
+            url: `${baseUrl}/logo.png`,
+            width: 512,
+            height: 512
           }
         },
         datePublished: articleData.datePublished || new Date().toISOString(),
-        dateModified: articleData.dateModified || new Date().toISOString()
+        dateModified: articleData.dateModified || new Date().toISOString(),
+        keywords: SEO_CONSTANTS.CORE_KEYWORDS.join(', '),
+        about: {
+          '@type': 'Thing',
+          name: '152-ФЗ',
+          description: 'Федеральный закон о персональных данных'
+        },
+        isPartOf: {
+          '@type': 'WebSite',
+          name: SEO_CONSTANTS.SITE_NAME,
+          url: baseUrl
+        }
+      };
+    }
+    
+    case 'WebSite': {
+      const websiteData = data as Partial<JsonLdWebSite>;
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: websiteData.name || SEO_CONSTANTS.SITE_NAME,
+        alternateName: websiteData.alternateName || 'ResCrub.ru',
+        url: baseUrl,
+        description: websiteData.description || SEO_CONSTANTS.SITE_DESCRIPTION,
+        inLanguage: 'ru',
+        potentialAction: websiteData.potentialAction || {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${baseUrl}/search?q={search_term_string}`
+          },
+          'query-input': 'required name=search_term_string'
+        },
+        publisher: websiteData.publisher || {
+          '@type': 'Organization',
+          name: SEO_CONSTANTS.SITE_NAME,
+          url: baseUrl
+        },
+        copyrightYear: websiteData.copyrightYear || SEO_CONSTANTS.RUSSIAN_BUSINESS.FOUNDED_YEAR,
+        copyrightHolder: websiteData.copyrightHolder || {
+          '@type': 'Organization',
+          name: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_NAME,
+          url: baseUrl
+        },
+        audience: {
+          '@type': 'Audience',
+          audienceType: 'Граждане России',
+          geographicArea: {
+            '@type': 'Country',
+            name: 'Россия'
+          }
+        },
+        mainEntity: {
+          '@type': 'Organization',
+          name: SEO_CONSTANTS.SITE_NAME,
+          description: SEO_CONSTANTS.SITE_DESCRIPTION
+        }
+      };
+    }
+    
+    case 'ContactPoint': {
+      const contactData = data as Partial<JsonLdContactPoint>;
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'ContactPoint',
+        contactType: contactData.contactType || 'customer service',
+        telephone: contactData.telephone || SEO_CONSTANTS.RUSSIAN_BUSINESS.PHONE,
+        email: contactData.email || SEO_CONSTANTS.RUSSIAN_BUSINESS.SUPPORT_EMAIL,
+        url: contactData.url || `${baseUrl}/support`,
+        availableLanguage: contactData.availableLanguage || SEO_CONSTANTS.RUSSIAN_BUSINESS.LANGUAGES,
+        hoursAvailable: contactData.hoursAvailable || [{
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: SEO_CONSTANTS.RUSSIAN_BUSINESS.BUSINESS_HOURS.dayOfWeek,
+          opens: SEO_CONSTANTS.RUSSIAN_BUSINESS.BUSINESS_HOURS.opens,
+          closes: SEO_CONSTANTS.RUSSIAN_BUSINESS.BUSINESS_HOURS.closes
+        }],
+        areaServed: contactData.areaServed || {
+          '@type': 'Country',
+          name: 'Россия'
+        }
+      };
+    }
+    
+    case 'BreadcrumbList': {
+      const breadcrumbData = data as Partial<JsonLdBreadcrumbList>;
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbData.itemListElement || [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Главная',
+            item: baseUrl
+          }
+        ]
+      };
+    }
+    
+    case 'WebPage': {
+      const pageData = data as Partial<JsonLdWebPage>;
+      return {
+        '@context': 'https://schema.org',
+        '@type': pageData['@type'] || 'WebPage',
+        name: pageData.name || 'Страница ResCrub',
+        description: pageData.description || SEO_CONSTANTS.SITE_DESCRIPTION,
+        url: pageData.url || baseUrl,
+        inLanguage: 'ru',
+        isPartOf: pageData.isPartOf || {
+          '@type': 'WebSite',
+          name: SEO_CONSTANTS.SITE_NAME,
+          url: baseUrl
+        },
+        breadcrumb: pageData.breadcrumb,
+        mainEntity: pageData.mainEntity,
+        datePublished: pageData.datePublished,
+        dateModified: pageData.dateModified || new Date().toISOString(),
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          url: `${baseUrl}/og-image-default.png`,
+          width: SEO_CONSTANTS.OG_IMAGE.WIDTH,
+          height: SEO_CONSTANTS.OG_IMAGE.HEIGHT
+        },
+        speakable: {
+          '@type': 'SpeakableSpecification',
+          cssSelector: ['h1', 'h2', '.description']
+        }
       };
     }
   }
@@ -579,3 +1030,125 @@ export const DEFAULT_SERVICE_JSONLD = buildJsonLd('Service', {
   name: 'Защита персональных данных согласно 152-ФЗ',
   description: 'Автоматическое удаление персональных данных из баз данных брокеров и мониторинг соблюдения российского законодательства'
 });
+
+/**
+ * Default website JSON-LD for ResCrub
+ */
+export const DEFAULT_WEBSITE_JSONLD = buildJsonLd('WebSite', {});
+
+/**
+ * Default contact point JSON-LD for ResCrub
+ */
+export const DEFAULT_CONTACTPOINT_JSONLD = buildJsonLd('ContactPoint', {
+  contactType: 'customer service'
+});
+
+/**
+ * Generate breadcrumb JSON-LD from path segments
+ */
+export function generateBreadcrumbJsonLd(path: string, baseUrl: string = SEO_CONSTANTS.BASE_URL): JsonLdBreadcrumbList {
+  const segments = path.split('/').filter(Boolean);
+  const breadcrumbs: JsonLdBreadcrumbList['itemListElement'] = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Главная',
+      item: baseUrl
+    }
+  ];
+  
+  let currentPath = '';
+  segments.forEach((segment, index) => {
+    currentPath += `/${segment}`;
+    const meta = getPageMeta(currentPath);
+    const name = meta?.title?.split(' — ')[0] || segment.charAt(0).toUpperCase() + segment.slice(1);
+    
+    breadcrumbs.push({
+      '@type': 'ListItem',
+      position: index + 2,
+      name,
+      item: index === segments.length - 1 ? undefined : `${baseUrl}${currentPath}`
+    });
+  });
+  
+  return buildJsonLd('BreadcrumbList', { itemListElement: breadcrumbs });
+}
+
+/**
+ * Generate WebPage JSON-LD for specific page types
+ */
+export function generateWebPageJsonLd(
+  path: string, 
+  meta: PageMeta, 
+  baseUrl: string = SEO_CONSTANTS.BASE_URL
+): JsonLdWebPage {
+  let pageType: JsonLdWebPage['@type'] = 'WebPage';
+  
+  // Determine page type based on path
+  if (path === '/') {
+    pageType = 'HomePage';
+  } else if (path === '/about') {
+    pageType = 'AboutPage';
+  } else if (path === '/contacts' || path === '/support') {
+    pageType = 'ContactPage';
+  } else if (path.startsWith('/app/profile')) {
+    pageType = 'ProfilePage';
+  }
+  
+  const breadcrumb = path !== '/' ? generateBreadcrumbJsonLd(path, baseUrl).itemListElement : undefined;
+  
+  return buildJsonLd('WebPage', {
+    '@type': pageType,
+    name: meta.title,
+    description: meta.description,
+    url: meta.canonical || canonicalFromPath(path, baseUrl),
+    breadcrumb: breadcrumb ? { '@type': 'BreadcrumbList', itemListElement: breadcrumb } : undefined,
+    datePublished: meta.publishedTime,
+    dateModified: meta.modifiedTime
+  });
+}
+
+/**
+ * Get all relevant JSON-LD schemas for a page
+ */
+export function getAllPageSchemas(
+  path: string, 
+  meta?: PageMeta, 
+  baseUrl: string = SEO_CONSTANTS.BASE_URL
+): Array<JsonLdOrganization | JsonLdService | JsonLdWebSite | JsonLdWebPage | JsonLdArticle | JsonLdBreadcrumbList> {
+  const schemas: Array<JsonLdOrganization | JsonLdService | JsonLdWebSite | JsonLdWebPage | JsonLdArticle | JsonLdBreadcrumbList> = [];
+  
+  // Always include organization and website schemas
+  schemas.push(DEFAULT_ORGANIZATION_JSONLD);
+  schemas.push(DEFAULT_WEBSITE_JSONLD);
+  
+  // Include service schema on relevant pages
+  if (path === '/' || path === '/about' || path.startsWith('/app/')) {
+    schemas.push(DEFAULT_SERVICE_JSONLD);
+  }
+  
+  // Include page-specific schema
+  if (meta) {
+    const webPageSchema = generateWebPageJsonLd(path, meta, baseUrl);
+    schemas.push(webPageSchema);
+    
+    // Include breadcrumb for non-home pages
+    if (path !== '/') {
+      const breadcrumbSchema = generateBreadcrumbJsonLd(path, baseUrl);
+      schemas.push(breadcrumbSchema);
+    }
+    
+    // Include article schema for blog posts
+    if (meta.type === 'article') {
+      const articleSchema = buildJsonLd('Article', {
+        headline: meta.title,
+        description: meta.description,
+        datePublished: meta.publishedTime,
+        dateModified: meta.modifiedTime
+      });
+      schemas.push(articleSchema);
+    }
+  }
+  
+  return schemas;
+}
