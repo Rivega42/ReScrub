@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -12,6 +13,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
 import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
+import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent } from "./email";
 
 // Extend Express session types
 declare module 'express-session' {
@@ -353,6 +355,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         message: "Не удалось отправить обращение. Попробуйте еще раз или напишите на support@rescrub.ru" 
       });
+    }
+  });
+
+  // ========================================
+  // MAILGANER.RU WEBHOOK ROUTES
+  // ========================================
+  
+  // Raw body parser middleware for webhook signature verification
+  function rawBodyParser(req: any, res: any, buf: Buffer) {
+    req.rawBody = buf.toString('utf8');
+  }
+  
+  // Mailganer webhook handler for email delivery status
+  app.post('/api/webhooks/mailganer', 
+    express.raw({ type: 'application/json', verify: rawBodyParser }),
+    async (req: any, res) => {
+    try {
+      // Use raw body for signature verification (critical for HMAC)
+      const payload = req.rawBody || req.body.toString();
+      const signature = req.headers['x-signature'] as string;
+      const timestamp = req.headers['x-timestamp'] as string;
+      
+      // Verify webhook signature using raw payload
+      if (!verifyWebhookSignature(payload, signature, timestamp)) {
+        console.error('Invalid webhook signature from Mailganer');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      
+      // Parse JSON for processing (raw middleware gives us Buffer)
+      const jsonData = JSON.parse(payload);
+      const events: WebhookEvent[] = Array.isArray(jsonData) ? jsonData : [jsonData];
+      
+      // Process webhook events
+      await processWebhookEvents(events);
+      
+      console.log(`Successfully processed ${events.length} Mailganer webhook event(s)`);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error processing Mailganer webhook:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 

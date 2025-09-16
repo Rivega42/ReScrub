@@ -79,6 +79,7 @@ export interface IStorage {
   createNotification(notificationData: InsertNotification): Promise<Notification>;
   getUserNotifications(userId: string, unreadOnly?: boolean): Promise<Notification[]>;
   markNotificationAsRead(id: string): Promise<Notification | undefined>;
+  updateNotification(id: string, updates: Partial<Notification>): Promise<Notification | undefined>;
   
   // OAuth operations
   getOAuthAccountByProviderAndId(provider: string, providerUserId: string): Promise<OAuthAccount | undefined>;
@@ -360,6 +361,15 @@ export class DatabaseStorage implements IStorage {
     const [notification] = await db
       .update(notifications)
       .set({ read: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return notification;
+  }
+
+  async updateNotification(id: string, updates: Partial<Notification>): Promise<Notification | undefined> {
+    const [notification] = await db
+      .update(notifications)
+      .set(updates)
       .where(eq(notifications.id, id))
       .returning();
     return notification;
@@ -777,6 +787,14 @@ export class MemStorage implements IStorage {
     if (index === -1) return undefined;
     
     this.notificationsData[index].read = true;
+    return this.notificationsData[index];
+  }
+
+  async updateNotification(id: string, updates: Partial<Notification>): Promise<Notification | undefined> {
+    const index = this.notificationsData.findIndex(notif => notif.id === id);
+    if (index === -1) return undefined;
+    
+    this.notificationsData[index] = { ...this.notificationsData[index], ...updates };
     return this.notificationsData[index];
   }
 

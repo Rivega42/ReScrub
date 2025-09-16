@@ -280,8 +280,6 @@ export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   read: true,
-  sent: true,
-  sentAt: true,
   createdAt: true,
 });
 

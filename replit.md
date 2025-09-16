@@ -88,8 +88,30 @@ Configured for Replit deployment with:
 - **Google Fonts**: Inter font family for typography
 - **PostCSS**: CSS processing with Tailwind and Autoprefixer
 
+### Email Service Configuration (Mailganer.ru)
+The platform uses Mailganer.ru (SamOtpravil) as the email service provider for compliance with Russian data protection laws:
+
+**Required Environment Variables:**
+- `MAILGANER_API_KEY`: API key for SamOtpravil email service
+- `MAILGANER_HOST`: API host (defaults to https://api.samotpravil.com)
+- `MAILGANER_WEBHOOK_VERIFY_KEY`: Webhook signature verification key (optional)
+
+**Email Features:**
+- Transactional email sending for data deletion requests
+- Email delivery tracking and status monitoring  
+- Webhook processing for delivery notifications
+- Bulk sending to multiple data broker companies
+- Russian legal compliance for 152-FZ requirements
+
 ## Recent Changes
 
+- **2024-09-16**: ✅ **COMPLETED: Mailganer.ru Email Service Integration**
+  - Migrated from SendGrid to Mailganer.ru (SamOtpravil) for Russian compliance
+  - Created MailganerClient class with API integration for email sending
+  - Implemented webhook handling for delivery status tracking
+  - Updated environment variables: MAILGANER_API_KEY, MAILGANER_HOST, MAILGANER_WEBHOOK_VERIFY_KEY
+  - Added API endpoint: /api/webhooks/mailganer for delivery notifications
+  - Preserved all existing functionality: templates, tracking, bulk sending
 - **2024-09-15**: ✅ **COMPLETED: Production-Ready Email Authentication System**
   - Comprehensive email-based auth: registration, login, email verification, logout
   - Enterprise-grade security: hashed tokens, rate limiting, CSRF protection, helmet headers
