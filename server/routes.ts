@@ -367,6 +367,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Get notification preferences
+  app.get('/api/profile/notification-preferences', isEmailAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const userProfile = await storage.getUserProfile(userId);
+      
+      if (!userProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Профиль не найден" 
+        });
+      }
+      
+      // Return notification preferences with defaults if not set
+      const preferences = userProfile.notificationPreferences || {
+        emailEnabled: true,
+        smsEnabled: false,
+        pushEnabled: true,
+        inAppEnabled: true,
+        categories: {
+          scan_completed: true,
+          deletion_request: true,
+          verification: true,
+          system: true,
+        }
+      };
+      
+      res.json({ 
+        success: true,
+        preferences 
+      });
+    } catch (error: any) {
+      console.error("Get notification preferences error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка получения настроек уведомлений" 
+      });
+    }
+  });
+
+  // Update notification preferences
+  app.put('/api/profile/notification-preferences', isEmailAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      // Validate notification preferences structure
+      const preferencesSchema = z.object({
+        emailEnabled: z.boolean().optional(),
+        smsEnabled: z.boolean().optional(),
+        pushEnabled: z.boolean().optional(),
+        inAppEnabled: z.boolean().optional(),
+        categories: z.object({
+          scan_completed: z.boolean().optional(),
+          deletion_request: z.boolean().optional(),
+          verification: z.boolean().optional(),
+          system: z.boolean().optional(),
+        }).optional(),
+      });
+      
+      const validatedPreferences = preferencesSchema.parse(req.body);
+      
+      // Update notification preferences in user profile
+      const updatedProfile = await storage.updateUserProfile(userId, {
+        notificationPreferences: validatedPreferences
+      });
+      
+      if (!updatedProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Профиль не найден" 
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "Настройки уведомлений успешно обновлены",
+        preferences: updatedProfile.notificationPreferences
+      });
+    } catch (error: any) {
+      console.error("Update notification preferences error:", error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Некорректные данные настроек", 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка обновления настроек уведомлений" 
+      });
+    }
+  });
   
   // ========================================
   // OAUTH AUTHENTICATION ROUTES
@@ -727,6 +823,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error marking notification as read:', error);
       res.status(500).json({ message: 'Failed to mark notification as read' });
+    }
+  });
+
+  // Delete notification
+  app.delete('/api/notifications/:id', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const notificationId = req.params.id;
+      
+      // Verify notification belongs to user
+      const userNotifications = await storage.getUserNotifications(userId);
+      const notification = userNotifications.find(n => n.id === notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: 'Notification not found' });
+      }
+      
+      const deleted = await storage.deleteNotification(notificationId);
+      if (!deleted) {
+        return res.status(500).json({ message: 'Failed to delete notification' });
+      }
+      
+      res.json({ success: true, message: 'Notification deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      res.status(500).json({ message: 'Failed to delete notification' });
     }
   });
 

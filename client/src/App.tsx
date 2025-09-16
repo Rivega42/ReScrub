@@ -26,6 +26,7 @@ import Requests from "@/pages/Requests";
 import Profile from "@/pages/Profile";
 import Documents from "@/pages/Documents";
 import CreateRequest from "@/pages/CreateRequest";
+import Notifications from "@/pages/Notifications";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
@@ -115,6 +116,7 @@ function AppRoutesInner() {
       </Route>
       <Route path="/app/requests" component={Requests} />
       <Route path="/app/create-request" component={CreateRequest} />
+      <Route path="/app/notifications" component={Notifications} />
       {/* Default app route */}
       <Route path="/app">
         <div className="p-8">

@@ -83,6 +83,7 @@ export interface IStorage {
   getUserNotifications(userId: string, unreadOnly?: boolean): Promise<Notification[]>;
   markNotificationAsRead(id: string): Promise<Notification | undefined>;
   updateNotification(id: string, updates: Partial<Notification>): Promise<Notification | undefined>;
+  deleteNotification(id: string): Promise<boolean>;
   
   // OAuth operations
   getOAuthAccountByProviderAndId(provider: string, providerUserId: string): Promise<OAuthAccount | undefined>;
@@ -387,6 +388,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.id, id))
       .returning();
     return notification;
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const result = await db
+      .delete(notifications)
+      .where(eq(notifications.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   // OAuth operations
@@ -1106,6 +1114,14 @@ export class MemStorage implements IStorage {
     
     this.notificationsData[index] = { ...this.notificationsData[index], ...updates };
     return this.notificationsData[index];
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const index = this.notificationsData.findIndex(notif => notif.id === id);
+    if (index === -1) return false;
+    
+    this.notificationsData.splice(index, 1);
+    return true;
   }
 
   // OAuth operations (in-memory)
