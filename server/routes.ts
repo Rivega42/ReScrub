@@ -9,9 +9,11 @@ import {
   insertUserProfileSchema,
   insertDataBrokerSchema,
   insertDeletionRequestSchema,
+  insertDocumentSchema,
   type UserAccount,
   type DataBroker,
-  type DeletionRequest
+  type DeletionRequest,
+  type Document
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -547,6 +549,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid update data', errors: error.errors });
       }
       res.status(500).json({ message: 'Failed to update deletion request' });
+    }
+  });
+
+  // ========================================
+  // DOCUMENTS API (Protected)
+  // ========================================
+
+  // Get user's documents
+  app.get('/api/documents', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const documents = await storage.getUserDocuments(userId);
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      res.status(500).json({ message: 'Не удалось загрузить документы' });
+    }
+  });
+
+  // Create new document (file upload)
+  app.post('/api/documents', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const validatedData = insertDocumentSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const document = await storage.createDocument(validatedData);
+      res.status(201).json({
+        success: true,
+        message: 'Документ успешно загружен',
+        document
+      });
+    } catch (error) {
+      console.error('Error creating document:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Некорректные данные документа', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        success: false,
+        message: 'Не удалось загрузить документ' 
+      });
+    }
+  });
+
+  // Update document status
+  app.put('/api/documents/:id', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const documentId = req.params.id;
+      
+      // Verify document belongs to user
+      const userDocuments = await storage.getUserDocuments(userId);
+      const existingDocument = userDocuments.find(d => d.id === documentId);
+      
+      if (!existingDocument) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Документ не найден' 
+        });
+      }
+      
+      // Validate allowed update fields
+      const updateSchema = z.object({
+        status: z.enum(['uploaded', 'processing', 'verified', 'rejected']).optional(),
+        processingNotes: z.string().optional(),
+      });
+      
+      const validatedUpdates = updateSchema.parse(req.body);
+      const updatedDocument = await storage.updateDocumentStatus(
+        documentId, 
+        validatedUpdates.status || existingDocument.status, 
+        validatedUpdates.processingNotes
+      );
+      
+      if (!updatedDocument) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Не удалось обновить статус документа' 
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Статус документа обновлен',
+        document: updatedDocument
+      });
+    } catch (error) {
+      console.error('Error updating document:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Некорректные данные обновления', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        success: false,
+        message: 'Не удалось обновить документ' 
+      });
     }
   });
 

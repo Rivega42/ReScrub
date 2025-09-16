@@ -24,6 +24,8 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Requests from "@/pages/Requests";
 import Profile from "@/pages/Profile";
+import Documents from "@/pages/Documents";
+import CreateRequest from "@/pages/CreateRequest";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
@@ -103,13 +105,7 @@ function AppRoutesInner() {
     <Switch>
       <Route path="/app/dashboard" component={Dashboard} />
       <Route path="/app/profile" component={Profile} />
-      <Route path="/app/documents">
-        <div className="p-8">
-          <h1 className="text-2xl font-bold">Документы</h1>
-          <p className="text-muted-foreground">Загрузка и управление документами</p>
-          {/* TODO: Implement documents */}
-        </div>
-      </Route>
+      <Route path="/app/documents" component={Documents} />
       <Route path="/app/monitoring">
         <div className="p-8">
           <h1 className="text-2xl font-bold">Мониторинг</h1>
@@ -118,13 +114,7 @@ function AppRoutesInner() {
         </div>
       </Route>
       <Route path="/app/requests" component={Requests} />
-      <Route path="/app/create-request">
-        <div className="p-8">
-          <h1 className="text-2xl font-bold">Создать запрос</h1>
-          <p className="text-muted-foreground">Форма создания нового запроса на удаление данных</p>
-          {/* TODO: Implement create request form */}
-        </div>
-      </Route>
+      <Route path="/app/create-request" component={CreateRequest} />
       {/* Default app route */}
       <Route path="/app">
         <div className="p-8">
