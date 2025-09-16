@@ -8,8 +8,10 @@ import {
   insertUserAccountSchema, 
   insertUserProfileSchema,
   insertDataBrokerSchema,
+  insertDeletionRequestSchema,
   type UserAccount,
-  type DataBroker
+  type DataBroker,
+  type DeletionRequest
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -409,6 +411,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================
+  // DELETION REQUESTS API (Protected)
+  // ========================================
+
+  // Get user's deletion requests
+  app.get('/api/deletion-requests', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const requests = await storage.getUserDeletionRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching deletion requests:', error);
+      res.status(500).json({ message: 'Failed to fetch deletion requests' });
+    }
+  });
+
+  // Get specific deletion request by ID
+  app.get('/api/deletion-requests/:id', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const request = await storage.getUserDeletionRequests(userId);
+      const foundRequest = request.find(r => r.id === req.params.id);
+      
+      if (!foundRequest) {
+        return res.status(404).json({ message: 'Deletion request not found' });
+      }
+      
+      res.json(foundRequest);
+    } catch (error) {
+      console.error('Error fetching deletion request:', error);
+      res.status(500).json({ message: 'Failed to fetch deletion request' });
+    }
+  });
+
+  // Create new deletion request
+  app.post('/api/deletion-requests', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const validatedData = insertDeletionRequestSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const request = await storage.createDeletionRequest(validatedData);
+      res.status(201).json(request);
+    } catch (error) {
+      console.error('Error creating deletion request:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create deletion request' });
+    }
+  });
+
+  // Update deletion request status (with field validation)
+  app.put('/api/deletion-requests/:id', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const requestId = req.params.id;
+      
+      // Verify request belongs to user
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const existingRequest = userRequests.find(r => r.id === requestId);
+      
+      if (!existingRequest) {
+        return res.status(404).json({ message: 'Deletion request not found' });
+      }
+      
+      // Validate allowed update fields
+      const updateSchema = z.object({
+        status: z.enum(['pending', 'sent', 'processing', 'completed', 'rejected', 'failed']).optional(),
+        requestMethod: z.string().optional(),
+        requestDetails: z.any().optional(),
+        responseReceived: z.boolean().optional(),
+        responseDetails: z.any().optional(),
+        followUpRequired: z.boolean().optional(),
+        followUpDate: z.date().optional(),
+        completedAt: z.date().optional(),
+      });
+      
+      const validatedUpdates = updateSchema.parse(req.body);
+      const updatedRequest = await storage.updateDeletionRequest(requestId, validatedUpdates);
+      
+      if (!updatedRequest) {
+        return res.status(404).json({ message: 'Failed to update deletion request' });
+      }
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error('Error updating deletion request:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid update data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to update deletion request' });
+    }
+  });
+
+  // ========================================
+  // DATA BROKERS DIRECTORY API
+  // ========================================
+
   // Data brokers directory API
   app.get('/api/data-brokers', async (req, res) => {
     try {
@@ -436,6 +539,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching data broker:', error);
       res.status(500).json({ message: 'Failed to fetch data broker' });
+    }
+  });
+
+  // ========================================
+  // NOTIFICATIONS API (Protected)
+  // ========================================
+
+  // Get user's notifications
+  app.get('/api/notifications', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const unreadOnly = req.query.unread === 'true';
+      const notifications = await storage.getUserNotifications(userId, unreadOnly);
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Mark notification as read
+  app.put('/api/notifications/:id/read', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!; // Safe because isEmailAuthenticated middleware checks this
+      const notificationId = req.params.id;
+      
+      // Verify notification belongs to user
+      const userNotifications = await storage.getUserNotifications(userId);
+      const notification = userNotifications.find(n => n.id === notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: 'Notification not found' });
+      }
+      
+      const updatedNotification = await storage.markNotificationAsRead(notificationId);
+      res.json(updatedNotification);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Failed to mark notification as read' });
     }
   });
 
