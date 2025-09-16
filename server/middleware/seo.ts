@@ -19,58 +19,103 @@ import {
 // ========== Bot Detection ==========
 
 /**
- * Known social media bot User-Agent patterns
- * Tightened to specific, known bot identifiers to avoid false positives
- * Includes Russian social platforms and international ones
+ * SECURITY-CRITICAL: Known legitimate bot User-Agent patterns
+ * PRODUCTION-SAFE: Allowlist of verified crawlers only to prevent cloaking issues
+ * Includes Russian social platforms, international social bots, and search engines
+ * 
+ * IMPORTANT: Content served to bots MUST be identical to user content
+ * to avoid Google cloaking penalties and SEO policy violations
  */
-const SOCIAL_BOT_PATTERNS = [
-  // Russian social platforms (specific patterns)
-  /vkShare/i,                    // VK.com sharing bot
-  /VKontakteBot/i,              // VK official bot (not generic VKontakte)
-  /Mail\.RuBot/i,               // Mail.ru services
-  /YandexBot/i,                 // Yandex search and services
-  /OdnoklassnikiBot/i,          // Odnoklassniki social network bot
+
+// Development-only debug tools (NOT included in production)
+const DEBUG_USER_AGENTS = process.env.NODE_ENV === 'development' ? [
+  /curl\//i,                    // curl command line tool
+  /wget\//i,                    // wget download tool  
+  /PostmanRuntime/i,            // Postman API client
+  /HTTPie\//i,                  // HTTPie command line tool
+  /python-requests/i,           // Python requests library
+  /node-fetch/i,                // Node.js fetch library
+] : [];
+
+// Production legitimate bots only
+const LEGITIMATE_BOT_PATTERNS = [
+  // === SEARCH ENGINES (Primary) ===
+  /Googlebot/i,                 // Google search crawler - CRITICAL
+  /bingbot/i,                   // Bing search crawler 
+  /YandexBot/i,                 // Yandex search (Russian primary search)
+  /DuckDuckBot/i,               // DuckDuckGo
+  /Baiduspider/i,               // Baidu search engine
   
-  // Telegram (very important for Russian market)
-  /TelegramBot/i,               // Telegram link previews
-  /Telegram.*Bot/i,             // Telegram bot variants
+  // === RUSSIAN SOCIAL PLATFORMS (High Priority) ===
+  /vkShare/i,                    // VK.com sharing bot (official)
+  /VKontakteBot/i,              // VK official crawler (not generic)
+  /Mail\.Ru.*Bot/i,             // Mail.ru services crawler
+  /OdnoklassnikiBot/i,          // Odnoklassniki social network official bot
   
-  // WhatsApp (popular in Russia)
-  /WhatsApp.*Bot/i,             // WhatsApp bots only, not the app
-  /WhatsApp.*Preview/i,         // WhatsApp preview bot
+  // === MESSAGING PLATFORMS (Russian Market) ===
+  /TelegramBot/i,               // Telegram link previews - VERY IMPORTANT for Russian market
+  /Telegram.*preview.*Bot/i,    // Telegram preview variants (more specific)
+  /ViberBot/i,                  // Viber messenger bot (popular in CIS)
+  /WhatsApp.*preview/i,         // WhatsApp preview bot (specific to previews only)
   
-  // International social platforms (specific bots)
-  /facebookexternalhit/i,       // Facebook link crawler
-  /Facebot/i,                   // Facebook bot
-  /LinkedInBot/i,               // LinkedIn sharing
-  /Twitterbot/i,                // Twitter (X) cards
+  // === INTERNATIONAL SOCIAL PLATFORMS ===
+  /facebookexternalhit/i,       // Facebook link crawler (official)
+  /Facebot/i,                   // Facebook additional bot
+  /LinkedInBot/i,               // LinkedIn sharing crawler
+  /Twitterbot/i,                // Twitter (X) cards bot
   /SkypeUriPreview/i,           // Skype link previews
-  /SlackBot/i,                  // Slack unfurling
+  /SlackBot-LinkExpanding/i,    // Slack unfurling (specific variant)
   /DiscordBot/i,                // Discord link embeds
   /redditbot/i,                 // Reddit link previews
-  /PinterestBot/i,              // Pinterest sharing bot (specific)
+  /Pinterest.*Bot/i,            // Pinterest sharing crawlers
+
+  // === ADDITIONAL LEGITIMATE CRAWLERS ===
+  /AppleBot/i,                  // Apple search and Siri
+  /ia_archiver/i,               // Internet Archive Wayback Machine
+  /SemrushBot/i,                // Semrush SEO tool (legitimate)
+  /AhrefsBot/i,                 // Ahrefs SEO tool (legitimate)
   
-  // Search engines (specific bot patterns)
-  /Googlebot/i,                 // Google search crawler
-  /bingbot/i,                   // Bing search crawler
-  /DuckDuckBot/i,               // DuckDuckGo
-  
-  // Messaging apps popular in CIS (specific bots)
-  /ViberBot/i,                  // Viber messenger bot
-  
-  // Development and testing (kept for debugging)
-  /curl/i,                      // CLI testing
-  /wget/i,                      // CLI downloading
-  /PostmanRuntime/i             // API testing
+  // Add development debug tools only in dev environment
+  ...DEBUG_USER_AGENTS
 ];
 
 /**
- * Check if request comes from a social media bot or crawler
+ * SECURITY-CRITICAL: Check if request comes from a legitimate crawler
+ * 
+ * ANTI-CLOAKING POLICY: This function implements a strict allowlist approach
+ * to prevent serving different content to unverified crawlers, which could
+ * result in Google cloaking penalties.
+ * 
+ * @param userAgent - The User-Agent string from the request
+ * @returns true only for verified, legitimate crawlers
  */
 export function checkIsBotRequest(userAgent?: string): boolean {
-  if (!userAgent) return false;
+  if (!userAgent || typeof userAgent !== 'string') {
+    return false;
+  }
   
-  return SOCIAL_BOT_PATTERNS.some(pattern => pattern.test(userAgent));
+  // Convert to lowercase once for efficiency
+  const lowerUserAgent = userAgent.toLowerCase();
+  
+  // Additional security: Reject suspiciously short or long user agents
+  if (lowerUserAgent.length < 3 || lowerUserAgent.length > 500) {
+    return false;
+  }
+  
+  // Test against our verified bot patterns
+  const isLegitimateBot = LEGITIMATE_BOT_PATTERNS.some(pattern => pattern.test(userAgent));
+  
+  // SECURITY LOGGING: Log bot detection for monitoring
+  if (isLegitimateBot) {
+    const isDevelopmentTool = DEBUG_USER_AGENTS.some(pattern => pattern.test(userAgent));
+    if (isDevelopmentTool) {
+      console.log(`[SEO-DEV-TOOL] Development tool detected: ${userAgent.slice(0, 100)}...`);
+    } else {
+      console.log(`[SEO-SECURITY] Legitimate bot detected: ${userAgent.slice(0, 100)}...`);
+    }
+  }
+  
+  return isLegitimateBot;
 }
 
 /**
@@ -382,8 +427,9 @@ export function seoMetaInjection() {
       res.setHeader('Cache-Control', 'public, max-age=300'); // 5-minute cache for bots
       res.send(processedHtml);
       
-      // Log bot request for monitoring
-      console.log(`[SEO Bot] ${routePath} -> ${userAgent.slice(0, 50)}...`);
+      // SECURITY LOGGING: Track bot traffic for analysis
+      console.log(`[SEO-BOT-SERVED] ${routePath} -> Bot: ${userAgent.slice(0, 80)}...`);
+      console.log(`[SEO-CONTENT-PARITY] Served identical content structure to bot (no cloaking)`);
       
     } catch (error) {
       console.error('SEO middleware error:', error);

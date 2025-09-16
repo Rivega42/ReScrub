@@ -659,11 +659,56 @@ Host: ${baseUrl.replace(/^https?:\/\//, '')}`;
         }
       ];
 
+      // Define all 23 blog articles for sitemap generation
+      const blogArticles = [
+        { slug: 'russian-social-media-privacy-ranking-2025', publishedAt: '2025-01-20T10:00:00.000Z' },
+        { slug: '152-fz-compliance-rating-russian-companies', publishedAt: '2025-01-18T14:30:00.000Z' },
+        { slug: 'data-breaches-russia-2024-2025-damage-analysis', publishedAt: '2025-01-16T11:45:00.000Z' },
+        { slug: 'complete-152-fz-guide-citizen-rights-company-obligations', publishedAt: '2025-01-14T08:15:00.000Z' },
+        { slug: 'roskomnadzor-complaint-152-fz-step-by-step-guide', publishedAt: '2025-01-12T16:20:00.000Z' },
+        { slug: 'gdpr-vs-152-fz-complete-data-protection-comparison', publishedAt: '2025-01-10T13:45:00.000Z' },
+        { slug: 'vk-privacy-protection-security-settings-2025', publishedAt: '2025-01-19T09:30:00.000Z' },
+        { slug: 'telegram-privacy-complete-settings-guide-2025', publishedAt: '2025-01-17T15:20:00.000Z' },
+        { slug: 'gdpr-vs-152-fz-comparison', publishedAt: '2025-01-08T14:30:00.000Z' },
+        { slug: 'automatic-data-deletion-features', publishedAt: '2024-12-28T10:15:00.000Z' },
+        { slug: 'setup-152-fz-compliance-monitoring', publishedAt: '2024-12-20T16:45:00.000Z' },
+        { slug: 'fines-152-fz-violations-2025-stats', publishedAt: '2024-12-15T11:20:00.000Z' },
+        { slug: 'crm-integration-customer-data-protection', publishedAt: '2024-12-05T13:10:00.000Z' },
+        { slug: 'right-to-be-forgotten-digital-age', publishedAt: '2024-11-28T09:30:00.000Z' },
+        { slug: 'api-security-personal-data-protection', publishedAt: '2024-11-22T15:25:00.000Z' },
+        { slug: 'how-to-delete-personal-data-avito-step-by-step', publishedAt: '2025-01-15T09:00:00.000Z' },
+        { slug: 'delete-vk-profile-complete-data-protection-guide', publishedAt: '2025-01-12T14:20:00.000Z' },
+        { slug: 'remove-info-from-yandex-directory-2gis', publishedAt: '2025-01-10T11:45:00.000Z' },
+        { slug: 'gosuslugi-data-deletion-citizen-rights-procedures', publishedAt: '2025-01-08T16:10:00.000Z' },
+        { slug: 'sberbank-fraud-recognition-protection-2025', publishedAt: '2025-01-14T08:30:00.000Z' },
+        { slug: 'phone-scammers-bank-cards-new-schemes-2025', publishedAt: '2025-01-11T15:40:00.000Z' },
+        { slug: 'phishing-russian-internet-avoid-victim-2025', publishedAt: '2025-01-09T12:15:00.000Z' },
+        { slug: 'data-protection-cis-kazakhstan-belarus-uzbekistan-laws', publishedAt: '2025-01-13T10:20:00.000Z' },
+        { slug: 'gdpr-uae-mena-countries-expat-guide-2025', publishedAt: '2025-01-07T14:55:00.000Z' },
+        { slug: 'digital-rights-central-asia-2025-overview', publishedAt: '2025-01-05T09:30:00.000Z' },
+        { slug: 'telegram-privacy-complete-security-settings-guide-2025', publishedAt: '2025-01-16T11:25:00.000Z' },
+        { slug: 'odnoklassniki-privacy-settings-step-by-step-guide', publishedAt: '2025-01-04T16:20:00.000Z' },
+        { slug: 'tiktok-data-protection-russian-users', publishedAt: '2025-01-02T13:45:00.000Z' },
+        { slug: 'russian-internet-banking-security-rating-2025', publishedAt: '2025-01-17T08:15:00.000Z' },
+        { slug: 'ai-implementation-russian-companies-personal-data-risks', publishedAt: '2025-01-03T12:00:00.000Z' }
+      ];
+
+      // Generate blog article URLs for sitemap
+      const blogPages = blogArticles.map(article => ({
+        url: `/blog/${article.slug}`,
+        priority: '0.8',
+        changefreq: 'monthly',
+        lastmod: new Date(article.publishedAt).toISOString().split('T')[0]
+      }));
+
+      // Combine all pages
+      const allPages = [...publicPages, ...blogPages];
+
       // Generate XML sitemap content
       const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${publicPages.map(page => `  <url>
+${allPages.map(page => `  <url>
     <loc>${baseUrl}${page.url}</loc>
     <lastmod>${page.lastmod}</lastmod>
     <changefreq>${page.changefreq}</changefreq>

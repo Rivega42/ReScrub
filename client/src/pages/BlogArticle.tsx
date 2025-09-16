@@ -11,12 +11,28 @@ import {
   Eye, 
   Share2,
   BookOpen,
-  Tag
+  Tag,
+  Network,
+  TrendingUp,
+  ExternalLink,
+  ArrowRight,
+  ChevronRight
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { BlogSEO } from '@/components/SEO';
+import { SEO } from '@/components/SEO';
 import ReactMarkdown from 'react-markdown';
+import { useMemo } from 'react';
+import {
+  EnhancedBlogArticle,
+  createEnhancedBlogArticle,
+  generateInternalLinks,
+  buildEnhancedArticleJsonLd,
+  generateRussianSEO,
+  generateSearchBotHints,
+  generateBreadcrumbJsonLd,
+  SEO_CONSTANTS
+} from '@shared/seo';
 
 // Types for blog articles
 interface BlogArticle {
@@ -487,6 +503,38 @@ export default function BlogArticle() {
   
   // Find the article by slug
   const article = mockArticles.find(a => a.slug === slug);
+  
+  // Convert to enhanced article with advanced SEO
+  const enhancedArticle = useMemo(() => {
+    if (!article) return null;
+    return createEnhancedBlogArticle(article);
+  }, [article]);
+  
+  // Generate all enhanced articles for internal linking context
+  const allEnhancedArticles = useMemo(() => {
+    return mockArticles.map(a => createEnhancedBlogArticle(a));
+  }, []);
+  
+  // Generate internal links for this article
+  const internalLinks = useMemo(() => {
+    if (!enhancedArticle) return [];
+    return generateInternalLinks(enhancedArticle, allEnhancedArticles);
+  }, [enhancedArticle, allEnhancedArticles]);
+  
+  // Get related articles
+  const relatedArticles = internalLinks.slice(0, 4);
+  
+  // Generate Russian SEO signals
+  const russianSEO = useMemo(() => {
+    if (!enhancedArticle) return null;
+    return generateRussianSEO(enhancedArticle.content);
+  }, [enhancedArticle]);
+  
+  // Generate search bot hints
+  const botHints = useMemo(() => {
+    if (!enhancedArticle) return null;
+    return generateSearchBotHints(enhancedArticle);
+  }, [enhancedArticle]);
   
   // Format published date
   const publishedDate = article ? new Date(article.publishedAt).toLocaleDateString('ru-RU', {

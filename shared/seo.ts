@@ -262,6 +262,240 @@ export interface JsonLdBreadcrumbList {
   }[];
 }
 
+// ========== ADVANCED SEO & BOT INSTRUCTION TYPES ==========
+
+export interface NeuralSearchSignals {
+  // Content depth and expertise indicators for neural bots
+  primaryKeywords: string[];
+  secondaryKeywords: string[];
+  searchIntent: 'informational' | 'commercial' | 'navigational' | 'transactional' | 'mixed';
+  contentDepth: 'beginner' | 'intermediate' | 'expert' | 'comprehensive';
+  regionalFocus: string[];
+  audienceType: 'general' | 'professional' | 'technical' | 'legal';
+  contentFreshness: 'evergreen' | 'news' | 'seasonal' | 'trending';
+  expertiseLevel: number; // 1-10 scale for E-A-T signals
+  authoritySignals: string[];
+  topicCluster: string;
+}
+
+export interface RussianSEOSchema {
+  // Yandex and Russian-specific optimization signals
+  yaRegion: string;
+  yaGeoCoordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  yaTheme: string;
+  legalCompliance: {
+    law152FZ: boolean;
+    gdprCompliant: boolean;
+    dataLocalization: boolean;
+  };
+  russianKeywords: {
+    primary: string[];
+    semantic: string[];
+    longTail: string[];
+  };
+  behavioralSignals: {
+    expectedReadTime: number;
+    interactionPoints: string[];
+    downloadableResources: string[];
+  };
+}
+
+export interface SearchBotHints {
+  // Meta instructions for search bot understanding
+  contentLanguage: string;
+  geoRegion: string;
+  subject: string;
+  classification: string;
+  industryVertical: string;
+  regulatoryContext: string[];
+  relatedEntities: string[];
+  contentStructure: {
+    hasTableOfContents: boolean;
+    hasFAQ: boolean;
+    hasStepByStep: boolean;
+    hasComparison: boolean;
+    hasResources: boolean;
+  };
+}
+
+export interface CategoryConnection {
+  category: string;
+  connectedCategories: string[];
+  strength: number;
+  linkingStrategy?: 'hub' | 'silo' | 'cluster';
+}
+
+export interface InternalLinkingData {
+  // Smart internal linking system
+  relatedArticles: {
+    id: string;
+    title: string;
+    slug: string;
+    category: string;
+    relevanceScore: number;
+    linkAnchor: string;
+  }[];
+  contextualLinks: {
+    keyword: string;
+    targetArticle: string;
+    linkText: string;
+    context: string;
+  }[];
+  categoryConnections: CategoryConnection[];
+  semanticTags: {
+    primaryTopic: string;
+    subTopics: string[];
+    entities: string[];
+    concepts: string[];
+  };
+}
+
+export interface EnhancedBlogArticle {
+  // Enhanced article interface with SEO and linking
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  category: string;
+  tags: string[];
+  publishedAt: string;
+  author: string;
+  readingTime: number;
+  featured: boolean;
+  views: number;
+  
+  // SEO Enhancement Fields
+  neuralSignals: NeuralSearchSignals;
+  russianSEO: RussianSEOSchema;
+  botHints: SearchBotHints;
+  internalLinking: InternalLinkingData;
+  
+  // Additional metadata
+  lastUpdated?: string;
+  authorBio?: string;
+  expertiseScore?: number;
+  citationCount?: number;
+  shareCount?: number;
+}
+
+// Extended JSON-LD schemas with bot hints
+export interface JsonLdArticleEnhanced extends JsonLdArticle {
+  // Enhanced article schema with neural search signals
+  mainEntityOfPage: {
+    '@type': 'WebPage';
+    '@id': string;
+  };
+  speakable?: {
+    '@type': 'SpeakableSpecification';
+    cssSelector: string[];
+    xpath?: string[];
+  };
+  audience: {
+    '@type': 'Audience';
+    audienceType: string;
+    geographicArea: {
+      '@type': 'Country';
+      name: string;
+    };
+  };
+  mentions?: {
+    '@type': 'Thing';
+    name: string;
+    description?: string;
+    sameAs?: string;
+  }[];
+  citation?: {
+    '@type': 'CreativeWork';
+    name: string;
+    url?: string;
+  }[];
+  expertise?: {
+    '@type': 'DefinedTerm';
+    name: string;
+    description: string;
+  }[];
+}
+
+export interface JsonLdFAQ {
+  '@context': 'https://schema.org';
+  '@type': 'FAQPage';
+  name: string;
+  description: string;
+  mainEntity: {
+    '@type': 'Question';
+    name: string;
+    acceptedAnswer: {
+      '@type': 'Answer';
+      text: string;
+    };
+  }[];
+}
+
+export interface JsonLdHowTo {
+  '@context': 'https://schema.org';
+  '@type': 'HowTo';
+  name: string;
+  description: string;
+  image?: {
+    '@type': 'ImageObject';
+    url: string;
+    width?: number;
+    height?: number;
+  };
+  estimatedCost?: {
+    '@type': 'MonetaryAmount';
+    currency: string;
+    value: string;
+  };
+  totalTime?: string;
+  supply?: {
+    '@type': 'HowToSupply';
+    name: string;
+  }[];
+  tool?: {
+    '@type': 'HowToTool';
+    name: string;
+  }[];
+  step: {
+    '@type': 'HowToStep';
+    name: string;
+    text: string;
+    image?: {
+      '@type': 'ImageObject';
+      url: string;
+    };
+    url?: string;
+  }[];
+}
+
+// Russian-specific schema extensions
+export interface YandexMetaTags {
+  'yandex-verification'?: string;
+  'ya:ovs:adult'?: 'true' | 'false';
+  'ya:ovs:topic'?: string;
+  region?: string;
+  geo?: string;
+  'ya:rdfa'?: string;
+}
+
+export interface VKMetaTags {
+  'vk:app_id'?: string;
+  'vk:image'?: string;
+  'vk:url'?: string;
+  'vk:title'?: string;
+  'vk:description'?: string;
+}
+
+export interface MailRuMetaTags {
+  'mailru:image'?: string;
+  'mailru:title'?: string;
+  'mailru:description'?: string;
+}
+
 export interface JsonLdWebPage {
   '@context': 'https://schema.org';
   '@type': 'WebPage' | 'HomePage' | 'AboutPage' | 'ContactPage' | 'ProfilePage';
@@ -1195,3 +1429,443 @@ export function getAllPageSchemas(
   
   return schemas;
 }
+
+// ========== ADVANCED SEO UTILITY FUNCTIONS ==========
+
+/**
+ * Generate neural search signals for article optimization
+ */
+export function generateNeuralSignals(
+  article: {
+    title: string;
+    content: string;
+    category: string;
+    tags: string[];
+    author: string;
+  },
+  options: Partial<NeuralSearchSignals> = {}
+): NeuralSearchSignals {
+  // Extract primary keywords from title and tags
+  const titleWords = article.title.toLowerCase().split(/[\s\-—]+/).filter(word => word.length > 2);
+  const primaryKeywords = [
+    ...new Set([
+      ...article.tags.slice(0, 3),
+      ...titleWords.slice(0, 2),
+      ...(options.primaryKeywords || [])
+    ])
+  ];
+  
+  // Determine search intent based on content patterns
+  let searchIntent: NeuralSearchSignals['searchIntent'] = 'informational';
+  if (article.content.includes('купить') || article.content.includes('заказать')) {
+    searchIntent = 'commercial';
+  } else if (article.content.includes('пошаговое') || article.content.includes('как ')) {
+    searchIntent = 'mixed';
+  }
+  
+  // Determine content depth
+  let contentDepth: NeuralSearchSignals['contentDepth'] = 'intermediate';
+  const wordCount = article.content.split(/\s+/).length;
+  if (wordCount > 3000) contentDepth = 'comprehensive';
+  else if (wordCount > 1500) contentDepth = 'expert';
+  else if (wordCount < 500) contentDepth = 'beginner';
+  
+  // Calculate expertise level
+  let expertiseLevel = 5;
+  if (article.content.includes('152-ФЗ') || article.content.includes('GDPR')) expertiseLevel += 2;
+  if (article.content.includes('Роскомнадзор') || article.content.includes('правовое')) expertiseLevel += 2;
+  if (article.author.includes('Эксперт') || article.author.includes('Юрист')) expertiseLevel += 1;
+  expertiseLevel = Math.min(10, expertiseLevel);
+  
+  return {
+    primaryKeywords,
+    secondaryKeywords: [
+      ...SEO_CONSTANTS.CORE_KEYWORDS.filter(kw => article.content.includes(kw)).slice(0, 5),
+      ...(options.secondaryKeywords || [])
+    ],
+    searchIntent,
+    contentDepth,
+    regionalFocus: ['Россия', 'СНГ', ...(options.regionalFocus || [])],
+    audienceType: article.content.includes('юридический') ? 'legal' : 'professional',
+    contentFreshness: article.title.includes('2025') || article.title.includes('новые') ? 'news' : 'evergreen',
+    expertiseLevel,
+    authoritySignals: [
+      'российское законодательство',
+      '152-ФЗ соответствие',
+      'экспертный анализ',
+      ...(options.authoritySignals || [])
+    ],
+    topicCluster: article.category.toLowerCase(),
+    ...options
+  };
+}
+
+/**
+ * Generate Russian SEO schema with Yandex optimizations
+ */
+export function generateRussianSEO(
+  article: {
+    title: string;
+    content: string;
+    readingTime: number;
+  },
+  options: Partial<RussianSEOSchema> = {}
+): RussianSEOSchema {
+  // Extract Russian keywords
+  const russianWords = article.content.match(/[а-яё]{3,}/gi) || [];
+  const primaryRussian = [...new Set(russianWords.slice(0, 10))];
+  
+  return {
+    yaRegion: 'RU-MOW',
+    yaTheme: 'защита данных',
+    legalCompliance: {
+      law152FZ: article.content.includes('152-ФЗ'),
+      gdprCompliant: article.content.includes('GDPR'),
+      dataLocalization: true
+    },
+    russianKeywords: {
+      primary: primaryRussian.slice(0, 5),
+      semantic: SEO_CONSTANTS.INDUSTRY_KEYWORDS.slice(0, 8),
+      longTail: [
+        'как защитить персональные данные в России',
+        'требования 152-ФЗ для бизнеса',
+        'удаление персональных данных законодательство',
+        ...(options.russianKeywords?.longTail || [])
+      ]
+    },
+    behavioralSignals: {
+      expectedReadTime: article.readingTime,
+      interactionPoints: ['таблица содержания', 'практические рекомендации', 'вопросы и ответы'],
+      downloadableResources: ['чеклист', 'шаблон заявления', 'инструкция PDF']
+    },
+    yaGeoCoordinates: options.yaGeoCoordinates,
+    ...options
+  };
+}
+
+/**
+ * Generate search bot hints for enhanced understanding
+ */
+export function generateSearchBotHints(
+  article: {
+    title: string;
+    content: string;
+    category: string;
+  },
+  options: Partial<SearchBotHints> = {}
+): SearchBotHints {
+  // Analyze content structure
+  const hasTableOfContents = article.content.includes('## Содержание') || article.content.includes('# Содержание');
+  const hasFAQ = article.content.includes('Часто задаваемые') || article.content.includes('FAQ');
+  const hasStepByStep = article.content.includes('Этап ') || article.content.includes('Шаг ');
+  const hasComparison = article.content.includes('Сравнение') || article.content.includes('vs ');
+  const hasResources = article.content.includes('Ресурсы') || article.content.includes('Ссылки');
+  
+  return {
+    contentLanguage: 'ru-RU',
+    geoRegion: 'RU',
+    subject: `Russian Data Protection - ${article.category}`,
+    classification: 'Legal/Compliance Guide',
+    industryVertical: 'Data Privacy & Security',
+    regulatoryContext: ['152-ФЗ', 'Роскомнадзор', 'Russian Data Localization'],
+    relatedEntities: [
+      'Федеральный закон 152-ФЗ',
+      'Роскомнадзор',
+      'GDPR',
+      'ResCrub',
+      ...(options.relatedEntities || [])
+    ],
+    contentStructure: {
+      hasTableOfContents,
+      hasFAQ,
+      hasStepByStep,
+      hasComparison,
+      hasResources
+    },
+    ...options
+  };
+}
+
+/**
+ * Generate internal linking recommendations based on article content
+ */
+export function generateInternalLinks(
+  currentArticle: EnhancedBlogArticle,
+  allArticles: EnhancedBlogArticle[]
+): InternalLinkingData['relatedArticles'] {
+  // Calculate relevance scores based on shared keywords, category, and semantic similarity
+  const related = allArticles
+    .filter(article => article.id !== currentArticle.id)
+    .map(article => {
+      let relevanceScore = 0;
+      
+      // Same category bonus
+      if (article.category === currentArticle.category) relevanceScore += 40;
+      
+      // Shared tag bonus
+      const sharedTags = article.tags.filter(tag => currentArticle.tags.includes(tag)).length;
+      relevanceScore += sharedTags * 15;
+      
+      // Keyword overlap bonus
+      const currentKeywords = currentArticle.neuralSignals.primaryKeywords;
+      const articleKeywords = article.neuralSignals.primaryKeywords;
+      const keywordOverlap = currentKeywords.filter(kw => articleKeywords.includes(kw)).length;
+      relevanceScore += keywordOverlap * 10;
+      
+      // Content similarity bonus (simple text similarity)
+      const currentWords = new Set(currentArticle.content.toLowerCase().split(/\s+/));
+      const articleWords = new Set(article.content.toLowerCase().split(/\s+/));
+      const commonWords = [...currentWords].filter(word => articleWords.has(word)).length;
+      const similarity = commonWords / Math.max(currentWords.size, articleWords.size);
+      relevanceScore += similarity * 20;
+      
+      // Generate optimized link anchor
+      let linkAnchor = article.title;
+      if (article.category === '152-ФЗ') {
+        linkAnchor = `новые требования ${article.title.toLowerCase()}`;
+      } else if (article.category === 'Практические советы') {
+        linkAnchor = `пошаговое руководство: ${article.title.toLowerCase()}`;
+      }
+      
+      return {
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        category: article.category,
+        relevanceScore: Math.round(relevanceScore),
+        linkAnchor
+      };
+    })
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    .slice(0, 5); // Top 5 related articles
+    
+  return related;
+}
+
+/**
+ * Generate contextual links for insertion in article content
+ */
+export function generateContextualLinks(
+  currentArticle: EnhancedBlogArticle,
+  allArticles: EnhancedBlogArticle[]
+): InternalLinkingData['contextualLinks'] {
+  const contextualLinks: InternalLinkingData['contextualLinks'] = [];
+  
+  // Find opportunities for contextual linking
+  allArticles.forEach(targetArticle => {
+    if (targetArticle.id === currentArticle.id) return;
+    
+    // Look for mentions of target article keywords in current content
+    targetArticle.neuralSignals.primaryKeywords.forEach(keyword => {
+      if (currentArticle.content.toLowerCase().includes(keyword.toLowerCase())) {
+        // Create contextual link
+        contextualLinks.push({
+          keyword,
+          targetArticle: targetArticle.slug,
+          linkText: `подробнее о ${keyword.toLowerCase()}`,
+          context: `Упоминание "${keyword}" в контексте статьи`
+        });
+      }
+    });
+  });
+  
+  return contextualLinks.slice(0, 3); // Limit to 3 contextual links per article
+}
+
+/**
+ * Generate enhanced blog article with full SEO optimization
+ */
+export function createEnhancedBlogArticle(
+  baseArticle: {
+    id: string;
+    title: string;
+    slug: string;
+    description: string;
+    content: string;
+    category: string;
+    tags: string[];
+    publishedAt: string;
+    author: string;
+    readingTime: number;
+    featured: boolean;
+    views: number;
+  },
+  options: {
+    customNeuralSignals?: Partial<NeuralSearchSignals>;
+    customRussianSEO?: Partial<RussianSEOSchema>;
+    customBotHints?: Partial<SearchBotHints>;
+    relatedArticles?: EnhancedBlogArticle[];
+  } = {}
+): EnhancedBlogArticle {
+  const neuralSignals = generateNeuralSignals(baseArticle, options.customNeuralSignals);
+  const russianSEO = generateRussianSEO(baseArticle, options.customRussianSEO);
+  const botHints = generateSearchBotHints(baseArticle, options.customBotHints);
+  
+  // Generate semantic tags
+  const semanticTags = {
+    primaryTopic: baseArticle.category,
+    subTopics: baseArticle.tags,
+    entities: botHints.relatedEntities,
+    concepts: neuralSignals.authoritySignals
+  };
+  
+  // Generate internal linking data (will be populated later when all articles are available)
+  const internalLinking: InternalLinkingData = {
+    relatedArticles: [],
+    contextualLinks: [],
+    categoryConnections: [{
+      category: baseArticle.category,
+      connectedCategories: ['152-ФЗ', 'Практические советы', 'Исследования'],
+      linkingStrategy: 'cluster'
+    }],
+    semanticTags
+  };
+  
+  return {
+    ...baseArticle,
+    neuralSignals,
+    russianSEO,
+    botHints,
+    internalLinking,
+    lastUpdated: baseArticle.publishedAt,
+    expertiseScore: neuralSignals.expertiseLevel,
+    citationCount: 0,
+    shareCount: Math.floor(Math.random() * 100) // Mock data
+  };
+}
+
+/**
+ * Build Yandex-specific meta tags
+ */
+export function buildYandexMetaTags(russianSEO: RussianSEOSchema): YandexMetaTags {
+  return {
+    region: russianSEO.yaRegion,
+    'ya:ovs:adult': 'false',
+    'ya:ovs:topic': russianSEO.yaTheme
+  };
+}
+
+/**
+ * Generate enhanced JSON-LD Article schema with neural signals
+ */
+export function buildEnhancedArticleJsonLd(
+  article: EnhancedBlogArticle,
+  path: string,
+  baseUrl: string = SEO_CONSTANTS.BASE_URL
+): JsonLdArticleEnhanced {
+  const canonicalUrl = canonicalFromPath(path, baseUrl);
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description: article.description,
+    inLanguage: 'ru-RU',
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': canonicalUrl
+    },
+    author: {
+      '@type': 'Organization',
+      name: SEO_CONSTANTS.SITE_NAME,
+      url: baseUrl
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: SEO_CONSTANTS.SITE_NAME,
+      url: baseUrl,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${baseUrl}/logo.png`,
+        width: 200,
+        height: 60
+      }
+    },
+    datePublished: article.publishedAt,
+    dateModified: article.lastUpdated || article.publishedAt,
+    keywords: article.neuralSignals.primaryKeywords.join(', '),
+    about: {
+      '@type': 'Thing',
+      name: article.neuralSignals.topicCluster,
+      description: `Russian data protection and privacy compliance`
+    },
+    isPartOf: {
+      '@type': 'WebSite',
+      name: SEO_CONSTANTS.SITE_NAME,
+      url: baseUrl
+    },
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['h1', 'h2', '.key-takeaway', '.summary']
+    },
+    audience: {
+      '@type': 'Audience',
+      audienceType: article.neuralSignals.audienceType,
+      geographicArea: {
+        '@type': 'Country',
+        name: 'Россия'
+      }
+    },
+    mentions: article.botHints.relatedEntities.map(entity => ({
+      '@type': 'Thing',
+      name: entity
+    })),
+    expertise: article.neuralSignals.authoritySignals.map(signal => ({
+      '@type': 'DefinedTerm',
+      name: signal,
+      description: `Expert knowledge in ${signal}`
+    }))
+  };
+}
+
+// Generate category connections for cross-linking
+export const generateCategoryConnections = (articles: EnhancedBlogArticle[]): CategoryConnection[] => {
+  const categories = Array.from(new Set(articles.map(a => a.category)));
+  
+  return categories.map(category => {
+    const categoryArticles = articles.filter(a => a.category === category);
+    const otherArticles = articles.filter(a => a.category !== category);
+    
+    // Find connected categories based on shared keywords and topics
+    const connections = new Map<string, number>();
+    
+    categoryArticles.forEach(article => {
+      const keywords = [
+        ...article.neuralSignals.primaryKeywords,
+        ...article.neuralSignals.secondaryKeywords,
+        ...article.russianSEO.russianKeywords.primary,
+        ...article.russianSEO.russianKeywords.semantic
+      ];
+      
+      otherArticles.forEach(other => {
+        const otherKeywords = [
+          ...other.neuralSignals.primaryKeywords,
+          ...other.neuralSignals.secondaryKeywords,
+          ...other.russianSEO.russianKeywords.primary,
+          ...other.russianSEO.russianKeywords.semantic
+        ];
+        
+        const commonKeywords = keywords.filter(kw => 
+          otherKeywords.some(otherKw => otherKw.toLowerCase().includes(kw.toLowerCase()))
+        );
+        
+        if (commonKeywords.length > 0) {
+          connections.set(other.category, (connections.get(other.category) || 0) + commonKeywords.length);
+        }
+      });
+    });
+    
+    // Get top 3 connected categories
+    const connectedCategories = Array.from(connections.entries())
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([cat]) => cat);
+    
+    return {
+      category,
+      connectedCategories,
+      strength: connections.size,
+      linkingStrategy: 'cluster' as const
+    };
+  });
+};

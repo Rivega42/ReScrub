@@ -5,9 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Search, Calendar, Clock, User, Rss, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Search, Calendar, Clock, User, Rss, ChevronLeft, ChevronRight, Filter, ArrowRight, Network, TrendingUp } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { SEO } from '@/components/SEO';
+import { 
+  EnhancedBlogArticle, 
+  createEnhancedBlogArticle, 
+  generateInternalLinks,
+  generateCategoryConnections,
+  generateBreadcrumbJsonLd,
+  SEO_CONSTANTS
+} from '@shared/seo';
 
 // Types for blog articles
 interface BlogArticle {
@@ -2665,6 +2674,16 @@ export default function Blog() {
   const [sortBy, setSortBy] = useState<'date' | 'views'>('date');
   
   const articlesPerPage = 6;
+  
+  // Convert regular articles to enhanced articles with SEO
+  const enhancedArticles = useMemo(() => {
+    return mockArticles.map(article => createEnhancedBlogArticle(article));
+  }, []);
+  
+  // Generate category connections for cross-linking
+  const categoryConnections = useMemo(() => {
+    return generateCategoryConnections(enhancedArticles);
+  }, [enhancedArticles]);
 
   // SEO Meta Tags Management
   useEffect(() => {
@@ -2757,9 +2776,9 @@ export default function Blog() {
     };
   }, []);
 
-  // Filter and search articles
+  // Filter and search articles using enhanced articles
   const filteredArticles = useMemo(() => {
-    let filtered = mockArticles;
+    let filtered = enhancedArticles;
     
     // Filter by category
     if (selectedCategory !== 'all') {
@@ -2768,14 +2787,30 @@ export default function Blog() {
       );
     }
     
-    // Filter by search query
+    // Filter by search query with advanced SEO search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(article =>
-        article.title.toLowerCase().includes(query) ||
-        article.description.toLowerCase().includes(query) ||
-        article.tags.some(tag => tag.toLowerCase().includes(query))
-      );
+      filtered = filtered.filter(article => {
+        // Basic content matching
+        const basicMatch = 
+          article.title.toLowerCase().includes(query) ||
+          article.description.toLowerCase().includes(query) ||
+          article.tags.some(tag => tag.toLowerCase().includes(query));
+        
+        // Neural signals matching with runtime guard
+        const neuralMatch = article.neuralSignals?.primaryKeywords?.some(kw => 
+          kw.toLowerCase().includes(query)
+        ) || false;
+        
+        // Russian SEO keywords matching with proper schema and runtime guards
+        const russianSEOMatch = (
+          article.russianSEO?.russianKeywords?.primary?.some(kw => kw.toLowerCase().includes(query)) ||
+          article.russianSEO?.russianKeywords?.semantic?.some(kw => kw.toLowerCase().includes(query)) ||
+          article.russianSEO?.russianKeywords?.longTail?.some(kw => kw.toLowerCase().includes(query))
+        ) || false;
+        
+        return basicMatch || neuralMatch || russianSEOMatch;
+      });
     }
     
     // Sort articles
@@ -2787,7 +2822,12 @@ export default function Blog() {
     });
     
     return filtered;
-  }, [searchQuery, selectedCategory, sortBy]);
+  }, [searchQuery, selectedCategory, sortBy, enhancedArticles]);
+  
+  // Get related articles for internal linking
+  const getRelatedArticles = (article: EnhancedBlogArticle) => {
+    return generateInternalLinks(article, enhancedArticles).slice(0, 3);
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
