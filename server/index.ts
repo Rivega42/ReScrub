@@ -41,6 +41,10 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/verify-email', authLimiter);
 
+// Apply rate limiting to OAuth routes
+app.use('/api/oauth/:provider/start', authLimiter);
+app.use('/api/oauth/:provider/callback', authLimiter);
+
 // General rate limiting for all API endpoints
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

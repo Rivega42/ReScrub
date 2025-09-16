@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Shield, Building, CreditCard, Search, MessageCircle } from "lucide-react";
+import { SiVk } from "react-icons/si";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -187,6 +188,87 @@ export default function Login() {
     }
   };
 
+  // OAuth handlers - redirect to backend OAuth endpoints
+  const handleOAuthLogin = (providerId: string) => {
+    console.log(`OAuth login with ${providerId}`);
+    // Redirect to backend OAuth start endpoint
+    window.location.href = `/api/oauth/${providerId}/start`;
+  };
+
+  // OAuth providers data
+  const oauthProviders = [
+    {
+      id: 'esia',
+      name: 'Госуслуги',
+      icon: Shield,
+      color: 'text-blue-600',
+      testId: 'button-oauth-esia'
+    },
+    {
+      id: 'sberbank',
+      name: 'Сбербанк ID',
+      icon: CreditCard,
+      color: 'text-green-600',
+      testId: 'button-oauth-sberbank'
+    },
+    {
+      id: 'tbank',
+      name: 'Т-Банк ID',
+      icon: Building,
+      color: 'text-yellow-600',
+      testId: 'button-oauth-tbank'
+    },
+    {
+      id: 'vk',
+      name: 'VK ID',
+      icon: SiVk,
+      color: 'text-blue-500',
+      testId: 'button-oauth-vk'
+    },
+    {
+      id: 'yandex',
+      name: 'Yandex ID',
+      icon: Search,
+      color: 'text-red-500',
+      testId: 'button-oauth-yandex'
+    }
+  ];
+
+  // OAuth buttons component
+  const OAuthButtons = () => (
+    <div className="space-y-4">
+      {/* Разделитель */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">или</span>
+        </div>
+      </div>
+
+      {/* OAuth кнопки */}
+      <div className="grid grid-cols-1 gap-3">
+        {oauthProviders.map((provider) => {
+          const IconComponent = provider.icon;
+          return (
+            <Button
+              key={provider.id}
+              variant="outline"
+              className="w-full hover-elevate"
+              onClick={() => handleOAuthLogin(provider.id)}
+              data-testid={provider.testId}
+              disabled={isLoading}
+            >
+              <IconComponent className={`h-4 w-4 mr-2 ${provider.color}`} />
+              Войти через {provider.name}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex">
       {/* Левая половина - Cal.com style с крабом и паралакс эффектом */}
@@ -346,6 +428,11 @@ export default function Login() {
                     {isLoading ? 'Вход...' : 'Войти'}
                   </Button>
                 </form>
+              )}
+
+              {/* OAuth кнопки для входа и регистрации */}
+              {(mode === 'login' || mode === 'register') && (
+                <OAuthButtons />
               )}
 
               {/* Форма регистрации */}

@@ -189,6 +189,28 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// OAuth accounts table for third-party authentication
+export const oauthAccounts = pgTable("oauth_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  provider: varchar("provider").notNull(), // 'vk', 'yandex', 'sberbank', 'tbank', 'esia'
+  providerUserId: varchar("provider_user_id").notNull(), // sub/id from OAuth provider
+  email: varchar("email"), // email from provider (may differ from userAccounts.email)
+  profile: jsonb("profile").default(sql`'{}'::jsonb`), // additional data: name, phone, etc
+  scope: varchar("scope"), // granted scopes
+  accessTokenHash: varchar("access_token_hash"), // hashed access token for security
+  refreshTokenHash: varchar("refresh_token_hash"), // hashed refresh token for security
+  expiresAt: timestamp("expires_at"), // when access token expires
+  emailVerified: boolean("email_verified").default(false), // was email verified by provider
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_oauth_user_id").on(table.userId),
+  index("IDX_oauth_provider_email").on(table.provider, table.email),
+  // Unique constraint: one provider user = one OAuth account
+  sql`UNIQUE (provider, provider_user_id)`,
+]);
+
 // ====================
 // SCHEMAS AND TYPES
 // ====================
@@ -263,6 +285,12 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UserAccount = typeof userAccounts.$inferSelect;
 export type InsertUserAccount = z.infer<typeof insertUserAccountSchema>;
@@ -278,3 +306,5 @@ export type DeletionRequest = typeof deletionRequests.$inferSelect;
 export type InsertDeletionRequest = z.infer<typeof insertDeletionRequestSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type InsertOAuthAccount = z.infer<typeof insertOAuthAccountSchema>;

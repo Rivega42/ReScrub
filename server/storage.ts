@@ -8,6 +8,7 @@ import {
   dataBrokerScans,
   deletionRequests,
   notifications,
+  oauthAccounts,
   type User,
   type UpsertUser,
   type InsertSupportTicket,
@@ -24,6 +25,8 @@ import {
   type InsertDeletionRequest,
   type Notification,
   type InsertNotification,
+  type OAuthAccount,
+  type InsertOAuthAccount,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -76,6 +79,13 @@ export interface IStorage {
   createNotification(notificationData: InsertNotification): Promise<Notification>;
   getUserNotifications(userId: string, unreadOnly?: boolean): Promise<Notification[]>;
   markNotificationAsRead(id: string): Promise<Notification | undefined>;
+  
+  // OAuth operations
+  getOAuthAccountByProviderAndId(provider: string, providerUserId: string): Promise<OAuthAccount | undefined>;
+  linkOAuthAccount(userId: string, oauthData: InsertOAuthAccount): Promise<OAuthAccount>;
+  listUserOAuthAccounts(userId: string): Promise<OAuthAccount[]>;
+  unlinkOAuthAccount(oauthAccountId: string): Promise<boolean>;
+  updateOAuthTokens(oauthAccountId: string, tokens: { accessTokenHash?: string; refreshTokenHash?: string; expiresAt?: Date }): Promise<OAuthAccount | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -354,6 +364,56 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return notification;
   }
+
+  // OAuth operations
+  async getOAuthAccountByProviderAndId(provider: string, providerUserId: string): Promise<OAuthAccount | undefined> {
+    const [account] = await db
+      .select()
+      .from(oauthAccounts)
+      .where(
+        and(
+          eq(oauthAccounts.provider, provider),
+          eq(oauthAccounts.providerUserId, providerUserId)
+        )
+      );
+    return account;
+  }
+
+  async linkOAuthAccount(userId: string, oauthData: InsertOAuthAccount): Promise<OAuthAccount> {
+    const [account] = await db
+      .insert(oauthAccounts)
+      .values({ ...oauthData, userId })
+      .returning();
+    return account;
+  }
+
+  async listUserOAuthAccounts(userId: string): Promise<OAuthAccount[]> {
+    return await db
+      .select()
+      .from(oauthAccounts)
+      .where(eq(oauthAccounts.userId, userId))
+      .orderBy(desc(oauthAccounts.createdAt));
+  }
+
+  async unlinkOAuthAccount(oauthAccountId: string): Promise<boolean> {
+    const result = await db
+      .delete(oauthAccounts)
+      .where(eq(oauthAccounts.id, oauthAccountId))
+      .returning();
+    return result.length > 0;
+  }
+
+  async updateOAuthTokens(
+    oauthAccountId: string, 
+    tokens: { accessTokenHash?: string; refreshTokenHash?: string; expiresAt?: Date }
+  ): Promise<OAuthAccount | undefined> {
+    const [account] = await db
+      .update(oauthAccounts)
+      .set({ ...tokens, updatedAt: new Date() })
+      .where(eq(oauthAccounts.id, oauthAccountId))
+      .returning();
+    return account;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -365,6 +425,7 @@ export class MemStorage implements IStorage {
   private dataBrokerScansData: DataBrokerScan[] = [];
   private deletionRequestsData: DeletionRequest[] = [];
   private notificationsData: Notification[] = [];
+  private oauthAccountsData: OAuthAccount[] = [];
   private ticketIdCounter = 1;
   private idCounter = 1;
 
@@ -717,6 +778,68 @@ export class MemStorage implements IStorage {
     
     this.notificationsData[index].read = true;
     return this.notificationsData[index];
+  }
+
+  // OAuth operations (in-memory)
+  async getOAuthAccountByProviderAndId(provider: string, providerUserId: string): Promise<OAuthAccount | undefined> {
+    return this.oauthAccountsData.find(acc => 
+      acc.provider === provider && acc.providerUserId === providerUserId
+    );
+  }
+
+  async linkOAuthAccount(userId: string, oauthData: InsertOAuthAccount): Promise<OAuthAccount> {
+    const now = new Date();
+    const account: OAuthAccount = {
+      id: `oauth_${this.idCounter++}_${Date.now()}`,
+      userId,
+      provider: oauthData.provider,
+      providerUserId: oauthData.providerUserId,
+      email: oauthData.email || null,
+      profile: oauthData.profile || {},
+      scope: oauthData.scope || null,
+      accessTokenHash: oauthData.accessTokenHash || null,
+      refreshTokenHash: oauthData.refreshTokenHash || null,
+      expiresAt: oauthData.expiresAt || null,
+      emailVerified: oauthData.emailVerified || false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.oauthAccountsData.push(account);
+    return account;
+  }
+
+  async listUserOAuthAccounts(userId: string): Promise<OAuthAccount[]> {
+    return this.oauthAccountsData
+      .filter(acc => acc.userId === userId)
+      .sort((a, b) => {
+        const timeA = a.createdAt ? a.createdAt.getTime() : 0;
+        const timeB = b.createdAt ? b.createdAt.getTime() : 0;
+        return timeB - timeA;
+      });
+  }
+
+  async unlinkOAuthAccount(oauthAccountId: string): Promise<boolean> {
+    const index = this.oauthAccountsData.findIndex(acc => acc.id === oauthAccountId);
+    if (index === -1) return false;
+    
+    this.oauthAccountsData.splice(index, 1);
+    return true;
+  }
+
+  async updateOAuthTokens(
+    oauthAccountId: string, 
+    tokens: { accessTokenHash?: string; refreshTokenHash?: string; expiresAt?: Date }
+  ): Promise<OAuthAccount | undefined> {
+    const index = this.oauthAccountsData.findIndex(acc => acc.id === oauthAccountId);
+    if (index === -1) return undefined;
+    
+    this.oauthAccountsData[index] = {
+      ...this.oauthAccountsData[index],
+      ...tokens,
+      updatedAt: new Date(),
+    };
+    return this.oauthAccountsData[index];
   }
 }
 

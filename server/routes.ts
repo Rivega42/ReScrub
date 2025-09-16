@@ -11,12 +11,14 @@ import {
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
+import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
 
 // Extend Express session types
 declare module 'express-session' {
   interface SessionData {
     userId?: string;
     email?: string;
+    oauthStates?: { [key: string]: any };
   }
 }
 
@@ -306,6 +308,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // ========================================
+  // OAUTH AUTHENTICATION ROUTES
+  // ========================================
+  
+  // OAuth Start Endpoint
+  app.get('/api/oauth/:provider/start', handleOAuthStart);
+  
+  // OAuth Callback Endpoint
+  app.get('/api/oauth/:provider/callback', handleOAuthCallback);
   
   // ========================================
   // EXISTING ROUTES
