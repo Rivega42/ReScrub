@@ -177,8 +177,8 @@ function BrokerSelectionStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search and Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search and Filters - Mobile Optimized */}
+          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
             <div>
               <Label htmlFor="search">Поиск по названию</Label>
               <div className="relative">
@@ -228,7 +228,7 @@ function BrokerSelectionStep({
             </div>
           </div>
 
-          {/* Data Brokers Table */}
+          {/* Data Brokers List - Responsive */}
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
@@ -246,72 +246,143 @@ function BrokerSelectionStep({
               <p>Организации не найдены</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Организация</TableHead>
-                    <TableHead>Категория</TableHead>
-                    <TableHead>Сложность</TableHead>
-                    <TableHead>Время ответа</TableHead>
-                    <TableHead>Действие</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dataBrokers.map((broker) => (
-                    <TableRow 
-                      key={broker.id} 
-                      className={`cursor-pointer hover:bg-muted/50 ${selectedBroker?.id === broker.id ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
-                      onClick={() => handleBrokerClick(broker)}
-                      data-testid={`broker-row-${broker.id}`}
-                    >
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{broker.name}</p>
-                          {broker.legalName && broker.legalName !== broker.name && (
-                            <p className="text-sm text-muted-foreground">{broker.legalName}</p>
-                          )}
-                          {broker.description && (
-                            <p className="text-sm text-muted-foreground">{broker.description}</p>
+            <>
+              {/* Desktop: Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Организация</TableHead>
+                      <TableHead>Категория</TableHead>
+                      <TableHead>Сложность</TableHead>
+                      <TableHead>Время ответа</TableHead>
+                      <TableHead>Действие</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {dataBrokers.map((broker) => (
+                      <TableRow 
+                        key={broker.id} 
+                        className={`cursor-pointer hover:bg-muted/50 ${selectedBroker?.id === broker.id ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
+                        onClick={() => handleBrokerClick(broker)}
+                        data-testid={`broker-row-${broker.id}`}
+                      >
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{broker.name}</p>
+                            {broker.legalName && broker.legalName !== broker.name && (
+                              <p className="text-sm text-muted-foreground">{broker.legalName}</p>
+                            )}
+                            {broker.description && (
+                              <p className="text-sm text-muted-foreground">{broker.description}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <CategoryBadge category={broker.category} />
+                        </TableCell>
+                        <TableCell>
+                          <DifficultyBadge difficulty={broker.difficultyLevel} />
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {broker.responseTime || 'Не указано'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            variant={selectedBroker?.id === broker.id ? "default" : "outline"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBrokerClick(broker);
+                            }}
+                            data-testid={`button-select-broker-${broker.id}`}
+                          >
+                            {selectedBroker?.id === broker.id ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Выбрано
+                              </>
+                            ) : (
+                              'Выбрать'
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile: Card List */}
+              <div className="md:hidden space-y-3">
+                {dataBrokers.map((broker) => (
+                  <Card 
+                    key={broker.id}
+                    className={`cursor-pointer hover-elevate transition-colors ${
+                      selectedBroker?.id === broker.id ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
+                    onClick={() => handleBrokerClick(broker)}
+                    data-testid={`broker-card-${broker.id}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-base leading-tight" data-testid={`text-broker-name-${broker.id}`}>
+                              {broker.name}
+                            </h3>
+                            {broker.legalName && broker.legalName !== broker.name && (
+                              <p className="text-sm text-muted-foreground mt-1">{broker.legalName}</p>
+                            )}
+                          </div>
+                          <Button 
+                            size="sm"
+                            variant={selectedBroker?.id === broker.id ? "default" : "outline"}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBrokerClick(broker);
+                            }}
+                            data-testid={`button-select-broker-mobile-${broker.id}`}
+                            className="touch-target shrink-0"
+                          >
+                            {selectedBroker?.id === broker.id ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Выбрано
+                              </>
+                            ) : (
+                              'Выбрать'
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Description */}
+                        {broker.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {broker.description}
+                          </p>
+                        )}
+
+                        {/* Badges and Info */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <CategoryBadge category={broker.category} />
+                          <DifficultyBadge difficulty={broker.difficultyLevel} />
+                          {broker.responseTime && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {broker.responseTime}
+                            </Badge>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <CategoryBadge category={broker.category} />
-                      </TableCell>
-                      <TableCell>
-                        <DifficultyBadge difficulty={broker.difficultyLevel} />
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {broker.responseTime || 'Не указано'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          size="sm" 
-                          variant={selectedBroker?.id === broker.id ? "default" : "outline"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBrokerClick(broker);
-                          }}
-                          data-testid={`button-select-broker-${broker.id}`}
-                        >
-                          {selectedBroker?.id === broker.id ? (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Выбрано
-                            </>
-                          ) : (
-                            'Выбрать'
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -367,7 +438,13 @@ function BrokerSelectionStep({
       {/* Next Button */}
       <div className="flex justify-end">
         <form onSubmit={brokerForm.handleSubmit(handleNext)}>
-          <Button type="submit" disabled={!selectedBroker} data-testid="button-next-step">
+          <Button 
+            type="submit" 
+            size="lg"
+            className="w-full sm:w-auto touch-target"
+            disabled={!selectedBroker} 
+            data-testid="button-next-step"
+          >
             Далее
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
@@ -543,13 +620,25 @@ function RequestDetailsStep({
               )}
             </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={onBack} data-testid="button-back">
+            {/* Navigation Buttons - Mobile Optimized */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="lg"
+                className="w-full sm:w-auto touch-target order-2 sm:order-1"
+                onClick={onBack} 
+                data-testid="button-back"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Назад
               </Button>
-              <Button type="submit" data-testid="button-review">
+              <Button 
+                type="submit" 
+                size="lg"
+                className="w-full sm:w-auto touch-target order-1 sm:order-2"
+                data-testid="button-review"
+              >
                 Просмотр запроса
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -679,17 +768,25 @@ function ReviewStep({
         </CardContent>
       </Card>
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack} disabled={isSubmitting} data-testid="button-back-review">
+      {/* Navigation Buttons - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+        <Button 
+          variant="outline" 
+          size="lg"
+          className="w-full sm:w-auto touch-target order-2 sm:order-1"
+          onClick={onBack} 
+          disabled={isSubmitting} 
+          data-testid="button-back-review"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Назад
         </Button>
         <Button 
+          size="lg"
+          className="w-full sm:w-auto touch-target bg-green-600 hover:bg-green-700 order-1 sm:order-2"
           onClick={onSubmit} 
           disabled={isSubmitting}
           data-testid="button-submit-request"
-          className="bg-green-600 hover:bg-green-700"
         >
           {isSubmitting ? (
             <>
@@ -779,9 +876,9 @@ export default function CreateRequest() {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight" data-testid="title-create-request">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" data-testid="title-create-request">
           Создать запрос на удаление данных
         </h1>
         <p className="text-muted-foreground">
@@ -789,13 +886,13 @@ export default function CreateRequest() {
         </p>
       </div>
 
-      {/* Step Indicator */}
-      <div className="mb-8">
-        <div className="flex items-center justify-center space-x-8">
+      {/* Step Indicator - Mobile Optimized */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-center space-x-4 sm:space-x-8">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex items-center">
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm font-medium ${
                   currentStep === step
                     ? 'bg-primary text-primary-foreground'
                     : currentStep > step

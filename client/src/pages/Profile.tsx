@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -206,9 +207,9 @@ export default function Profile() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight" data-testid="title-profile">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" data-testid="title-profile">
           Профиль
         </h1>
         <p className="text-muted-foreground">
@@ -216,25 +217,31 @@ export default function Profile() {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-full" data-testid="tabs-profile">
-          <TabsTrigger value="profile" className="flex items-center gap-2" data-testid="tab-basic-info">
-            <User className="w-4 h-4" />
-            Основное
-          </TabsTrigger>
-          <TabsTrigger value="address" className="flex items-center gap-2" data-testid="tab-address">
-            <MapPin className="w-4 h-4" />
-            Адрес
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2" data-testid="tab-notifications">
-            <Bell className="w-4 h-4" />
-            Уведомления
-          </TabsTrigger>
-          <TabsTrigger value="privacy" className="flex items-center gap-2" data-testid="tab-privacy">
-            <Shield className="w-4 h-4" />
-            Приватность
-          </TabsTrigger>
-        </TabsList>
+      {/* Desktop: Tabs, Mobile: Accordion */}
+      <div className="hidden md:block">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid grid-cols-4 w-full" data-testid="tabs-profile">
+            <TabsTrigger value="profile" className="flex items-center gap-2" data-testid="tab-basic-info">
+              <User className="w-4 h-4" />
+              <span className="hidden lg:inline">Основное</span>
+              <span className="lg:hidden">Основное</span>
+            </TabsTrigger>
+            <TabsTrigger value="address" className="flex items-center gap-2" data-testid="tab-address">
+              <MapPin className="w-4 h-4" />
+              <span className="hidden lg:inline">Адрес</span>
+              <span className="lg:hidden">Адрес</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2" data-testid="tab-notifications">
+              <Bell className="w-4 h-4" />
+              <span className="hidden lg:inline">Уведомления</span>
+              <span className="lg:hidden">Увед.</span>
+            </TabsTrigger>
+            <TabsTrigger value="privacy" className="flex items-center gap-2" data-testid="tab-privacy">
+              <Shield className="w-4 h-4" />
+              <span className="hidden lg:inline">Приватность</span>
+              <span className="lg:hidden">Привт.</span>
+            </TabsTrigger>
+          </TabsList>
 
         {/* Basic Profile Tab */}
         <TabsContent value="profile">
@@ -327,6 +334,8 @@ export default function Profile() {
 
                 <Button 
                   type="submit" 
+                  size="lg"
+                  className="w-full sm:w-auto touch-target"
                   disabled={updateProfileMutation.isPending}
                   data-testid="button-save-profile"
                 >
@@ -410,6 +419,8 @@ export default function Profile() {
 
                 <Button 
                   type="submit" 
+                  size="lg"
+                  className="w-full sm:w-auto touch-target"
                   disabled={updateProfileMutation.isPending}
                   data-testid="button-save-address"
                 >
@@ -509,6 +520,8 @@ export default function Profile() {
 
                 <Button 
                   type="submit" 
+                  size="lg"
+                  className="w-full sm:w-auto touch-target"
                   disabled={updateProfileMutation.isPending}
                   data-testid="button-save-notifications"
                 >
@@ -600,16 +613,394 @@ export default function Profile() {
 
                 <Button 
                   type="submit" 
+                  size="lg"
+                  className="w-full sm:w-auto touch-target"
                   disabled={updateProfileMutation.isPending}
                   data-testid="button-save-privacy"
                 >
-                  {updateProfileMutation.isPending ? 'Сохранение...' : 'Сохранить настройки'}
+                  {updateProfileMutation.isPending ? 'Сохранение...' : 'Сохранить настройки приватности'}
                 </Button>
               </form>
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
+
+      {/* Mobile: Accordion */}
+      <div className="md:hidden space-y-4">
+        <Accordion type="single" collapsible defaultValue="profile" data-testid="accordion-profile">
+          {/* Basic Profile */}
+          <AccordionItem value="profile">
+            <AccordionTrigger className="flex items-center gap-2" data-testid="accordion-basic-info">
+              <User className="w-4 h-4" />
+              Личная информация
+            </AccordionTrigger>
+            <AccordionContent>
+              <Card>
+                <CardContent className="pt-6">
+                  <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-4">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="firstName-mobile">Имя *</Label>
+                        <Input
+                          id="firstName-mobile"
+                          data-testid="input-first-name-mobile"
+                          {...profileForm.register('firstName')}
+                          placeholder="Введите имя"
+                        />
+                        {profileForm.formState.errors.firstName && (
+                          <p className="text-sm text-destructive mt-1">
+                            {profileForm.formState.errors.firstName.message}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="lastName-mobile">Фамилия *</Label>
+                        <Input
+                          id="lastName-mobile"
+                          data-testid="input-last-name-mobile"
+                          {...profileForm.register('lastName')}
+                          placeholder="Введите фамилию"
+                        />
+                        {profileForm.formState.errors.lastName && (
+                          <p className="text-sm text-destructive mt-1">
+                            {profileForm.formState.errors.lastName.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="middleName-mobile">Отчество</Label>
+                      <Input
+                        id="middleName-mobile"
+                        data-testid="input-middle-name-mobile"
+                        {...profileForm.register('middleName')}
+                        placeholder="Введите отчество (необязательно)"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="email-mobile">Email</Label>
+                      <Input
+                        id="email-mobile"
+                        value={(userData as any)?.user?.email || ''}
+                        disabled
+                        data-testid="input-email-readonly-mobile"
+                        className="bg-muted"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Email нельзя изменить. Обратитесь в поддержку при необходимости
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="phone-mobile">Телефон</Label>
+                      <Input
+                        id="phone-mobile"
+                        data-testid="input-phone-mobile"
+                        {...profileForm.register('phone')}
+                        placeholder="+7 (999) 123-45-67"
+                      />
+                      {(userData as any)?.user?.profile?.phoneVerified ? (
+                        <Badge variant="secondary" className="mt-2">
+                          Подтвержден
+                        </Badge>
+                      ) : (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Не подтвержден
+                        </p>
+                      )}
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      size="lg"
+                      className="w-full touch-target"
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-profile-mobile"
+                    >
+                      {updateProfileMutation.isPending ? 'Сохранение...' : 'Сохранить изменения'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Address */}
+          <AccordionItem value="address">
+            <AccordionTrigger className="flex items-center gap-2" data-testid="accordion-address">
+              <MapPin className="w-4 h-4" />
+              Адрес проживания
+            </AccordionTrigger>
+            <AccordionContent>
+              <Card>
+                <CardContent className="pt-6">
+                  <form onSubmit={addressForm.handleSubmit(handleAddressSubmit)} className="space-y-4">
+                    <div>
+                      <Label htmlFor="address-mobile">Адрес</Label>
+                      <Textarea
+                        id="address-mobile"
+                        data-testid="input-address-mobile"
+                        {...addressForm.register('address')}
+                        placeholder="Улица, дом, квартира"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="city-mobile">Город</Label>
+                        <Input
+                          id="city-mobile"
+                          data-testid="input-city-mobile"
+                          {...addressForm.register('city')}
+                          placeholder="Москва"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="region-mobile">Регион</Label>
+                        <Input
+                          id="region-mobile"
+                          data-testid="input-region-mobile"
+                          {...addressForm.register('region')}
+                          placeholder="Московская область"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="postalCode-mobile">Индекс</Label>
+                        <Input
+                          id="postalCode-mobile"
+                          data-testid="input-postal-code-mobile"
+                          {...addressForm.register('postalCode')}
+                          placeholder="123456"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="country-mobile">Страна</Label>
+                      <Input
+                        id="country-mobile"
+                        value="RU"
+                        disabled
+                        data-testid="input-country-readonly-mobile"
+                        className="bg-muted"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Сервис работает только с российскими данными
+                      </p>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      size="lg"
+                      className="w-full touch-target"
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-address-mobile"
+                    >
+                      {updateProfileMutation.isPending ? 'Сохранение...' : 'Сохранить адрес'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Notifications */}
+          <AccordionItem value="notifications">
+            <AccordionTrigger className="flex items-center gap-2" data-testid="accordion-notifications">
+              <Bell className="w-4 h-4" />
+              Настройки уведомлений
+            </AccordionTrigger>
+            <AccordionContent>
+              <Card>
+                <CardContent className="pt-6">
+                  <form onSubmit={notificationForm.handleSubmit(handleNotificationSubmit)} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="emailNotifications-mobile" className="text-base font-medium">
+                            Email уведомления
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Получать уведомления на электронную почту
+                          </p>
+                        </div>
+                        <Switch
+                          id="emailNotifications-mobile"
+                          data-testid="switch-email-notifications-mobile"
+                          {...notificationForm.register('emailNotifications')}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="smsNotifications-mobile" className="text-base font-medium">
+                            SMS уведомления
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Получать SMS на подтвержденный номер телефона
+                          </p>
+                        </div>
+                        <Switch
+                          id="smsNotifications-mobile"
+                          data-testid="switch-sms-notifications-mobile"
+                          {...notificationForm.register('smsNotifications')}
+                          disabled={!(userData as any)?.user?.profile?.phoneVerified}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="pushNotifications-mobile" className="text-base font-medium">
+                            Push уведомления
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Получать уведомления в браузере
+                          </p>
+                        </div>
+                        <Switch
+                          id="pushNotifications-mobile"
+                          data-testid="switch-push-notifications-mobile"
+                          {...notificationForm.register('pushNotifications')}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="marketingEmails-mobile" className="text-base font-medium">
+                            Маркетинговые email
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Получать информацию о новых функциях и предложениях
+                          </p>
+                        </div>
+                        <Switch
+                          id="marketingEmails-mobile"
+                          data-testid="switch-marketing-emails-mobile"
+                          {...notificationForm.register('marketingEmails')}
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      size="lg"
+                      className="w-full touch-target"
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-notifications-mobile"
+                    >
+                      {updateProfileMutation.isPending ? 'Сохранение...' : 'Сохранить настройки'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Privacy */}
+          <AccordionItem value="privacy">
+            <AccordionTrigger className="flex items-center gap-2" data-testid="accordion-privacy">
+              <Shield className="w-4 h-4" />
+              Настройки приватности
+            </AccordionTrigger>
+            <AccordionContent>
+              <Card>
+                <CardContent className="pt-6">
+                  <form onSubmit={privacyForm.handleSubmit(handlePrivacySubmit)} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-base font-medium">Видимость профиля</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Кто может видеть ваш профиль
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value="private"
+                              data-testid="radio-profile-private-mobile"
+                              {...privacyForm.register('profileVisibility')}
+                            />
+                            <span>Приватный</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              value="public"
+                              data-testid="radio-profile-public-mobile"
+                              {...privacyForm.register('profileVisibility')}
+                            />
+                            <span>Публичный</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="dataSharing-mobile" className="text-base font-medium">
+                            Обмен данными
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Разрешить обмен анонимными данными для улучшения сервиса
+                          </p>
+                        </div>
+                        <Switch
+                          id="dataSharing-mobile"
+                          data-testid="switch-data-sharing-mobile"
+                          {...privacyForm.register('dataSharing')}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="analytics-mobile" className="text-base font-medium">
+                            Аналитика
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Разрешить сбор данных для аналитики использования
+                          </p>
+                        </div>
+                        <Switch
+                          id="analytics-mobile"
+                          data-testid="switch-analytics-mobile"
+                          {...privacyForm.register('analytics')}
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      size="lg"
+                      className="w-full touch-target"
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-privacy-mobile"
+                    >
+                      {updateProfileMutation.isPending ? 'Сохранение...' : 'Сохранить настройки приватности'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
     </div>
   );
 }
