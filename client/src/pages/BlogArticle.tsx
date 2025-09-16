@@ -1,4 +1,5 @@
 import { useParams, Link } from 'wouter';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -486,6 +487,58 @@ export default function BlogArticle() {
   
   // Find the article by slug
   const article = mockArticles.find(a => a.slug === slug);
+
+  // Update SEO metadata when article loads
+  useEffect(() => {
+    if (article) {
+      // Update page title
+      document.title = `${article.title} | ReScrub Blog`;
+      
+      // Update meta description
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', article.description);
+      }
+
+      // Add/update Open Graph tags
+      const addOrUpdateMeta = (property: string, content: string) => {
+        let meta = document.querySelector(`meta[property="${property}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('property', property);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      addOrUpdateMeta('og:title', article.title);
+      addOrUpdateMeta('og:description', article.description);
+      addOrUpdateMeta('og:type', 'article');
+      addOrUpdateMeta('og:url', window.location.href);
+      addOrUpdateMeta('article:author', article.author);
+      addOrUpdateMeta('article:published_time', article.publishedAt);
+      addOrUpdateMeta('article:section', article.category);
+      
+      // Add article tags
+      article.tags.forEach((tag, index) => {
+        addOrUpdateMeta(`article:tag`, tag);
+      });
+
+      // Twitter Card tags
+      addOrUpdateMeta('twitter:card', 'summary_large_image');
+      addOrUpdateMeta('twitter:title', article.title);
+      addOrUpdateMeta('twitter:description', article.description);
+    }
+
+    // Cleanup function to restore default title
+    return () => {
+      document.title = 'ReScrub - Защита ваших персональных данных';
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', 'ReScrub - российская платформа для защиты персональных данных в соответствии с 152-ФЗ. Автоматическое удаление данных с сайтов брокеров данных.');
+      }
+    };
+  }, [article]);
   
   if (!article) {
     return (

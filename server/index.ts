@@ -12,10 +12,14 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"], // Required for Tailwind
-      scriptSrc: ["'self'"],
+      scriptSrc: process.env.NODE_ENV === 'development' 
+        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://replit.com"] // Dev: allow Vite HMR and Replit banner
+        : ["'self'", "https://replit.com"], // Prod: restrictive
       imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      connectSrc: process.env.NODE_ENV === 'development'
+        ? ["'self'", "ws:", "wss:"] // Dev: allow WebSocket for HMR
+        : ["'self'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],
