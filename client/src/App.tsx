@@ -23,6 +23,7 @@ import Status from "@/pages/Status";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Requests from "@/pages/Requests";
+import Profile from "@/pages/Profile";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 
@@ -101,13 +102,7 @@ function AppRoutesInner() {
   return (
     <Switch>
       <Route path="/app/dashboard" component={Dashboard} />
-      <Route path="/app/profile">
-        <div className="p-8">
-          <h1 className="text-2xl font-bold">Профиль</h1>
-          <p className="text-muted-foreground">Управление профилем и настройками</p>
-          {/* TODO: Implement profile */}
-        </div>
-      </Route>
+      <Route path="/app/profile" component={Profile} />
       <Route path="/app/documents">
         <div className="p-8">
           <h1 className="text-2xl font-bold">Документы</h1>

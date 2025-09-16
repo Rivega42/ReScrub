@@ -324,6 +324,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update user profile
+  app.put('/api/profile', isEmailAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      
+      // Create schema for profile updates (make all fields optional for partial updates)
+      const updateProfileSchema = insertUserProfileSchema.omit({ userId: true }).partial();
+      const validatedData = updateProfileSchema.parse(req.body);
+      
+      // Update profile in database  
+      const updatedProfile = await storage.updateUserProfile(userId, validatedData);
+      
+      if (!updatedProfile) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Профиль не найден" 
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "Профиль успешно обновлен",
+        profile: updatedProfile
+      });
+    } catch (error: any) {
+      console.error("Profile update error:", error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Некорректные данные профиля", 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false, 
+        message: "Ошибка обновления профиля" 
+      });
+    }
+  });
+  
   // ========================================
   // OAUTH AUTHENTICATION ROUTES
   // ========================================
