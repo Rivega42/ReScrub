@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams, useLocation } from 'wouter';
+import { Link, useParams } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +9,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
 import { 
-  EnhancedBlogArticle, 
-  createEnhancedBlogArticle, 
-  generateInternalLinks,
-  generateCategoryConnections,
+  createEnhancedBlogArticle,
   generateBreadcrumbJsonLd,
   SEO_CONSTANTS
 } from '@shared/seo';
@@ -781,7 +778,7 @@ export default function Blog() {
               url: 'https://rescrub.com/logo.png'
             }
           },
-          mainEntity: enhancedArticles.map(article => ({
+          blogPost: enhancedArticles.map(article => ({
             '@type': 'BlogPosting',
             headline: article.title,
             description: article.description,

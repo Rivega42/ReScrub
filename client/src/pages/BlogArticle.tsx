@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { SEO } from '@/components/SEO';
+import { SEO, BlogSEO } from '@/components/SEO';
 import ReactMarkdown from 'react-markdown';
 import { useMemo } from 'react';
 import {
@@ -33,6 +33,81 @@ import {
   generateBreadcrumbJsonLd,
   SEO_CONSTANTS
 } from '@shared/seo';
+
+// Helper functions for robust anchor processing
+function childrenToText(children: any): string {
+  if (typeof children === 'string') return children;
+  if (typeof children === 'number') return children.toString();
+  if (Array.isArray(children)) return children.map(childrenToText).join('');
+  if (children && children.props && children.props.children) {
+    return childrenToText(children.props.children);
+  }
+  return '';
+}
+
+function generateSlug(text: string): string {
+  if (!text.trim()) return 'section'; // Fallback for empty text
+  
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[а-яё]/g, (char) => {
+      const cyrillicMap: { [key: string]: string } = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+      };
+      return cyrillicMap[char] || char;
+    })
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'section';
+}
+
+function sanitizeExplicitId(id: string): string {
+  return id
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '')
+    .replace(/^-|-$/g, '') || 'section';
+}
+
+// Factory function for per-article ID tracking
+function createIdTracker() {
+  const usedIds = new Map<string, number>();
+  
+  return function getUniqueId(text: string, isExplicit: boolean = false): string {
+    let baseId: string;
+    
+    if (isExplicit) {
+      baseId = sanitizeExplicitId(text);
+    } else {
+      const cleanText = text.replace(/\s*\{#[^}]+\}/, '');
+      baseId = generateSlug(cleanText);
+    }
+    
+    const count = usedIds.get(baseId) || 0;
+    usedIds.set(baseId, count + 1);
+    
+    return count === 0 ? baseId : `${baseId}-${count + 1}`;
+  };
+}
+
+function cleanTextFromId(children: any): any {
+  if (typeof children === 'string') {
+    return children.replace(/\s*\{#[^}]+\}/, '');
+  }
+  if (Array.isArray(children)) {
+    return children.map(child => 
+      typeof child === 'string' 
+        ? child.replace(/\s*\{#[^}]+\}/, '') 
+        : child
+    );
+  }
+  return children;
+}
 
 // Types for blog articles
 interface BlogArticle {
@@ -532,9 +607,13 @@ export default function BlogArticle() {
   
   // Generate search bot hints
   const botHints = useMemo(() => {
-    if (!enhancedArticle) return null;
-    return generateSearchBotHints(enhancedArticle);
-  }, [enhancedArticle]);
+    if (!article) return null;
+    return generateSearchBotHints({
+      title: article.title,
+      content: article.content,
+      category: article.category
+    });
+  }, [article]);
   
   // Format published date
   const publishedDate = article ? new Date(article.publishedAt).toLocaleDateString('ru-RU', {
@@ -554,6 +633,21 @@ export default function BlogArticle() {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
+    }
+  };
+
+  // Create stable ID tracker per article  
+  const getUniqueId = useMemo(() => createIdTracker(), [article?.slug]);
+  
+  // Updated extract function using per-article tracker
+  const extractIdFromText = (children: any): string => {
+    const fullText = childrenToText(children);
+    const match = fullText.match(/\{#([^}]+)\}/);
+    
+    if (match) {
+      return getUniqueId(match[1], true);
+    } else {
+      return getUniqueId(fullText);
     }
   };
 
@@ -663,9 +757,18 @@ export default function BlogArticle() {
           <div className="prose prose-gray dark:prose-invert max-w-none mb-12" data-testid="content-article-body">
             <ReactMarkdown
               components={{
-                h1: (props: any) => <h1 className="text-2xl font-bold mt-8 mb-4">{props.children}</h1>,
-                h2: (props: any) => <h2 className="text-xl font-semibold mt-6 mb-3">{props.children}</h2>,
-                h3: (props: any) => <h3 className="text-lg font-medium mt-4 mb-2">{props.children}</h3>,
+                h1: (props: any) => {
+                  const id = extractIdFromText(props.children);
+                  return <h1 id={id} className="text-2xl font-bold mt-8 mb-4 scroll-mt-4" data-testid={`heading-${id}`}>{cleanTextFromId(props.children)}</h1>;
+                },
+                h2: (props: any) => {
+                  const id = extractIdFromText(props.children);
+                  return <h2 id={id} className="text-xl font-semibold mt-6 mb-3 scroll-mt-4" data-testid={`heading-${id}`}>{cleanTextFromId(props.children)}</h2>;
+                },
+                h3: (props: any) => {
+                  const id = extractIdFromText(props.children);
+                  return <h3 id={id} className="text-lg font-medium mt-4 mb-2 scroll-mt-4" data-testid={`heading-${id}`}>{cleanTextFromId(props.children)}</h3>;
+                },
                 p: (props: any) => <p className="mb-4 leading-relaxed">{props.children}</p>,
                 ul: (props: any) => <ul className="mb-4 pl-6 list-disc">{props.children}</ul>,
                 ol: (props: any) => <ol className="mb-4 pl-6 list-decimal">{props.children}</ol>,
