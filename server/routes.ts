@@ -280,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userAccount = await storage.getUserAccountById(req.session.userId);
-      const userProfile = await storage.getUserProfileByUserId(req.session.userId);
+      const userProfile = await storage.getUserProfile(req.session.userId);
       
       if (!userAccount) {
         return res.status(401).json({ 

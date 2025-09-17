@@ -799,9 +799,13 @@ export default function BlogArticle() {
   
   // Generate Russian SEO signals
   const russianSEO = useMemo(() => {
-    if (!enhancedArticle) return null;
-    return generateRussianSEO(enhancedArticle.content);
-  }, [enhancedArticle]);
+    if (!article) return null;
+    return generateRussianSEO({
+      title: article.title,
+      content: article.content,
+      readingTime: article.readingTime
+    });
+  }, [article]);
   
   // Generate search bot hints
   const botHints = useMemo(() => {

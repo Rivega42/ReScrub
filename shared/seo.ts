@@ -1447,13 +1447,11 @@ export function generateNeuralSignals(
 ): NeuralSearchSignals {
   // Extract primary keywords from title and tags
   const titleWords = article.title.toLowerCase().split(/[\s\-—]+/).filter(word => word.length > 2);
-  const primaryKeywords = [
-    ...new Set([
+  const primaryKeywords = Array.from(new Set([
       ...article.tags.slice(0, 3),
       ...titleWords.slice(0, 2),
       ...(options.primaryKeywords || [])
-    ])
-  ];
+    ]));
   
   // Determine search intent based on content patterns
   let searchIntent: NeuralSearchSignals['searchIntent'] = 'informational';
@@ -1513,7 +1511,7 @@ export function generateRussianSEO(
 ): RussianSEOSchema {
   // Extract Russian keywords
   const russianWords = article.content.match(/[а-яё]{3,}/gi) || [];
-  const primaryRussian = [...new Set(russianWords.slice(0, 10))];
+  const primaryRussian = Array.from(new Set(russianWords.slice(0, 10)));
   
   return {
     yaRegion: 'RU-MOW',
@@ -1615,7 +1613,7 @@ export function generateInternalLinks(
       // Content similarity bonus (simple text similarity)
       const currentWords = new Set(currentArticle.content.toLowerCase().split(/\s+/));
       const articleWords = new Set(article.content.toLowerCase().split(/\s+/));
-      const commonWords = [...currentWords].filter(word => articleWords.has(word)).length;
+      const commonWords = Array.from(currentWords).filter(word => articleWords.has(word)).length;
       const similarity = commonWords / Math.max(currentWords.size, articleWords.size);
       relevanceScore += similarity * 20;
       
@@ -1716,7 +1714,8 @@ export function createEnhancedBlogArticle(
     categoryConnections: [{
       category: baseArticle.category,
       connectedCategories: ['152-ФЗ', 'Практические советы', 'Исследования'],
-      linkingStrategy: 'cluster'
+      linkingStrategy: 'cluster',
+      strength: 0.8
     }],
     semanticTags
   };
