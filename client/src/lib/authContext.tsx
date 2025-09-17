@@ -67,8 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    onSuccess: async () => {
+      // Force immediate refetch and wait for it to complete
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      await refetchUser();
     },
   });
 

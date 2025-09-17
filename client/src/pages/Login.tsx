@@ -113,7 +113,7 @@ export default function Login() {
         description: 'Добро пожаловать в ReScrub!',
       });
       
-      setLocation('/app/dashboard');
+      // Don't navigate immediately - let useEffect handle it after auth state updates
     } catch (error: any) {
       const errorMessage = error.message || 'Ошибка входа';
       setError(errorMessage);
