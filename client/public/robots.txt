@@ -1,0 +1,45 @@
+# ResCrub - Russian Data Protection Platform
+# Robots.txt for optimal search engine indexing
+
+# Allow all search engines to access content
+User-agent: *
+Allow: /
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Yandexbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+# Block crawling of admin and API endpoints
+Disallow: /api/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /internal/
+
+# Block crawling of temporary and system files
+Disallow: /tmp/
+Disallow: /*.log$
+Disallow: /*.json$
+Disallow: /node_modules/
+
+# Allow crawling of images and assets for better indexing
+Allow: /images/
+Allow: /og/
+Allow: *.css
+Allow: *.js
+Allow: *.png
+Allow: *.jpg
+Allow: *.jpeg
+Allow: *.webp
+Allow: *.svg
+
+# Sitemap location
+Sitemap: https://rescrub.ru/sitemap.xml
