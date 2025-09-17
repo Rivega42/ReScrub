@@ -269,15 +269,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get current user (email auth)
-  app.get('/api/auth/me', isEmailAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/me', async (req: any, res) => {
     try {
+      // Check if user has an active session
+      if (!req.session || !req.session.userId) {
+        return res.status(401).json({ 
+          success: false, 
+          message: "Unauthorized" 
+        });
+      }
+
       const userAccount = await storage.getUserAccountById(req.session.userId);
-      const userProfile = await storage.getUserProfile(req.session.userId);
+      const userProfile = await storage.getUserProfileByUserId(req.session.userId);
       
       if (!userAccount) {
-        return res.status(404).json({ 
+        return res.status(401).json({ 
           success: false, 
-          message: "Пользователь не найден" 
+          message: "Unauthorized" 
         });
       }
       
@@ -294,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Get user error:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Ошибка получения данных пользователя" 
+        message: "Server error" 
       });
     }
   });
