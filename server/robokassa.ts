@@ -115,8 +115,8 @@ export class RobokassaClient {
       isRecurring = false
     } = params;
 
-    // Конвертируем рубли в копейки для Robokassa
-    const outSum = (amount * 100).toString();
+    // Robokassa ожидает сумму в рублях с двумя знаками после запятой
+    const outSum = amount.toFixed(2);
 
     // Дополнительные параметры
     const additionalParams: Record<string, string> = {};
@@ -167,8 +167,8 @@ export class RobokassaClient {
   }): Promise<{ success: boolean; invoiceId?: string; error?: string }> {
     const { invoiceId, previousInvoiceId, amount, description } = params;
 
-    // Конвертируем рубли в копейки
-    const outSum = (amount * 100).toString();
+    // Robokassa ожидает сумму в рублях с двумя знаками после запятой
+    const outSum = amount.toFixed(2);
 
     // Создаем подпись (без PreviousInvoiceID!)
     const signature = this.createInitSignature(
@@ -258,7 +258,7 @@ export class RobokassaClient {
 
       return {
         invoiceId: InvId.toString(),
-        amount: parseFloat(OutSum) / 100, // конвертируем копейки в рубли
+        amount: parseFloat(OutSum), // сумма уже в рублях
         paymentMethod: PaymentMethod,
         isValid
       };

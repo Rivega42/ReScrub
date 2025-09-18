@@ -1489,6 +1489,54 @@ export class MemStorage implements IStorage {
     console.log(`🔑 Password: ${demoPassword}`);
   }
 
+  async seedSubscriptionPlans(): Promise<void> {
+    if (this.subscriptionPlansData.length > 0) {
+      return; // Планы уже созданы
+    }
+
+    const plans = [
+      {
+        name: 'basic',
+        displayName: 'Базовый',
+        description: 'Основная защита персональных данных',
+        price: 499,
+        currency: 'RUB',
+        interval: 'month',
+        intervalCount: 1,
+        isActive: true,
+        sortOrder: 1
+      },
+      {
+        name: 'premium',
+        displayName: 'Премиум',
+        description: 'Расширенная защита с приоритетной поддержкой',
+        price: 999,
+        currency: 'RUB',
+        interval: 'month',
+        intervalCount: 1,
+        isActive: true,
+        sortOrder: 2
+      },
+      {
+        name: 'enterprise',
+        displayName: 'Корпоративный',
+        description: 'Максимальная защита для бизнеса',
+        price: 2499,
+        currency: 'RUB',
+        interval: 'month',
+        intervalCount: 1,
+        isActive: true,
+        sortOrder: 3
+      }
+    ];
+
+    for (const planData of plans) {
+      await this.createSubscriptionPlan(planData);
+    }
+
+    console.log('✅ Subscription plans seeded successfully');
+  }
+
   private async seedDemoData(userId: string): Promise<void> {
     // Clear existing demo data for idempotency  
     const existingRequests = this.deletionRequestsData.filter(req => req.userId === userId);
@@ -1672,14 +1720,14 @@ export class MemStorage implements IStorage {
   }
 
   async getUserSubscription(userId: string): Promise<Subscription | null> {
-    const activeSubscriptions = this.subscriptionsData
-      .filter(sub => sub.userId === userId && sub.status === 'active')
+    const userSubscriptions = this.subscriptionsData
+      .filter(sub => sub.userId === userId)
       .sort((a, b) => {
         const aTime = a.createdAt?.getTime() || 0;
         const bTime = b.createdAt?.getTime() || 0;
         return bTime - aTime;
       });
-    return activeSubscriptions[0] || null;
+    return userSubscriptions[0] || null;
   }
 
   async getSubscriptionById(id: string): Promise<Subscription | null> {

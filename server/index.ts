@@ -6,6 +6,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { getSession } from "./replitAuth";
 import { seoMetaInjection } from "./middleware/seo";
 import { subscriptionManager } from "./subscription-manager";
+import { storage } from "./storage";
 
 const app = express();
 
@@ -163,8 +164,11 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
+    
+    // Seed subscription plans
+    await storage.seedSubscriptionPlans();
     
     // Start subscription manager for recurring payments
     console.log('🚀 Initializing subscription manager...');

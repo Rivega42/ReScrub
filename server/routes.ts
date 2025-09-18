@@ -1103,7 +1103,19 @@ ${allPages.map(page => `  <url>
     try {
       const userId = req.session.userId!;
       const subscription = await storage.getUserSubscription(userId);
-      res.json(subscription);
+      
+      if (!subscription) {
+        return res.json(null);
+      }
+
+      // Get plan details
+      const plan = await storage.getSubscriptionPlanById(subscription.planId);
+      const subscriptionWithPlan = {
+        ...subscription,
+        plan: plan
+      };
+      
+      res.json(subscriptionWithPlan);
     } catch (error) {
       console.error('Error fetching user subscription:', error);
       res.status(500).json({ message: 'Failed to fetch subscription' });
@@ -1156,7 +1168,7 @@ ${allPages.map(page => `  <url>
       // Create Robokassa payment URL
       const paymentUrl = robokassaClient.createPaymentUrl({
         invoiceId,
-        amount: plan.price / 100, // Convert from kopecks to rubles
+        amount: plan.price, // Amount in rubles
         description: `Подписка ${plan.displayName}`,
         userEmail: userAccount?.email,
         isRecurring: true, // Enable recurring payments

@@ -53,13 +53,13 @@ export default function Subscription() {
 
   // Загрузка текущей подписки пользователя
   const { data: currentSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({
-    queryKey: ['/api/my-subscription'],
+    queryKey: ['/api/subscription'],
   });
 
   // Мутация для создания подписки
   const createSubscriptionMutation = useMutation({
     mutationFn: async (planId: string) => {
-      const response = await fetch('/api/create-subscription', {
+      const response = await fetch('/api/subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
@@ -74,9 +74,17 @@ export default function Subscription() {
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.paymentUrl) {
+      if (data.paymentUrl && data.paymentUrl !== '#') {
         // Перенаправляем на Robokassa для оплаты
         window.location.href = data.paymentUrl;
+      } else {
+        // Robokassa не настроена, показываем сообщение
+        toast({
+          title: "Подписка создана",
+          description: "Платежная система временно недоступна. Подписка создана, но требует активации.",
+        });
+        // Обновляем данные о подписке
+        queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
       }
     },
     onError: (error: Error) => {
@@ -91,7 +99,7 @@ export default function Subscription() {
   // Мутация для отмены подписки
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/cancel-subscription', {
+      const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         credentials: 'include',
       });
@@ -104,7 +112,7 @@ export default function Subscription() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/my-subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
       toast({
         title: "Подписка отменена",
         description: "Подписка будет отменена в конце текущего периода",
@@ -189,7 +197,7 @@ export default function Subscription() {
                 <Crown className="h-5 w-5 text-primary" />
                 <div>
                   <h3 className="font-semibold">Текущая подписка</h3>
-                  <p className="text-sm text-muted-foreground">{currentSubscription.plan.displayName}</p>
+                  <p className="text-sm text-muted-foreground">{currentSubscription.plan?.displayName || 'План не найден'}</p>
                 </div>
               </div>
               {getStatusBadge(currentSubscription.status)}
@@ -199,7 +207,9 @@ export default function Subscription() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Стоимость:</span>
-                <p className="font-medium">{currentSubscription.plan.price} {currentSubscription.plan.currency} / {currentSubscription.plan.interval}</p>
+                <p className="font-medium">
+                  {currentSubscription.plan?.price || '---'} {currentSubscription.plan?.currency || 'RUB'} / {currentSubscription.plan?.interval || 'month'}
+                </p>
               </div>
               <div>
                 <span className="text-muted-foreground">Следующее списание:</span>
