@@ -130,6 +130,9 @@ export interface IStorage {
   updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | null>;
   getUserPayments(userId: string): Promise<Payment[]>;
   getPaymentsBySubscription(subscriptionId: string): Promise<Payment[]>;
+
+  // Seeding operations
+  seedSubscriptionPlans(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -670,6 +673,67 @@ export class DatabaseStorage implements IStorage {
       .from(payments)
       .where(eq(payments.subscriptionId, subscriptionId))
       .orderBy(desc(payments.createdAt));
+  }
+
+  // Subscription plan seeding
+  async seedSubscriptionPlans(): Promise<void> {
+    // Check if subscription plans already exist
+    const existingPlans = await this.getSubscriptionPlans();
+    if (existingPlans.length > 0) {
+      console.log('✅ Subscription plans already exist, skipping seeding');
+      return;
+    }
+
+    const plans = [
+      {
+        name: 'basic',
+        displayName: 'Базовый',
+        description: 'Основная защита персональных данных',
+        price: 499,
+        currency: 'RUB',
+        interval: 'month',
+        intervalCount: 1,
+        features: ['До 5 запросов на удаление в месяц', 'Базовое сканирование данных', 'Email поддержка'],
+        maxScans: 5,
+        maxDeletionRequests: 10,
+        isActive: true,
+        sortOrder: 1
+      },
+      {
+        name: 'premium',
+        displayName: 'Премиум',
+        description: 'Расширенная защита с приоритетной поддержкой',
+        price: 999,
+        currency: 'RUB',
+        interval: 'month',
+        intervalCount: 1,
+        features: ['До 25 запросов на удаление в месяц', 'Расширенное сканирование', 'Приоритетная поддержка', 'Автоматические уведомления'],
+        maxScans: 25,
+        maxDeletionRequests: 50,
+        isActive: true,
+        sortOrder: 2
+      },
+      {
+        name: 'enterprise',
+        displayName: 'Корпоративный',
+        description: 'Максимальная защита для бизнеса',
+        price: 2499,
+        currency: 'RUB',
+        interval: 'month',
+        intervalCount: 1,
+        features: ['Неограниченные запросы на удаление', 'Полное сканирование всех брокеров', '24/7 поддержка', 'API доступ', 'Корпоративная отчетность'],
+        maxScans: -1, // unlimited
+        maxDeletionRequests: -1, // unlimited
+        isActive: true,
+        sortOrder: 3
+      }
+    ];
+
+    for (const planData of plans) {
+      await this.createSubscriptionPlan(planData);
+    }
+
+    console.log('✅ Subscription plans seeded successfully');
   }
 
   // Demo account seeding for development
@@ -1503,6 +1567,9 @@ export class MemStorage implements IStorage {
         currency: 'RUB',
         interval: 'month',
         intervalCount: 1,
+        features: ['До 5 запросов на удаление в месяц', 'Базовое сканирование данных', 'Email поддержка'],
+        maxScans: 5,
+        maxDeletionRequests: 10,
         isActive: true,
         sortOrder: 1
       },
@@ -1514,6 +1581,9 @@ export class MemStorage implements IStorage {
         currency: 'RUB',
         interval: 'month',
         intervalCount: 1,
+        features: ['До 25 запросов на удаление в месяц', 'Расширенное сканирование', 'Приоритетная поддержка', 'Автоматические уведомления'],
+        maxScans: 25,
+        maxDeletionRequests: 50,
         isActive: true,
         sortOrder: 2
       },
@@ -1525,6 +1595,9 @@ export class MemStorage implements IStorage {
         currency: 'RUB',
         interval: 'month',
         intervalCount: 1,
+        features: ['Неограниченные запросы на удаление', 'Полное сканирование всех брокеров', '24/7 поддержка', 'API доступ', 'Корпоративная отчетность'],
+        maxScans: -1, // unlimited
+        maxDeletionRequests: -1, // unlimited
         isActive: true,
         sortOrder: 3
       }
@@ -1667,6 +1740,9 @@ export class MemStorage implements IStorage {
       description: planData.description || null,
       currency: planData.currency || 'RUB',
       intervalCount: planData.intervalCount || 1,
+      features: planData.features || [],
+      maxScans: planData.maxScans || 10,
+      maxDeletionRequests: planData.maxDeletionRequests || 50,
       isActive: planData.isActive ?? true,
       sortOrder: planData.sortOrder ?? 0,
       createdAt: now,
