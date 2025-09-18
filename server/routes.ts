@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        res.clearCookie('connect.sid'); // Default session cookie name
+        res.clearCookie('rescrub.sid'); // Custom session cookie name from replitAuth
         res.json({ 
           success: true, 
           message: "Выход выполнен успешно" 

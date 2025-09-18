@@ -39,10 +39,9 @@ export function getSession() {
     name: 'rescrub.sid', // Custom session name for security
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'strict', // CSRF protection
+      secure: false, // Allow HTTP for development
+      sameSite: 'lax', // More permissive for better compatibility
       maxAge: sessionTtl,
-      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
     },
   });
 }
