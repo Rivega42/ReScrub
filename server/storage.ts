@@ -10,6 +10,9 @@ import {
   deletionRequests,
   notifications,
   oauthAccounts,
+  subscriptionPlans,
+  subscriptions,
+  payments,
   type User,
   type UpsertUser,
   type InsertSupportTicket,
@@ -30,6 +33,12 @@ import {
   type InsertNotification,
   type OAuthAccount,
   type InsertOAuthAccount,
+  type SubscriptionPlan,
+  type InsertSubscriptionPlan,
+  type Subscription,
+  type InsertSubscription,
+  type Payment,
+  type InsertPayment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -102,6 +111,25 @@ export interface IStorage {
   insertDataBroker(broker: InsertDataBroker): Promise<DataBroker>;
   updateDataBroker(id: string, updates: Partial<InsertDataBroker>): Promise<DataBroker>;
   deleteDataBroker(id: string): Promise<void>;
+
+  // Subscription operations
+  createSubscriptionPlan(planData: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getSubscriptionPlanById(id: string): Promise<SubscriptionPlan | null>;
+  updateSubscriptionPlan(id: string, updates: Partial<SubscriptionPlan>): Promise<SubscriptionPlan | null>;
+  
+  createSubscription(subscriptionData: InsertSubscription): Promise<Subscription>;
+  getUserSubscription(userId: string): Promise<Subscription | null>;
+  getSubscriptionById(id: string): Promise<Subscription | null>;
+  updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | null>;
+  cancelSubscription(id: string): Promise<Subscription | null>;
+  
+  // Payment operations
+  createPayment(paymentData: InsertPayment): Promise<Payment>;
+  getPaymentByInvoiceId(invoiceId: string): Promise<Payment | null>;
+  updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | null>;
+  getUserPayments(userId: string): Promise<Payment[]>;
+  getPaymentsBySubscription(subscriptionId: string): Promise<Payment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -508,6 +536,140 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDataBroker(id: string): Promise<void> {
     await db.delete(dataBrokers).where(eq(dataBrokers.id, id));
+  }
+
+  // ========================================
+  // SUBSCRIPTION OPERATIONS
+  // ========================================
+
+  // Subscription plan operations
+  async createSubscriptionPlan(planData: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const [plan] = await db
+      .insert(subscriptionPlans)
+      .values(planData)
+      .returning();
+    return plan;
+  }
+
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.isActive, true))
+      .orderBy(subscriptionPlans.sortOrder, subscriptionPlans.price);
+  }
+
+  async getSubscriptionPlanById(id: string): Promise<SubscriptionPlan | null> {
+    const [plan] = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, id));
+    return plan || null;
+  }
+
+  async updateSubscriptionPlan(id: string, updates: Partial<SubscriptionPlan>): Promise<SubscriptionPlan | null> {
+    const [plan] = await db
+      .update(subscriptionPlans)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    return plan || null;
+  }
+
+  // Subscription operations
+  async createSubscription(subscriptionData: InsertSubscription): Promise<Subscription> {
+    const [subscription] = await db
+      .insert(subscriptions)
+      .values(subscriptionData)
+      .returning();
+    return subscription;
+  }
+
+  async getUserSubscription(userId: string): Promise<Subscription | null> {
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          eq(subscriptions.status, 'active')
+        )
+      )
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(1);
+    return subscription || null;
+  }
+
+  async getSubscriptionById(id: string): Promise<Subscription | null> {
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.id, id));
+    return subscription || null;
+  }
+
+  async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | null> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription || null;
+  }
+
+  async cancelSubscription(id: string): Promise<Subscription | null> {
+    const [subscription] = await db
+      .update(subscriptions)
+      .set({ 
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription || null;
+  }
+
+  // Payment operations
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const [payment] = await db
+      .insert(payments)
+      .values(paymentData)
+      .returning();
+    return payment;
+  }
+
+  async getPaymentByInvoiceId(invoiceId: string): Promise<Payment | null> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.robokassaInvoiceId, invoiceId));
+    return payment || null;
+  }
+
+  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | null> {
+    const [payment] = await db
+      .update(payments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(payments.id, id))
+      .returning();
+    return payment || null;
+  }
+
+  async getUserPayments(userId: string): Promise<Payment[]> {
+    return db
+      .select()
+      .from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt));
+  }
+
+  async getPaymentsBySubscription(subscriptionId: string): Promise<Payment[]> {
+    return db
+      .select()
+      .from(payments)
+      .where(eq(payments.subscriptionId, subscriptionId))
+      .orderBy(desc(payments.createdAt));
   }
 
   // Demo account seeding for development

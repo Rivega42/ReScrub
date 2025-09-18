@@ -210,6 +210,71 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Subscription plans table
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // "basic", "premium", "pro"
+  displayName: varchar("display_name").notNull(), // "Базовый", "Премиум", "Профессиональный"
+  description: text("description"),
+  price: integer("price").notNull(), // в копейках
+  currency: varchar("currency").notNull().default("RUB"),
+  interval: varchar("interval").notNull(), // "month", "year"
+  intervalCount: integer("interval_count").notNull().default(1), // каждые N интервалов
+  features: jsonb("features").default(sql`'[]'::jsonb`), // массив строк с возможностями
+  maxScans: integer("max_scans").notNull().default(10), // лимит сканирований
+  maxDeletionRequests: integer("max_deletion_requests").notNull().default(50),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User subscriptions table
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  planId: varchar("plan_id").notNull().references(() => subscriptionPlans.id, { onDelete: "cascade" }),
+  status: varchar("status").notNull().default("pending"), // "pending", "active", "cancelled", "expired", "suspended"
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  cancelledAt: timestamp("cancelled_at"),
+  robokassaInvoiceId: varchar("robokassa_invoice_id").unique(), // ID первого (материнского) платежа
+  trialEnd: timestamp("trial_end"), // конец пробного периода
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_user_subscription").on(table.userId),
+  index("IDX_subscription_status").on(table.status),
+]);
+
+// Payment transactions table
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subscriptionId: varchar("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(), // в копейках
+  currency: varchar("currency").notNull().default("RUB"),
+  status: varchar("status").notNull().default("pending"), // "pending", "paid", "failed", "refunded", "cancelled"
+  paymentMethod: varchar("payment_method"), // "card", "wallet", "sberbank", etc
+  robokassaInvoiceId: varchar("robokassa_invoice_id").unique().notNull(),
+  robokassaTransactionId: varchar("robokassa_transaction_id"),
+  parentInvoiceId: varchar("parent_invoice_id"), // для периодических платежей
+  isRecurring: boolean("is_recurring").default(false), // true для периодических платежей
+  paidAt: timestamp("paid_at"),
+  failedAt: timestamp("failed_at"),
+  failureReason: text("failure_reason"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_payment_subscription").on(table.subscriptionId),
+  index("IDX_payment_user").on(table.userId),
+  index("IDX_payment_status").on(table.status),
+  index("IDX_payment_robokassa_invoice").on(table.robokassaInvoiceId),
+]);
+
 // OAuth accounts table for third-party authentication
 export const oauthAccounts = pgTable("oauth_accounts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -316,6 +381,25 @@ export const insertDataBrokerSchema = createInsertSchema(dataBrokers).omit({
   updatedAt: true,
 });
 
+// Subscription schemas
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UserAccount = typeof userAccounts.$inferSelect;
 export type InsertUserAccount = z.infer<typeof insertUserAccountSchema>;
@@ -335,3 +419,9 @@ export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = z.infer<typeof insertOAuthAccountSchema>;
 export type DataBroker = typeof dataBrokers.$inferSelect;
 export type InsertDataBroker = z.infer<typeof insertDataBrokerSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
