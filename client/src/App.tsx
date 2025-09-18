@@ -28,6 +28,7 @@ import Documents from "@/pages/Documents";
 import CreateRequest from "@/pages/CreateRequest";
 import Notifications from "@/pages/Notifications";
 import Monitoring from "@/pages/Monitoring";
+import Subscription from "@/pages/Subscription";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -114,6 +115,7 @@ function AppRoutesInner() {
       <Route path="/app/requests" component={Requests} />
       <Route path="/app/create-request" component={CreateRequest} />
       <Route path="/app/notifications" component={Notifications} />
+      <Route path="/app/subscription" component={Subscription} />
       {/* Default app route */}
       <Route path="/app">
         <div className="p-8">

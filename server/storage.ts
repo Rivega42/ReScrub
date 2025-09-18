@@ -848,6 +848,9 @@ export class MemStorage implements IStorage {
   private deletionRequestsData: DeletionRequest[] = [];
   private notificationsData: Notification[] = [];
   private oauthAccountsData: OAuthAccount[] = [];
+  private subscriptionPlansData: SubscriptionPlan[] = [];
+  private subscriptionsData: Subscription[] = [];
+  private paymentsData: Payment[] = [];
   private ticketIdCounter = 1;
   private idCounter = 1;
 
@@ -1601,6 +1604,170 @@ export class MemStorage implements IStorage {
     });
 
     console.log('✅ Demo data seeded successfully');
+  }
+
+  // ========================================
+  // SUBSCRIPTION OPERATIONS (MemStorage)
+  // ========================================
+
+  // Subscription plan operations
+  async createSubscriptionPlan(planData: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+    const now = new Date();
+    const plan: SubscriptionPlan = {
+      id: `plan_${this.idCounter++}_${Date.now()}`,
+      ...planData,
+      description: planData.description || null,
+      currency: planData.currency || 'RUB',
+      intervalCount: planData.intervalCount || 1,
+      isActive: planData.isActive ?? true,
+      sortOrder: planData.sortOrder ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.subscriptionPlansData.push(plan);
+    return plan;
+  }
+
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return this.subscriptionPlansData
+      .filter(plan => plan.isActive)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || a.price - b.price);
+  }
+
+  async getSubscriptionPlanById(id: string): Promise<SubscriptionPlan | null> {
+    return this.subscriptionPlansData.find(plan => plan.id === id) || null;
+  }
+
+  async updateSubscriptionPlan(id: string, updates: Partial<SubscriptionPlan>): Promise<SubscriptionPlan | null> {
+    const index = this.subscriptionPlansData.findIndex(plan => plan.id === id);
+    if (index === -1) return null;
+    
+    this.subscriptionPlansData[index] = {
+      ...this.subscriptionPlansData[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    return this.subscriptionPlansData[index];
+  }
+
+  // Subscription operations
+  async createSubscription(subscriptionData: InsertSubscription): Promise<Subscription> {
+    const now = new Date();
+    const subscription: Subscription = {
+      id: `sub_${this.idCounter++}_${Date.now()}`,
+      ...subscriptionData,
+      status: subscriptionData.status || 'pending',
+      cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd ?? false,
+      currentPeriodStart: subscriptionData.currentPeriodStart || null,
+      currentPeriodEnd: subscriptionData.currentPeriodEnd || null,
+      cancelledAt: subscriptionData.cancelledAt || null,
+      robokassaInvoiceId: subscriptionData.robokassaInvoiceId || null,
+      trialEnd: subscriptionData.trialEnd || null,
+      metadata: subscriptionData.metadata || {},
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.subscriptionsData.push(subscription);
+    return subscription;
+  }
+
+  async getUserSubscription(userId: string): Promise<Subscription | null> {
+    const activeSubscriptions = this.subscriptionsData
+      .filter(sub => sub.userId === userId && sub.status === 'active')
+      .sort((a, b) => {
+        const aTime = a.createdAt?.getTime() || 0;
+        const bTime = b.createdAt?.getTime() || 0;
+        return bTime - aTime;
+      });
+    return activeSubscriptions[0] || null;
+  }
+
+  async getSubscriptionById(id: string): Promise<Subscription | null> {
+    return this.subscriptionsData.find(sub => sub.id === id) || null;
+  }
+
+  async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | null> {
+    const index = this.subscriptionsData.findIndex(sub => sub.id === id);
+    if (index === -1) return null;
+    
+    this.subscriptionsData[index] = {
+      ...this.subscriptionsData[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    return this.subscriptionsData[index];
+  }
+
+  async cancelSubscription(id: string): Promise<Subscription | null> {
+    const index = this.subscriptionsData.findIndex(sub => sub.id === id);
+    if (index === -1) return null;
+    
+    this.subscriptionsData[index] = {
+      ...this.subscriptionsData[index],
+      status: 'cancelled',
+      cancelledAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return this.subscriptionsData[index];
+  }
+
+  // Payment operations
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const now = new Date();
+    const payment: Payment = {
+      id: `pay_${this.idCounter++}_${Date.now()}`,
+      ...paymentData,
+      currency: paymentData.currency || 'RUB',
+      status: paymentData.status || 'pending',
+      paymentMethod: paymentData.paymentMethod || null,
+      robokassaTransactionId: paymentData.robokassaTransactionId || null,
+      parentInvoiceId: paymentData.parentInvoiceId || null,
+      isRecurring: paymentData.isRecurring ?? false,
+      paidAt: paymentData.paidAt || null,
+      failedAt: paymentData.failedAt || null,
+      failureReason: paymentData.failureReason || null,
+      metadata: paymentData.metadata || {},
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.paymentsData.push(payment);
+    return payment;
+  }
+
+  async getPaymentByInvoiceId(invoiceId: string): Promise<Payment | null> {
+    return this.paymentsData.find(payment => payment.robokassaInvoiceId === invoiceId) || null;
+  }
+
+  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | null> {
+    const index = this.paymentsData.findIndex(payment => payment.id === id);
+    if (index === -1) return null;
+    
+    this.paymentsData[index] = {
+      ...this.paymentsData[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    return this.paymentsData[index];
+  }
+
+  async getUserPayments(userId: string): Promise<Payment[]> {
+    return this.paymentsData
+      .filter(payment => payment.userId === userId)
+      .sort((a, b) => {
+        const aTime = a.createdAt?.getTime() || 0;
+        const bTime = b.createdAt?.getTime() || 0;
+        return bTime - aTime;
+      });
+  }
+
+  async getPaymentsBySubscription(subscriptionId: string): Promise<Payment[]> {
+    return this.paymentsData
+      .filter(payment => payment.subscriptionId === subscriptionId)
+      .sort((a, b) => {
+        const aTime = a.createdAt?.getTime() || 0;
+        const bTime = b.createdAt?.getTime() || 0;
+        return bTime - aTime;
+      });
   }
 }
 

@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { getSession } from "./replitAuth";
 import { seoMetaInjection } from "./middleware/seo";
+import { subscriptionManager } from "./subscription-manager";
 
 const app = express();
 
@@ -164,5 +165,9 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start subscription manager for recurring payments
+    console.log('🚀 Initializing subscription manager...');
+    subscriptionManager.start();
   });
 })();

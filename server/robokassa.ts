@@ -286,8 +286,43 @@ export class RobokassaClient {
   }
 }
 
-// Экспортируем инстанс клиента
-export const robokassaClient = new RobokassaClient();
+// Экспортируем инстанс клиента с проверкой на наличие переменных окружения
+export let robokassaClient: RobokassaClient;
+
+try {
+  if (ROBOKASSA_MERCHANT_LOGIN && ROBOKASSA_PASSWORD_1 && ROBOKASSA_PASSWORD_2) {
+    robokassaClient = new RobokassaClient();
+  } else {
+    console.warn('⚠️ Robokassa credentials not found. Payment processing will be disabled.');
+    // Создаем фиктивный клиент для разработки
+    robokassaClient = {
+      createPaymentUrl: () => '#',
+      createRecurringPayment: async () => ({ success: false, error: 'Robokassa not configured' }),
+      parseWebhookData: () => null,
+      validateWebhook: () => false,
+      getTestModeInfo: () => ({
+        isTestMode: true,
+        merchantLogin: 'demo',
+        baseUrl: '',
+        recurringUrl: ''
+      })
+    } as any;
+  }
+} catch (error) {
+  console.error('Failed to initialize Robokassa client:', error);
+  robokassaClient = {
+    createPaymentUrl: () => '#',
+    createRecurringPayment: async () => ({ success: false, error: 'Robokassa not configured' }),
+    parseWebhookData: () => null,
+    validateWebhook: () => false,
+    getTestModeInfo: () => ({
+      isTestMode: true,
+      merchantLogin: 'demo',
+      baseUrl: '',
+      recurringUrl: ''
+    })
+  } as any;
+}
 
 // Утилиты для работы с суммами
 export const formatAmount = (rubles: number): string => {

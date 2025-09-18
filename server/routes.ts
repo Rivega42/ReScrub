@@ -10,16 +10,22 @@ import {
   insertDataBrokerSchema,
   insertDeletionRequestSchema,
   insertDocumentSchema,
+  insertSubscriptionSchema,
+  insertPaymentSchema,
   type UserAccount,
   type DataBroker,
   type DeletionRequest,
-  type Document
+  type Document,
+  type SubscriptionPlan,
+  type Subscription,
+  type Payment
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
 import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
 import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent } from "./email";
+import { robokassaClient } from "./robokassa";
 
 // Extend Express session types
 declare module 'express-session' {
@@ -1074,6 +1080,224 @@ ${allPages.map(page => `  <url>
     } catch (error) {
       console.error('Error deleting notification:', error);
       res.status(500).json({ message: 'Failed to delete notification' });
+    }
+  });
+
+  // ========================================
+  // SUBSCRIPTION API ENDPOINTS
+  // ========================================
+
+  // Get all subscription plans (public endpoint)
+  app.get('/api/subscription-plans', async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+      res.status(500).json({ message: 'Failed to fetch subscription plans' });
+    }
+  });
+
+  // Get user's current subscription
+  app.get('/api/subscription', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const subscription = await storage.getUserSubscription(userId);
+      res.json(subscription);
+    } catch (error) {
+      console.error('Error fetching user subscription:', error);
+      res.status(500).json({ message: 'Failed to fetch subscription' });
+    }
+  });
+
+  // Create new subscription (start payment process)
+  app.post('/api/subscription', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { planId } = req.body;
+
+      // Validate plan exists
+      const plan = await storage.getSubscriptionPlanById(planId);
+      if (!plan) {
+        return res.status(404).json({ message: 'Subscription plan not found' });
+      }
+
+      // Check if user already has active subscription
+      const existingSubscription = await storage.getUserSubscription(userId);
+      if (existingSubscription) {
+        return res.status(400).json({ message: 'User already has an active subscription' });
+      }
+
+      // Generate unique invoice ID
+      const invoiceId = `sub_${userId}_${Date.now()}`;
+      
+      // Create subscription record
+      const subscription = await storage.createSubscription({
+        userId,
+        planId,
+        status: 'pending',
+        robokassaInvoiceId: invoiceId,
+      });
+
+      // Create payment record
+      const payment = await storage.createPayment({
+        subscriptionId: subscription.id,
+        userId,
+        amount: plan.price,
+        currency: plan.currency,
+        robokassaInvoiceId: invoiceId,
+        isRecurring: false, // First payment is not recurring
+      });
+
+      // Get user profile for payment
+      const userProfile = await storage.getUserProfile(userId);
+      const userAccount = await storage.getUserAccountById(userId);
+
+      // Create Robokassa payment URL
+      const paymentUrl = robokassaClient.createPaymentUrl({
+        invoiceId,
+        amount: plan.price / 100, // Convert from kopecks to rubles
+        description: `Подписка ${plan.displayName}`,
+        userEmail: userAccount?.email,
+        isRecurring: true, // Enable recurring payments
+      });
+
+      res.json({
+        subscription,
+        payment,
+        paymentUrl,
+      });
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      res.status(500).json({ message: 'Failed to create subscription' });
+    }
+  });
+
+  // Cancel subscription
+  app.post('/api/subscription/cancel', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: 'No active subscription found' });
+      }
+
+      const cancelledSubscription = await storage.cancelSubscription(subscription.id);
+      res.json(cancelledSubscription);
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      res.status(500).json({ message: 'Failed to cancel subscription' });
+    }
+  });
+
+  // Get user's payment history
+  app.get('/api/payments', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const payments = await storage.getUserPayments(userId);
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      res.status(500).json({ message: 'Failed to fetch payment history' });
+    }
+  });
+
+  // ========================================
+  // ROBOKASSA WEBHOOK ENDPOINTS
+  // ========================================
+
+  // Robokassa result webhook (payment successful)
+  app.post('/api/webhooks/robokassa/result', express.raw({ type: 'application/x-www-form-urlencoded' }), async (req, res) => {
+    try {
+      const data = new URLSearchParams(req.body.toString());
+      const webhookData = Object.fromEntries(data.entries());
+      
+      console.log('Robokassa result webhook received:', webhookData);
+
+      const parsedData = robokassaClient.parseWebhookData(webhookData);
+      if (!parsedData || !parsedData.isValid) {
+        console.error('Invalid Robokassa webhook signature');
+        return res.status(400).send('Invalid signature');
+      }
+
+      const { invoiceId, amount, paymentMethod } = parsedData;
+
+      // Find payment record
+      const payment = await storage.getPaymentByInvoiceId(invoiceId);
+      if (!payment) {
+        console.error('Payment not found for invoice:', invoiceId);
+        return res.status(404).send('Payment not found');
+      }
+
+      // Update payment status
+      await storage.updatePayment(payment.id, {
+        status: 'paid',
+        paidAt: new Date(),
+        paymentMethod: paymentMethod || payment.paymentMethod,
+      });
+
+      // Update subscription status
+      if (payment.subscriptionId) {
+        const subscription = await storage.getSubscriptionById(payment.subscriptionId);
+        if (subscription) {
+          const now = new Date();
+          const plan = await storage.getSubscriptionPlanById(subscription.planId);
+          
+          let currentPeriodEnd = new Date(now);
+          if (plan?.interval === 'month') {
+            currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + (plan.intervalCount || 1));
+          } else if (plan?.interval === 'year') {
+            currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + (plan.intervalCount || 1));
+          }
+
+          await storage.updateSubscription(subscription.id, {
+            status: 'active',
+            currentPeriodStart: now,
+            currentPeriodEnd: currentPeriodEnd,
+          });
+        }
+      }
+
+      res.send('OK');
+    } catch (error) {
+      console.error('Error processing Robokassa result webhook:', error);
+      res.status(500).send('Internal server error');
+    }
+  });
+
+  // Robokassa success webhook (user returned to success page)
+  app.post('/api/webhooks/robokassa/success', async (req, res) => {
+    try {
+      console.log('Robokassa success webhook received:', req.body);
+      res.send('OK');
+    } catch (error) {
+      console.error('Error processing Robokassa success webhook:', error);
+      res.status(500).send('Internal server error');
+    }
+  });
+
+  // Robokassa fail webhook (payment failed)
+  app.post('/api/webhooks/robokassa/fail', async (req, res) => {
+    try {
+      const { InvId: invoiceId, FailureDescription } = req.body;
+      console.log('Robokassa fail webhook received:', req.body);
+
+      if (invoiceId) {
+        const payment = await storage.getPaymentByInvoiceId(invoiceId);
+        if (payment) {
+          await storage.updatePayment(payment.id, {
+            status: 'failed',
+            failedAt: new Date(),
+            failureReason: FailureDescription || 'Payment failed',
+          });
+        }
+      }
+
+      res.send('OK');
+    } catch (error) {
+      console.error('Error processing Robokassa fail webhook:', error);
+      res.status(500).send('Internal server error');
     }
   });
 

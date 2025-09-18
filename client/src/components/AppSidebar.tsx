@@ -8,7 +8,8 @@ import {
   Bell,
   Settings,
   LogOut,
-  Shield
+  Shield,
+  CreditCard
 } from "lucide-react";
 
 import {
@@ -50,6 +51,11 @@ const navigationItems = [
     title: "Мониторинг",
     url: "/app/monitoring",
     icon: Monitor,
+  },
+  {
+    title: "Подписка",
+    url: "/app/subscription",
+    icon: CreditCard,
   },
 ];
 
