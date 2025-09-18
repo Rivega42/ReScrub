@@ -133,6 +133,7 @@ export interface IStorage {
 
   // Seeding operations
   seedSubscriptionPlans(): Promise<void>;
+  seedDemoAccount(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

@@ -48,13 +48,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
   await setupAuth(app);
 
-  // Seed demo account in development
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      await storage.seedDemoAccount();
-    } catch (error) {
-      console.error('Failed to seed demo account:', error);
-    }
+  // Seed demo account for all environments
+  try {
+    await storage.seedDemoAccount();
+  } catch (error) {
+    console.error('Failed to seed demo account:', error);
   }
 
   // Auth routes
