@@ -302,6 +302,12 @@ export default function Support() {
                     variant={isBusinessHours ? "default" : "outline"} 
                     disabled={!isBusinessHours}
                     data-testid="button-start-chat"
+                    onClick={() => {
+                      if (isBusinessHours) {
+                        // Simulate opening chat functionality
+                        alert('Чат будет доступен в ближайшее время. Пока воспользуйтесь формой обратной связи ниже.');
+                      }
+                    }}
                   >
                     {isBusinessHours ? 'Начать чат' : 'Чат недоступен'}
                   </Button>

@@ -89,11 +89,6 @@ export default function Header() {
                 Войти
               </Button>
             </Link>
-            <Link href="/reports">
-              <Button size="sm" data-testid="button-get-started">
-                Начать
-              </Button>
-            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -137,11 +132,6 @@ export default function Header() {
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start">
                     Войти
-                  </Button>
-                </Link>
-                <Link href="/reports" onClick={() => setMobileMenuOpen(false)}>
-                  <Button size="sm" className="w-full">
-                    Начать
                   </Button>
                 </Link>
               </div>

@@ -26,7 +26,7 @@ export default function Hero() {
           
           {/* Mobile-friendly CTA buttons */}
           <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-            <Link href="/reports" className="w-full sm:w-auto">
+            <Link href="/login" className="w-full sm:w-auto">
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto touch-target"

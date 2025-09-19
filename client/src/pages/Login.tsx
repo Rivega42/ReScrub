@@ -13,16 +13,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from '@/lib/authContext';
 import { useToast } from '@/hooks/use-toast';
+import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
 import heroShieldImage from '@assets/generated_images/ResCrub_hero_shield_illustration_17021890.png';
 
 type FormMode = 'login' | 'register' | 'recovery' | 'check-email';
 
 // Схемы валидации
-const loginSchema = z.object({
-  email: z.string().email('Введите корректный email'),
-  password: z.string().min(1, 'Введите пароль'),
-  remember: z.boolean().optional()
-});
 
 // Сильная валидация пароля
 const passwordValidation = z.string()
@@ -32,11 +28,27 @@ const passwordValidation = z.string()
   .refine(password => /\d/.test(password), 'Должна быть хотя бы одна цифра')
   .refine(password => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password), 'Должен быть хотя бы один специальный символ');
 
+// Улучшенная валидация телефона
+const phoneValidation = z.string()
+  .min(10, 'Минимум 10 цифр')
+  .refine(phone => /^(\+7|8)[\s\-]?(\([0-9]{3}\)|[0-9]{3})[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/.test(phone.replace(/\s/g, '')), 'Введите корректный российский номер телефона');
+
+// Улучшенная валидация email  
+const emailValidation = z.string()
+  .email('Введите корректный email адрес')
+  .refine(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 'Email должен содержать домен');
+
+const loginSchema = z.object({
+  email: emailValidation,
+  password: z.string().min(1, 'Введите пароль'),
+  remember: z.boolean().optional()
+});
+
 const registerSchema = z.object({
   firstName: z.string().min(2, 'Минимум 2 символа'),
   lastName: z.string().min(2, 'Минимум 2 символа'),
-  email: z.string().email('Введите корректный email'),
-  phone: z.string().min(10, 'Введите корректный номер телефона'),
+  email: emailValidation,
+  phone: phoneValidation,
   password: passwordValidation,
   confirmPassword: z.string(),
   agree: z.boolean().refine(val => val === true, 'Необходимо согласие с условиями')
@@ -104,6 +116,8 @@ export default function Login() {
       password: '', confirmPassword: '', agree: false
     }
   });
+
+  const watchedPassword = registerForm.watch('password');
 
   const recoveryForm = useForm<RecoveryFormData>({
     resolver: zodResolver(recoverySchema),
@@ -266,12 +280,12 @@ export default function Login() {
             <Button
               key={provider.id}
               variant="outline"
-              className="w-full hover-elevate"
-              onClick={() => handleOAuthLogin(provider.id)}
+              className="w-full cursor-not-allowed bg-muted text-muted-foreground border-muted hover:bg-muted hover:text-muted-foreground hover:border-muted"
+              onClick={(e) => e.preventDefault()}
               data-testid={provider.testId}
-              disabled={isLoading}
+              disabled={true}
             >
-              <IconComponent className={`h-4 w-4 mr-2 ${provider.color}`} />
+              <IconComponent className="h-4 w-4 mr-2 text-muted-foreground" />
               Войти через {provider.name}
             </Button>
           );
@@ -389,7 +403,7 @@ export default function Login() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                         onClick={() => setShowPassword(!showPassword)}
                         data-testid="button-toggle-password"
                       >
@@ -526,7 +540,7 @@ export default function Login() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                         onClick={() => setShowPassword(!showPassword)}
                         data-testid="button-toggle-password-register"
                       >
@@ -537,6 +551,13 @@ export default function Login() {
                       <p className="text-sm text-destructive">
                         {registerForm.formState.errors.password.message}
                       </p>
+                    )}
+                    {/* Индикатор сложности пароля */}
+                    {watchedPassword && (
+                      <PasswordStrengthIndicator 
+                        password={watchedPassword} 
+                        className="mt-2"
+                      />
                     )}
                   </div>
 
@@ -554,7 +575,7 @@ export default function Login() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         data-testid="button-toggle-confirm-password-register"
                       >
