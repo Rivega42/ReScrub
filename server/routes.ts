@@ -1554,9 +1554,11 @@ ${allPages.map(page => `  <url>
       
       const planPriceRubles = plan.price; // Plan price in rubles (1 point = 1 ruble)
       
-      // Calculate how many points to use (minimum of available points and plan price)
-      const pointsToUse = Math.min(userPoints, planPriceRubles);
-      const remainingAmountToPay = planPriceRubles - pointsToUse;
+      // Calculate points usage: ALL or NOTHING approach
+      // Either user has enough points to pay FULL subscription, or pay FULL amount via gateway
+      const canPayWithPoints = userPoints >= planPriceRubles;
+      const pointsToUse = canPayWithPoints ? planPriceRubles : 0;
+      const remainingAmountToPay = canPayWithPoints ? 0 : planPriceRubles;
 
       console.log(`💰 Payment calculation: Plan=${planPriceRubles}₽, User Points=${userPoints}, Using=${pointsToUse}, Remaining=${remainingAmountToPay}`);
 
@@ -1609,13 +1611,13 @@ ${allPages.map(page => `  <url>
         // Need to pay remaining amount via Robokassa
         paymentUrl = robokassaClient.createPaymentUrl({
           invoiceId,
-          amount: remainingAmountToPay, // Only remaining amount
-          description: `Подписка ${plan.displayName} (доплата ${remainingAmountToPay}₽)`,
+          amount: remainingAmountToPay, // Full amount since points weren't used
+          description: `Подписка ${plan.displayName}`,
           userEmail: userAccount?.email,
-          isRecurring: false, // Disable recurring for partial payments to prevent billing drift
+          isRecurring: false,
         });
         
-        console.log(`💳 Created Robokassa payment URL for remaining ${remainingAmountToPay}₽`);
+        console.log(`💳 Created Robokassa payment URL for full amount ${remainingAmountToPay}₽ (insufficient points)`);
       } else {
         // Fully paid with points - activate subscription immediately
         const now = new Date();

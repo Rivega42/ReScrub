@@ -93,10 +93,10 @@ export default function Subscription() {
         // Перенаправляем на Robokassa для оплаты
         window.location.href = data.paymentUrl;
       } else {
-        // Robokassa не настроена, показываем сообщение
+        // Подписка оплачена баллами и активирована
         toast({
-          title: "Подписка создана",
-          description: "Платежная система временно недоступна. Подписка создана, но требует активации.",
+          title: "Подписка активирована!",
+          description: `Подписка успешно оплачена ${data.pointsUsed || 0} баллами.`,
         });
       }
     },
@@ -144,12 +144,15 @@ export default function Subscription() {
     createSubscriptionMutation.mutate(planId);
   };
 
-  // Функция для расчета стоимости с учетом баллов
+  // Функция для расчета стоимости с учетом баллов (все или ничего)
   const calculatePriceWithPoints = (planPrice: number) => {
     const userPoints = pointsBalance?.balance || 0;
-    const pointsToUse = Math.min(userPoints, planPrice);
-    const remainingAmount = planPrice - pointsToUse;
-    return { pointsToUse, remainingAmount };
+    const canPayWithPoints = userPoints >= planPrice;
+    return {
+      canPayWithPoints,
+      pointsToUse: canPayWithPoints ? planPrice : 0,
+      finalAmount: canPayWithPoints ? 0 : planPrice
+    };
   };
 
   const handleCancelSubscription = () => {
@@ -302,35 +305,33 @@ export default function Subscription() {
                   <div className="mt-2">
                     {/* Показываем расчет с баллами */}
                     {(() => {
-                      const { pointsToUse, remainingAmount } = calculatePriceWithPoints(plan.price);
+                      const { canPayWithPoints, pointsToUse, finalAmount } = calculatePriceWithPoints(plan.price);
                       return (
                         <div className="space-y-1">
-                          {pointsToUse > 0 ? (
+                          {canPayWithPoints ? (
                             <>
                               <p className="text-lg text-muted-foreground line-through" data-testid="text-plan-original-price">
                                 {plan.price} {plan.currency}
                               </p>
-                              <div className="text-sm text-green-600 space-y-0.5">
+                              <div className="text-sm text-green-600">
                                 <p data-testid="text-plan-points-to-use">Будет списано: {pointsToUse} баллов</p>
-                                {remainingAmount > 0 && (
-                                  <p data-testid="text-plan-remaining-amount">Доплата: {remainingAmount} {plan.currency}</p>
-                                )}
                               </div>
-                              {remainingAmount === 0 ? (
-                                <p className="text-xl font-bold text-green-600 flex items-center justify-center gap-1" data-testid="text-plan-free">
-                                  <CheckCircle className="w-5 h-5" />
-                                  Бесплатно
-                                </p>
-                              ) : (
-                                <p className="text-xl font-bold" data-testid="text-plan-final-price">
-                                  {remainingAmount} <span className="text-sm font-normal text-muted-foreground">{plan.currency}</span>
+                              <p className="text-xl font-bold text-green-600 flex items-center justify-center gap-1" data-testid="text-plan-free">
+                                <CheckCircle className="w-5 h-5" />
+                                Бесплатно
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-2xl font-bold" data-testid="text-plan-full-price">
+                                {plan.price} <span className="text-sm font-normal text-muted-foreground">{plan.currency}</span>
+                              </p>
+                              {pointsBalance && pointsBalance.balance > 0 && (
+                                <p className="text-sm text-muted-foreground" data-testid="text-plan-insufficient-points">
+                                  Недостаточно баллов (доступно: {pointsBalance.balance})
                                 </p>
                               )}
                             </>
-                          ) : (
-                            <p className="text-2xl font-bold">
-                              {plan.price} <span className="text-sm font-normal text-muted-foreground">{plan.currency}</span>
-                            </p>
                           )}
                         </div>
                       );
