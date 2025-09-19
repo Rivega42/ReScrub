@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -118,23 +118,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
+  // Memoize auth functions to prevent useEffect loops
+  const login = useCallback(async (email: string, password: string) => {
+    await loginMutation.mutateAsync({ email, password });
+  }, []); // No dependencies - mutation is stable
+
+  const register = useCallback(async (email: string, password: string) => {
+    await registerMutation.mutateAsync({ email, password });
+  }, []); // No dependencies - mutation is stable
+
+  const logout = useCallback(async () => {
+    await logoutMutation.mutateAsync();
+  }, []); // No dependencies - mutation is stable
+
+  const verifyEmail = useCallback(async (email: string, token: string) => {
+    await verifyEmailMutation.mutateAsync({ email, token });
+  }, []); // No dependencies - mutation is stable
+
+  const refetchUserCallback = useCallback(() => refetchUser(), []);
+
   const contextValue: AuthContextType = {
     user,
     isLoading: !isInitialized || isLoading,
     isAuthenticated,
-    login: async (email: string, password: string) => {
-      await loginMutation.mutateAsync({ email, password });
-    },
-    register: async (email: string, password: string) => {
-      await registerMutation.mutateAsync({ email, password });
-    },
-    logout: async () => {
-      await logoutMutation.mutateAsync();
-    },
-    verifyEmail: async (email: string, token: string) => {
-      await verifyEmailMutation.mutateAsync({ email, token });
-    },
-    refetchUser: () => refetchUser(),
+    login,
+    register,
+    logout,
+    verifyEmail,
+    refetchUser: refetchUserCallback,
   };
 
   return (
