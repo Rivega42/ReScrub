@@ -1,14 +1,21 @@
 import { storage } from './storage';
 import crypto from 'crypto';
 import Handlebars from 'handlebars';
+import nodemailer from 'nodemailer';
 
-// Initialize Mailganer.ru (SamOtpravil) API
-if (!process.env.MAILGANER_API_KEY) {
-  throw new Error("MAILGANER_API_KEY environment variable must be set");
+// Initialize Mailganer.ru (SamOtpravil) SMTP
+if (!process.env.MAILGANER_SMTP_HOST || !process.env.MAILGANER_SMTP_LOGIN || !process.env.MAILGANER_SMTP_PASSWORD) {
+  throw new Error("MAILGANER_SMTP_* environment variables must be set");
 }
 
-const MAILGANER_API_KEY = process.env.MAILGANER_API_KEY;
-const MAILGANER_HOST = process.env.MAILGANER_HOST || 'https://api.samotpravil.com';
+const MAILGANER_SMTP_HOST = process.env.MAILGANER_SMTP_HOST;
+const MAILGANER_SMTP_PORT = parseInt(process.env.MAILGANER_SMTP_PORT || '1126');
+const MAILGANER_SMTP_LOGIN = process.env.MAILGANER_SMTP_LOGIN;
+const MAILGANER_SMTP_PASSWORD = process.env.MAILGANER_SMTP_PASSWORD;
+
+// Домен для отправки (должен быть добавлен в Mailganer)
+const SENDER_DOMAIN = 'mailone.rescrub.ru';
+const DEFAULT_SENDER = `ResCrub <noreply@${SENDER_DOMAIN}>`;
 
 // Email templates configuration
 export interface EmailTemplate {
@@ -29,6 +36,7 @@ export interface EmailData {
   requestDate?: string;
   legalBasis?: string;
   // Subscription-specific fields
+  subscriptionId?: string;
   planName?: string;
   planPrice?: string;
   expiryDate?: string;
@@ -94,93 +102,116 @@ export function renderTemplate(template: EmailTemplate, data: EmailData): EmailT
 }
 
 /**
- * Mailganer.ru API Client
+ * Mailganer.ru SMTP Транспорт
  */
-class MailganerClient {
-  private apiKey: string;
-  private host: string;
+const createMailganerTransport = () => {
+  return nodemailer.createTransport({
+    host: MAILGANER_SMTP_HOST,
+    port: MAILGANER_SMTP_PORT,
+    secure: false, // Не использовать SSL, используем STARTTLS
+    requireTLS: true, // Требовать TLS
+    auth: {
+      user: MAILGANER_SMTP_LOGIN,
+      pass: MAILGANER_SMTP_PASSWORD
+    },
+    // Настройки для лучшей совместимости с российскими SMTP
+    connectionTimeout: 30000, // 30 секунд
+    greetingTimeout: 30000,
+    socketTimeout: 30000
+  });
+};
 
-  constructor(apiKey: string, host: string = 'https://api.samotpravil.com') {
-    this.apiKey = apiKey;
-    this.host = host;
-  }
+/**
+ * Mailganer.ru SMTP Client
+ */
+class MailganerSMTPClient {
+  private transporter: nodemailer.Transporter;
 
-  private async makeRequest(method: 'GET' | 'POST', endpoint: string, data?: any): Promise<any> {
-    let url = `${this.host}/${endpoint}`;
-    let options: any = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': this.apiKey  // SamOtpravil v2 API uses just the API key
-      }
-    };
-
-    // For GET requests, append data as query parameters
-    if (method === 'GET' && data && Object.keys(data).length > 0) {
-      const queryParams = new URLSearchParams();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          queryParams.append(key, String(value));
-        }
-      });
-      url = `${url}?${queryParams.toString()}`;
-    } else if (method === 'POST' && data) {
-      options.body = JSON.stringify(data);
-    }
-    
-    const response = await fetch(url, options);
-
-    if (!response.ok) {
-      throw new Error(`Mailganer API error: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    
-    if (result.status !== 'OK' && result.status !== 'ok') {
-      throw new Error(result.message || 'Mailganer API request failed');
-    }
-
-    return result;
+  constructor() {
+    this.transporter = createMailganerTransport();
   }
 
   async sendEmail(params: {
     emailTo: string;
     subject: string;
     messageText: string;
-    emailFrom: string;
+    messageHtml?: string;
+    emailFrom?: string;
     nameFrom?: string;
     xTrackId?: string;
-    trackOpen?: boolean;
-    trackClick?: boolean;
-    params?: Record<string, any>;
-  }): Promise<any> {
-    const data: any = {
-      email_to: params.emailTo,
+    customHeaders?: Record<string, string>;
+  }): Promise<{ messageId: string; accepted: string[]; rejected: string[] }> {
+    const fromEmail = params.emailFrom ? 
+      `${params.nameFrom || 'ResCrub'} <${params.emailFrom}>` : 
+      DEFAULT_SENDER;
+
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: fromEmail,
+      to: params.emailTo,
       subject: params.subject,
-      message_text: params.messageText,
-      email_from: params.nameFrom ? `${params.nameFrom} <${params.emailFrom}>` : params.emailFrom
+      text: params.messageText,
+      html: params.messageHtml || params.messageText,
+      headers: {
+        'X-Track-ID': params.xTrackId || `rescrub-${Date.now()}`,
+        'X-Mailer': 'ResCrub-v1.0',
+        ...params.customHeaders
+      }
     };
 
-    // Add optional parameters
-    if (params.xTrackId) data.x_track_id = params.xTrackId;
-    if (params.trackOpen !== undefined) data.track_open = params.trackOpen;
-    if (params.trackClick !== undefined) data.track_click = params.trackClick;
-    if (params.params) data.params = params.params;
-
-    return this.makeRequest('POST', 'api/v2/mail/send', data);
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      
+      return {
+        messageId: result.messageId,
+        accepted: result.accepted as string[],
+        rejected: result.rejected as string[]
+      };
+    } catch (error: any) {
+      // Обработка специфичных ошибок Mailganer
+      if (error.message.includes('550 bounced check filter')) {
+        throw new Error(`Email ${params.emailTo} находится в стоп-листе Mailganer`);
+      } else if (error.message.includes('501 from domain not trusted')) {
+        throw new Error(`Домен ${SENDER_DOMAIN} не добавлен в список разрешенных доменов Mailganer`);
+      } else if (error.message.includes('450 ratelimit exceeded')) {
+        throw new Error('Превышен лимит отправки писем в Mailganer. Попробуйте позже.');
+      } else if (error.message.includes('421 SMTP command timeout')) {
+        throw new Error('Тайм-аут SMTP соединения с Mailganer');
+      }
+      
+      // Перебрасываем остальные ошибки как есть
+      throw error;
+    }
   }
 
-  async getStatus(params: { email?: string; issueId?: string; xTrackId?: string }): Promise<any> {
-    const data: any = {};
-    if (params.email) data.email = params.email;
-    if (params.issueId) data.issue_id = params.issueId;
-    if (params.xTrackId) data.x_track_id = params.xTrackId;
-
-    return this.makeRequest('GET', 'api/v2/issue/status', data);
+  async verifyConnection(): Promise<boolean> {
+    try {
+      await this.transporter.verify();
+      return true;
+    } catch (error) {
+      console.error('SMTP connection verification failed:', error);
+      return false;
+    }
   }
 }
 
-const mailganerClient = new MailganerClient(MAILGANER_API_KEY, MAILGANER_HOST);
+const mailganerClient = new MailganerSMTPClient();
+
+// Проверка SMTP соединения при старте
+(async () => {
+  console.log('🔧 Проверка SMTP соединения с Mailganer...');
+  try {
+    const isConnected = await mailganerClient.verifyConnection();
+    if (isConnected) {
+      console.log('✅ SMTP соединение с Mailganer успешно установлено');
+      console.log(`📧 Домен отправки: ${SENDER_DOMAIN}`);
+      console.log(`🏢 SMTP сервер: ${MAILGANER_SMTP_HOST}:${MAILGANER_SMTP_PORT}`);
+    } else {
+      console.log('❌ Не удалось установить SMTP соединение с Mailganer');
+    }
+  } catch (error: any) {
+    console.error('❌ Ошибка SMTP соединения с Mailganer:', error.message);
+  }
+})();
 
 /**
  * Send email via Mailganer.ru with notification tracking
@@ -197,17 +228,25 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
 
     // Create notification record before sending
     if (userId) {
+      // Определяем сообщение в зависимости от категории
+      const isSubscriptionNotification = category.startsWith('subscription_');
+      const notificationMessage = isSubscriptionNotification ?
+        `Отправка уведомления о подписке: ${to}` :
+        `Отправка требования об удалении ПД: ${to}`;
+
       const notification = await storage.createNotification({
         userId,
         type: 'email',
         category,
         title: renderedTemplate.subject,
-        message: `Отправка требования об удалении ПД: ${to}`,
+        message: notificationMessage,
         data: {
           to,
-          deletionRequestId,
+          deletionRequestId: isSubscriptionNotification ? undefined : deletionRequestId,
+          subscriptionId: isSubscriptionNotification ? data.subscriptionId : undefined,
           templateType: category,
-          brokerName: data.brokerName,
+          brokerName: isSubscriptionNotification ? undefined : data.brokerName,
+          planName: data.planName,
           sendAttempt: 1
         },
         sent: false
@@ -219,26 +258,28 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     const timestamp = Math.floor(Date.now() / 1000);
     const trackingId = `rescrub-${timestamp}-${deletionRequestId || 'standalone'}`;
 
-    // Send email via Mailganer.ru
+    // Определяем правильный email отправителя
+    const senderEmail = data.senderEmail.includes('@') ? data.senderEmail : `${data.senderEmail}@${SENDER_DOMAIN}`;
+
+    // Send email via Mailganer.ru SMTP
     const response = await mailganerClient.sendEmail({
       emailTo: to,
-      emailFrom: data.senderEmail,
+      emailFrom: senderEmail,
       nameFrom: data.senderName,
       subject: renderedTemplate.subject,
-      messageText: renderedTemplate.html, // Mailganer accepts HTML in message_text
+      messageText: renderedTemplate.text, // Plain text version
+      messageHtml: renderedTemplate.html, // HTML version
       xTrackId: trackingId,
-      trackOpen: true,
-      trackClick: true,
-      params: {
-        userId: userId || '',
-        deletionRequestId: deletionRequestId || '',
-        notificationId: notificationId || '',
-        category,
-        brokerName: data.brokerName
+      customHeaders: {
+        'X-User-ID': userId || '',
+        'X-Deletion-Request-ID': deletionRequestId || '',
+        'X-Notification-ID': notificationId || '',
+        'X-Category': category,
+        'X-Broker-Name': data.brokerName || ''
       }
     });
 
-    const messageId = response.issue_id || trackingId;
+    const messageId = response.messageId;
 
     // Update notification with success
     if (notificationId) {
