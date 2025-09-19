@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -36,6 +36,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
 
   return (
     <Switch>
@@ -71,8 +72,8 @@ function Router() {
             const inviteCode = urlParams.get('invite');
             
             if (inviteCode) {
-              // Redirect to proper invite page
-              window.location.href = `/invite/${inviteCode}`;
+              // Redirect to proper invite page using wouter navigation
+              setLocation(`/invite/${inviteCode}`);
               return null;
             }
             

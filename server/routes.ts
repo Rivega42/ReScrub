@@ -467,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user profile
   app.put('/api/profile', isEmailAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       
       // Create schema for profile updates (make all fields optional for partial updates)
       const updateProfileSchema = insertUserProfileSchema.omit({ userId: true }).partial();
@@ -509,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get notification preferences
   app.get('/api/profile/notification-preferences', isEmailAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const userProfile = await storage.getUserProfile(userId);
       
       if (!userProfile) {
@@ -549,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update notification preferences
   app.put('/api/profile/notification-preferences', isEmailAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       
       // Validate notification preferences structure
       const preferencesSchema = z.object({
@@ -1214,7 +1214,7 @@ ${allPages.map(page => `  <url>
   // Set username for public profile
   app.post('/api/profile/username', isEmailAuthenticated, async (req, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const { username } = req.body;
       
       if (!username || typeof username !== 'string' || username.length < 3) {
@@ -1269,7 +1269,7 @@ ${allPages.map(page => `  <url>
   // Get user achievements
   app.get('/api/achievements', isEmailAuthenticated, async (req, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const achievements = await storage.getUserAchievements(userId);
       res.json(achievements);
     } catch (error) {
@@ -1296,7 +1296,7 @@ ${allPages.map(page => `  <url>
   // Generate referral code for user
   app.post('/api/referrals/generate', isEmailAuthenticated, async (req, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const referralCode = await storage.createReferralCode(userId);
       res.json({ success: true, code: referralCode.code });
     } catch (error) {
@@ -1345,7 +1345,7 @@ ${allPages.map(page => `  <url>
   // Get user's referral stats - MOVED UP to avoid route conflict with :code
   app.get('/api/referrals/stats', isEmailAuthenticated, async (req, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = req.session.userId!;
       const stats = await storage.getReferralStats(userId);
       res.json(stats);
     } catch (error) {
