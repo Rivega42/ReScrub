@@ -161,6 +161,13 @@ export interface IStorage {
   createReferral(referralData: InsertReferral): Promise<Referral>;
   getReferralsByUser(userId: string): Promise<Referral[]>;
   updateReferralStatus(id: string, status: string, rewardType?: string): Promise<Referral | undefined>;
+  getRecentReferralClicks(ipAddress: string, code: string, timeWindowMs: number): Promise<Referral[]>;
+  getReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    successfulReferrals: number;
+    totalRewards: number;
+    activeCode?: string;
+  }>;
   
   // Seeding operations
   seedSubscriptionPlans(): Promise<void>;
@@ -1091,9 +1098,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createReferral(referralData: InsertReferral): Promise<Referral> {
+    // Get referrer ID from the code
+    const referralCode = await this.getReferralCodeByCode(referralData.code);
+    if (!referralCode) {
+      throw new Error('Invalid referral code');
+    }
+
     const [referral] = await db
       .insert(referrals)
-      .values(referralData)
+      .values({
+        ...referralData,
+        referrerId: referralCode.userId
+      })
       .returning();
     
     // Increment code usage
@@ -1131,6 +1147,54 @@ export class DatabaseStorage implements IStorage {
       .where(eq(referrals.id, id))
       .returning();
     return referral;
+  }
+
+  async getRecentReferralClicks(ipAddress: string, code: string, timeWindowMs: number): Promise<Referral[]> {
+    const cutoffTime = new Date(Date.now() - timeWindowMs);
+    return await db
+      .select()
+      .from(referrals)
+      .where(
+        and(
+          eq(referrals.ipAddress, ipAddress),
+          eq(referrals.code, code),
+          sql`${referrals.clickedAt} > ${cutoffTime}`
+        )
+      );
+  }
+
+  async getReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    successfulReferrals: number;
+    totalRewards: number;
+    activeCode?: string;
+  }> {
+    // Get total referrals count
+    const totalReferrals = await db
+      .select({ count: sql`COUNT(*)` })
+      .from(referrals)
+      .where(eq(referrals.referrerId, userId));
+
+    // Get successful referrals (subscribed)
+    const successfulReferrals = await db
+      .select({ count: sql`COUNT(*)` })
+      .from(referrals)
+      .where(
+        and(
+          eq(referrals.referrerId, userId),
+          eq(referrals.status, 'subscribed')
+        )
+      );
+
+    // Get active referral code
+    const activeCode = await this.getReferralCodeByUser(userId);
+
+    return {
+      totalReferrals: Number(totalReferrals[0]?.count || 0),
+      successfulReferrals: Number(successfulReferrals[0]?.count || 0),
+      totalRewards: Number(successfulReferrals[0]?.count || 0) * 50, // 50% reward per successful referral
+      activeCode: activeCode?.code
+    };
   }
 
   // Seed achievements
@@ -2345,9 +2409,15 @@ export class MemStorage implements IStorage {
   }
 
   async createReferral(referralData: InsertReferral): Promise<Referral> {
+    // Get referrer ID from the code
+    const referralCode = await this.getReferralCodeByCode(referralData.code);
+    if (!referralCode) {
+      throw new Error('Invalid referral code');
+    }
+
     const referral: Referral = {
       id: `referral_${this.idCounter++}`,
-      referrerId: referralData.referrerId,
+      referrerId: referralCode.userId,
       referredUserId: referralData.referredUserId || null,
       code: referralData.code,
       status: referralData.status || 'clicked',
@@ -2396,6 +2466,34 @@ export class MemStorage implements IStorage {
     }
 
     return referral;
+  }
+
+  async getRecentReferralClicks(ipAddress: string, code: string, timeWindowMs: number): Promise<Referral[]> {
+    const cutoffTime = new Date(Date.now() - timeWindowMs);
+    return this.referralsData.filter(referral => 
+      referral.ipAddress === ipAddress &&
+      referral.code === code &&
+      referral.clickedAt &&
+      referral.clickedAt > cutoffTime
+    );
+  }
+
+  async getReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    successfulReferrals: number;
+    totalRewards: number;
+    activeCode?: string;
+  }> {
+    const userReferrals = this.referralsData.filter(r => r.referrerId === userId);
+    const successfulReferrals = userReferrals.filter(r => r.status === 'subscribed');
+    const activeCode = await this.getReferralCodeByUser(userId);
+
+    return {
+      totalReferrals: userReferrals.length,
+      successfulReferrals: successfulReferrals.length,
+      totalRewards: successfulReferrals.length * 50, // 50% reward per successful referral
+      activeCode: activeCode?.code
+    };
   }
 
   // Seed achievements

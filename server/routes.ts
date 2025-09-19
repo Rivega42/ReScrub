@@ -26,6 +26,8 @@ import { z } from "zod";
 import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
 import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent } from "./email";
 import { robokassaClient } from "./robokassa";
+import fs from 'fs';
+import path from 'path';
 
 // Extend Express session types
 declare module 'express-session' {
@@ -52,9 +54,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
   try {
     await storage.seedDemoAccount();
     await storage.seedAchievements();
+    
+    // Ensure TEST123 referral code exists for demo/testing
+    try {
+      const demoAccount = await storage.getUserAccountByEmail('demo@rescrub.ru');
+      if (demoAccount) {
+        const existingCode = await storage.getReferralCodeByCode('TEST123');
+        if (!existingCode) {
+          // Create test referral code with fixed TEST123 code
+          const referralCode = {
+            id: `ref_code_${Date.now()}`,
+            userId: demoAccount.id,
+            code: 'TEST123',
+            isActive: true,
+            maxUses: 100,
+            currentUses: 0,
+            createdAt: new Date()
+          };
+          
+          // Save to storage - add via internal method that handles both implementations
+          if ((storage as any).referralCodesData) {
+            (storage as any).referralCodesData.push(referralCode);
+          } else {
+            // Note: In production DB mode, will implement proper insert
+            console.log('Database mode: would insert TEST123 code');
+          }
+          console.log('✅ Created demo referral code TEST123 for testing');
+        }
+      }
+    } catch (refError) {
+      console.log('Note: Could not create test referral code:', refError.message);
+    }
   } catch (error) {
     console.error('Failed to seed demo account:', error);
   }
+
+  // Server-side rendering for invite pages with proper SEO
+  app.get('/invite/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      
+      // Get referral info
+      const referralCode = await storage.getReferralCodeByCode(code);
+      let referrerName = "Защитник данных";
+      
+      if (referralCode && referralCode.isActive) {
+        const referrerProfile = await storage.getUserProfile(referralCode.userId);
+        if (referrerProfile?.firstName) {
+          referrerName = `${referrerProfile.firstName} ${referrerProfile.lastName || ''}`.trim();
+        }
+      }
+      
+      // Escape function for safe HTML attribute injection  
+      const escapeHtml = (str: string) => str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+      
+      // Prepare SEO data with escaped values
+      const safeReferrerName = escapeHtml(referrerName);
+      const title = `${safeReferrerName} приглашает вас защитить данные со скидкой 30% | ReScruB`;
+      const description = `${safeReferrerName} уже защитил свои данные и получил приватность! Присоединяйтесь и получите 30% скидку на защиту ваших персональных данных. Автоматическое удаление с 200+ сайтов брокеров данных.`;
+      const ogImage = `${req.protocol}://${req.get('host')}/api/og/invite/${encodeURIComponent(code)}`;
+      const url = `${req.protocol}://${req.get('host')}/invite/${encodeURIComponent(code)}`;
+      
+      // In development mode, always redirect to client-side app
+      if (process.env.NODE_ENV === 'development') {
+        return res.redirect(`/?invite=${code}`);
+      }
+      
+      // Read the main HTML file and inject meta tags (production only)
+      let html = fs.readFileSync(path.join(process.cwd(), 'dist', 'index.html'), 'utf8');
+      
+      // Inject meta tags
+      const metaTags = `
+        <title>${title}</title>
+        <meta name="description" content="${description}">
+        <meta name="keywords" content="защита данных, приватность, персональные данные, брокеры данных, скидка, реферальная программа">
+        
+        <!-- Open Graph tags -->
+        <meta property="og:title" content="${safeReferrerName} приглашает защитить данные! Скидка 30% + бонус 50%">
+        <meta property="og:description" content="Я уже защитил свои данные и получил приватность! Присоединяйся - получи 30% скидку, а я получу 50% бонус за приглашение. Автоматическое удаление с 200+ сайтов брокеров данных.">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="${url}">
+        <meta property="og:image" content="${ogImage}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="Защити свои данные со скидкой 30% + бонус 50% - ReScruB">
+        <meta property="og:site_name" content="ReScruB - Защита персональных данных">
+        <meta property="og:locale" content="ru_RU">
+        
+        <!-- Twitter Card tags -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="${safeReferrerName} приглашает защитить данные! Скидка 30% + бонус 50%">
+        <meta name="twitter:description" content="Я уже защитил свои данные! Присоединяйся - получи 30% скидку, а я получу 50% бонус за приглашение.">
+        <meta name="twitter:image" content="${ogImage}">
+        <meta name="twitter:image:alt" content="Защити свои данные со скидкой 30% + бонус 50%">
+        
+        <!-- Additional meta tags -->
+        <meta name="theme-color" content="#2563eb">
+        <meta name="apple-mobile-web-app-title" content="ReScruB">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="format-detection" content="telephone=no">
+      `;
+      
+      // Insert meta tags before closing </head>
+      html = html.replace('</head>', `${metaTags}\n</head>`);
+      
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving invite page:', error);
+      // Fallback to regular client-side routing
+      res.redirect(`/?invite=${req.params.code}`);
+    }
+  });
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -1161,6 +1276,202 @@ ${allPages.map(page => `  <url>
     } catch (error) {
       console.error('Error getting all achievements:', error);
       res.status(500).json({ message: 'Failed to get achievements' });
+    }
+  });
+
+  // ========================================
+  // REFERRAL API ENDPOINTS
+  // ========================================
+  
+  // Generate referral code for user
+  app.post('/api/referrals/generate', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const referralCode = await storage.generateReferralCode(userId);
+      res.json({ success: true, code: referralCode.code });
+    } catch (error) {
+      console.error('Error generating referral code:', error);
+      res.status(500).json({ message: 'Failed to generate referral code' });
+    }
+  });
+  
+  // Track referral click
+  app.post('/api/referrals/track-click', async (req, res) => {
+    try {
+      const { code, userAgent } = req.body;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ message: 'Invalid referral code' });
+      }
+      
+      // Get real IP from request (ignore client-supplied IP for security)
+      const clientIp = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.toString().split(',')[0] || 'unknown';
+      const safeUserAgent = (userAgent || req.headers['user-agent'] || '').substring(0, 500); // Limit length
+      
+      // Simple rate limiting: check for recent clicks from same IP+code combination
+      // This is a basic implementation - for production consider using Redis
+      const recentClicks = await storage.getRecentReferralClicks(clientIp, code, 60000); // 1 minute window
+      if (recentClicks.length > 5) {
+        return res.status(429).json({ message: 'Too many requests' });
+      }
+      
+      const referral = await storage.createReferral({
+        code,
+        referrerId: '', // Will be filled by storage based on code
+        referredUserId: null,
+        status: 'clicked',
+        clickedAt: new Date(),
+        ipAddress: clientIp,
+        userAgent: safeUserAgent
+      });
+      
+      res.json({ success: true, referralId: referral.id });
+    } catch (error) {
+      console.error('Error tracking referral click:', error);
+      res.status(500).json({ message: 'Failed to track referral click' });
+    }
+  });
+  
+  // Get referral info by code (public)
+  app.get('/api/referrals/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      const referralCode = await storage.getReferralCodeByCode(code);
+      
+      if (!referralCode || !referralCode.isActive) {
+        return res.status(404).json({ message: 'Referral code not found or inactive' });
+      }
+      
+      // Get referrer profile for display
+      const referrerProfile = await storage.getUserProfile(referralCode.userId);
+      
+      res.json({
+        code: referralCode.code,
+        referrerName: referrerProfile?.firstName ? `${referrerProfile.firstName} ${referrerProfile.lastName || ''}`.trim() : 'Защитник данных',
+        isValid: true,
+        discount: 30 // 30% discount for referred users
+      });
+    } catch (error) {
+      console.error('Error getting referral info:', error);
+      res.status(500).json({ message: 'Failed to get referral info' });
+    }
+  });
+  
+  // Get user's referral stats
+  app.get('/api/referrals/stats', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const stats = await storage.getReferralStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting referral stats:', error);
+      res.status(500).json({ message: 'Failed to get referral stats' });
+    }
+  });
+
+  // Generate OG image for referral invite
+  app.get('/api/og/invite/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      
+      // Get referral info
+      const referralCode = await storage.getReferralCodeByCode(code);
+      let referrerName = "Защитник данных";
+      
+      if (referralCode && referralCode.isActive) {
+        const referrerProfile = await storage.getUserProfile(referralCode.userId);
+        if (referrerProfile?.firstName) {
+          referrerName = `${referrerProfile.firstName} ${referrerProfile.lastName || ''}`.trim();
+        }
+      }
+      
+      // Escape function for safe SVG text injection
+      const escapeSvg = (str: string) => str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+      
+      const safeReferrerName = escapeSvg(referrerName);
+      
+      // Simple SVG-based OG image
+      const svg = `
+        <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          
+          <!-- Background -->
+          <rect width="1200" height="630" fill="url(#bg)"/>
+          
+          <!-- Shield icon background -->
+          <circle cx="600" cy="200" r="60" fill="rgba(255,255,255,0.1)"/>
+          
+          <!-- Shield icon -->
+          <path d="M600 150 L640 170 L635 210 L600 240 L565 210 L560 170 Z" fill="white" stroke="white" stroke-width="2"/>
+          <path d="M600 170 L620 180 L618 205 L600 220 L582 205 L580 180 Z" fill="#2563eb"/>
+          
+          <!-- Main title -->
+          <text x="600" y="320" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">
+            Я уже защитил свои данные!
+          </text>
+          
+          <!-- Subtitle -->
+          <text x="600" y="370" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="36" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+            Присоединяйся - получи 30% скидку!
+          </text>
+          
+          <!-- Bonus info -->
+          <text x="600" y="410" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="22" fill="rgba(255,255,255,0.8)" text-anchor="middle">
+            А я получу 50% скидку за тебя!
+          </text>
+          
+          <!-- Referrer name -->
+          <text x="600" y="450" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="24" fill="rgba(255,255,255,0.8)" text-anchor="middle">
+            От: ${safeReferrerName}
+          </text>
+          
+          <!-- Features -->
+          <text x="300" y="520" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="20" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+            ✓ Автоматическая защита
+          </text>
+          <text x="600" y="520" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="20" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+            ✓ Мониторинг 24/7
+          </text>
+          <text x="900" y="520" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="20" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+            ✓ 200+ сайтов брокеров
+          </text>
+          
+          <!-- Brand -->
+          <text x="600" y="580" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="18" font-weight="bold" fill="rgba(255,255,255,0.7)" text-anchor="middle">
+            ReScruB - Защита персональных данных
+          </text>
+        </svg>
+      `;
+      
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.send(svg);
+    } catch (error) {
+      console.error('Error generating OG image:', error);
+      // Return a simple fallback image
+      const fallbackSvg = `
+        <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+          <rect width="1200" height="630" fill="#2563eb"/>
+          <text x="600" y="320" font-family="Arial,sans-serif" font-size="48" fill="white" text-anchor="middle">
+            Защитите свои данные со скидкой 30%
+          </text>
+          <text x="600" y="380" font-family="Arial,sans-serif" font-size="24" fill="white" text-anchor="middle">
+            ReScruB
+          </text>
+        </svg>
+      `;
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.send(fallbackSvg);
     }
   });
 

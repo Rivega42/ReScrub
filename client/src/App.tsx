@@ -29,6 +29,7 @@ import CreateRequest from "@/pages/CreateRequest";
 import Notifications from "@/pages/Notifications";
 import Monitoring from "@/pages/Monitoring";
 import Subscription from "@/pages/Subscription";
+import InvitePage from "@/pages/InvitePage";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -41,6 +42,7 @@ function Router() {
       {/* Public routes */}
       <Route path="/login" component={Login} />
       <Route path="/verify-email" component={VerifyEmail} />
+      <Route path="/invite/:code" component={InvitePage} />
       <Route path="/blog/:slug" component={BlogArticle} />
       <Route path="/blog" component={Blog} />
       <Route path="/data-brokers" component={DataBrokers} />
@@ -63,7 +65,20 @@ function Router() {
       
       {/* Main landing/home route */}
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <Route path="/">
+          {(params) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteCode = urlParams.get('invite');
+            
+            if (inviteCode) {
+              // Redirect to proper invite page
+              window.location.href = `/invite/${inviteCode}`;
+              return null;
+            }
+            
+            return <Landing />;
+          }}
+        </Route>
       ) : (
         <Route path="/" component={Home} />
       )}
