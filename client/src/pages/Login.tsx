@@ -13,6 +13,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from '@/lib/authContext';
 import { useToast } from '@/hooks/use-toast';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
+import { PasswordCrab } from '@/components/PasswordCrab';
 import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.png';
 
 type FormMode = 'login' | 'register' | 'recovery' | 'check-email';
@@ -53,202 +55,42 @@ type LoginFormData = z.infer<typeof loginSchema>;
 type RegisterFormData = z.infer<typeof registerSchema>;
 type RecoveryFormData = z.infer<typeof recoverySchema>;
 
-// Компонент крабика для пароля
-interface PasswordCrabProps {
-  isPasswordFocused: boolean;
-  passwordLength: number;
-  passwordStrength: number;
-  isVisible: boolean;
-}
-
-const PasswordCrab = ({ isPasswordFocused, passwordLength, passwordStrength, isVisible }: PasswordCrabProps) => {
-  if (!isVisible) return null;
-
-  const getEyeExpression = () => {
-    if (!isPasswordFocused) return 'closed';
-    if (passwordLength === 0) return 'curious';
-    if (passwordStrength < 2) return 'worried';
-    if (passwordStrength < 4) return 'cautious';
-    return 'confident';
-  };
-
-  const eyeExpression = getEyeExpression();
-
-  return (
-    <div className="relative">
-      <div className={`w-8 h-8 transition-all duration-300 ${
-        isPasswordFocused ? 'scale-110' : 'scale-100'
-      }`}>
-        <img 
-          src={crabImage} 
-          alt="Краб следит за паролем" 
-          className="w-full h-full object-contain"
-        />
-        
-        {/* Глаза крабика */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative">
-            {eyeExpression === 'closed' && (
-              <div className="absolute top-1 left-1 w-1 h-0.5 bg-red-600 rounded-full"></div>
-            )}
-            {eyeExpression === 'curious' && (
-              <div className="absolute top-1 left-1 w-1 h-1 bg-red-600 rounded-full"></div>
-            )}
-            {eyeExpression === 'worried' && (
-              <div className="absolute top-0.5 left-0.5 w-1 h-1 bg-red-600 rounded-full animate-pulse"></div>
-            )}
-            {eyeExpression === 'cautious' && (
-              <div className="absolute top-1 left-1 w-1 h-0.5 bg-orange-500 rounded-full"></div>
-            )}
-            {eyeExpression === 'confident' && (
-              <div className="absolute top-1 left-1 w-1 h-1 bg-green-500 rounded-full"></div>
-            )}
-            
-            {eyeExpression === 'closed' && (
-              <div className="absolute top-1 right-1 w-1 h-0.5 bg-red-600 rounded-full"></div>
-            )}
-            {eyeExpression === 'curious' && (
-              <div className="absolute top-1 right-1 w-1 h-1 bg-red-600 rounded-full"></div>
-            )}
-            {eyeExpression === 'worried' && (
-              <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-red-600 rounded-full animate-pulse"></div>
-            )}
-            {eyeExpression === 'cautious' && (
-              <div className="absolute top-1 right-1 w-1 h-0.5 bg-orange-500 rounded-full"></div>
-            )}
-            {eyeExpression === 'confident' && (
-              <div className="absolute top-1 right-1 w-1 h-1 bg-green-500 rounded-full"></div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Компонент индикатора силы пароля
-interface PasswordStrengthMeterProps {
-  password: string;
-  onStrengthChange: (strength: number, isValid: boolean) => void;
-}
-
-const PasswordStrengthMeter = ({ password, onStrengthChange }: PasswordStrengthMeterProps) => {
-  const calculatePasswordStrength = (password: string): number => {
-    let strength = 0;
-    
-    // Длина
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    
-    // Символы
-    if (/[a-z]/.test(password)) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) strength++;
-    
-    return strength;
-  };
-
-  const strength = calculatePasswordStrength(password);
-  const isValid = strength >= 4;
-
-  useEffect(() => {
-    onStrengthChange(strength, isValid);
-  }, [strength, isValid, onStrengthChange]);
-
-  const getStrengthText = () => {
-    if (password.length === 0) return '';
-    if (strength < 2) return 'Слабый';
-    if (strength < 4) return 'Средний';
-    if (strength < 5) return 'Сильный';
-    return 'Очень сильный';
-  };
-
-  const getStrengthColor = () => {
-    if (strength < 2) return 'bg-red-500';
-    if (strength < 4) return 'bg-yellow-500';
-    if (strength < 5) return 'bg-blue-500';
-    return 'bg-green-500';
-  };
-
-  if (password.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center space-x-2">
-        <div className="flex-1 bg-muted rounded-full h-2">
-          <div 
-            className={`h-full rounded-full transition-all duration-300 ${getStrengthColor()}`}
-            style={{ width: `${(strength / 6) * 100}%` }}
-          />
-        </div>
-        <span className={`text-xs font-medium ${
-          strength < 2 ? 'text-red-500' : 
-          strength < 4 ? 'text-yellow-600' : 
-          strength < 5 ? 'text-blue-500' : 'text-green-500'
-        }`}>
-          {getStrengthText()}
-        </span>
-      </div>
-      
-      {/* Требования к паролю */}
-      <div className="text-xs text-muted-foreground space-y-1">
-        <div className={`flex items-center space-x-1 ${password.length >= 8 ? 'text-green-600' : ''}`}>
-          <span>{password.length >= 8 ? '✓' : '○'}</span>
-          <span>Минимум 8 символов</span>
-        </div>
-        <div className={`flex items-center space-x-1 ${/[A-Z]/.test(password) ? 'text-green-600' : ''}`}>
-          <span>{/[A-Z]/.test(password) ? '✓' : '○'}</span>
-          <span>Заглавная буква</span>
-        </div>
-        <div className={`flex items-center space-x-1 ${/[a-z]/.test(password) ? 'text-green-600' : ''}`}>
-          <span>{/[a-z]/.test(password) ? '✓' : '○'}</span>
-          <span>Строчная буква</span>
-        </div>
-        <div className={`flex items-center space-x-1 ${/\d/.test(password) ? 'text-green-600' : ''}`}>
-          <span>{/\d/.test(password) ? '✓' : '○'}</span>
-          <span>Цифра</span>
-        </div>
-        <div className={`flex items-center space-x-1 ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? 'text-green-600' : ''}`}>
-          <span>{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password) ? '✓' : '○'}</span>
-          <span>Специальный символ</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function Login() {
   const [mode, setMode] = useState<FormMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [parallaxOffset, setParallaxOffset] = useState(0);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Состояния для паролей и крабика
+  // Состояния для крабика и проверки пароля
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
-  
-  // Паралакс эффект
-  const [scrollY, setScrollY] = useState(0);
-  
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
-  const parallaxOffset = scrollY * 0.5;
-  
-  // Цифровые частицы
-  const particlePositions = useMemo(() => {
-    return Array.from({ length: 12 }, (_, i) => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 2
-    }));
-  }, []);
+
+  // Функция для вычисления силы пароля (упрощенная версия для логина)
+  const calculatePasswordStrength = (password: string): number => {
+    if (!password) return 0;
+    
+    let strength = 0;
+    
+    // Минимум 8 символов
+    if (password.length >= 8) strength += 20;
+    
+    // Заглавные буквы
+    if (/[A-Z]/.test(password)) strength += 20;
+    
+    // Строчные буквы
+    if (/[a-z]/.test(password)) strength += 20;
+    
+    // Цифры
+    if (/\d/.test(password)) strength += 20;
+    
+    // Специальные символы
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 20;
+    
+    return Math.min(strength, 100);
+  };
   
   const [, setLocation] = useLocation();
   const { login, register: registerUser, isAuthenticated } = useAuth();
@@ -261,70 +103,86 @@ export default function Login() {
     }
   }, [isAuthenticated, setLocation]);
 
+  // Мемоизируем позиции частиц для избежания пересчета при рендере
+  const particlePositions = useMemo(() => 
+    Array.from({ length: 20 }, () => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 2
+    })), []);
+
+  // Паралакс эффект
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      setParallaxOffset(scrolled * 0.5);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Формы
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      remember: false
-    }
+    defaultValues: { email: '', password: '', remember: false }
   });
 
   const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      password: '',
-      confirmPassword: '',
-      agree: false
+      firstName: '', lastName: '', email: '', phone: '',
+      password: '', confirmPassword: '', agree: false
     }
   });
 
   const recoveryForm = useForm<RecoveryFormData>({
     resolver: zodResolver(recoverySchema),
-    defaultValues: {
-      email: ''
-    }
+    defaultValues: { email: '' }
   });
 
-  // Обработчики форм
   const onLoginSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    setError('');
-    
     try {
+      setError('');
+      setIsLoading(true);
+      
       await login(data.email, data.password);
-      setLocation('/app/dashboard');
+      
+      toast({
+        title: 'Успешный вход',
+        description: 'Добро пожаловать в ReScrub!',
+      });
+      
+      // Don't navigate immediately - let useEffect handle it after auth state updates
     } catch (error: any) {
       const errorMessage = error.message || 'Ошибка входа';
       setError(errorMessage);
+      
+      if (errorMessage.includes('подтвердите email')) {
+        toast({
+          title: 'Требуется подтверждение',
+          description: 'Проверьте email для подтверждения аккаунта',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const onRegisterSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
-    setError('');
-    
     try {
-      await registerUser({
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone
-      });
+      setError('');
+      setIsLoading(true);
+      
+      await registerUser(data.email, data.password);
       
       toast({
-        title: 'Регистрация успешна!',
-        description: 'Проверьте вашу почту для подтверждения аккаунта',
+        title: 'Аккаунт создан',
+        description: 'Проверьте email для подтверждения аккаунта',
       });
       
+      // Switch to check-email mode to show instructions
       setMode('check-email');
     } catch (error: any) {
       const errorMessage = error.message || 'Ошибка регистрации';
@@ -335,13 +193,11 @@ export default function Login() {
   };
 
   const onRecoverySubmit = async (data: RecoveryFormData) => {
-    setIsLoading(true);
-    setError('');
-    
     try {
-      // Здесь будет запрос на восстановление пароля
-      console.log('Password recovery for:', data.email);
+      setError('');
+      setIsLoading(true);
       
+      // TODO: Implement password recovery API
       toast({
         title: 'Инструкции отправлены',
         description: 'Проверьте email для восстановления пароля',
@@ -356,66 +212,39 @@ export default function Login() {
     }
   };
 
-  // OAuth обработчик
-  const handleOAuthLogin = (provider: string) => {
-    console.log('OAuth login with:', provider);
-    // Здесь будет реализация OAuth
-  };
-
-  // Вычисление силы пароля для логина
-  const calculatePasswordStrength = (password: string): number => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/\d/.test(password)) strength++;
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) strength++;
-    return strength;
-  };
-
-  // Заголовки и подзаголовки
   const getTitle = () => {
     switch (mode) {
-      case 'login': return 'Добро пожаловать';
-      case 'register': return 'Создание аккаунта';
+      case 'login': return 'Добро пожаловать в ResCrub';
+      case 'register': return 'Создать аккаунт';
       case 'recovery': return 'Восстановление пароля';
-      case 'check-email': return 'Проверьте почту';
-      default: return '';
+      case 'check-email': return 'Проверьте вашу почту';
     }
   };
 
   const getSubtitle = () => {
     switch (mode) {
-      case 'login': return 'Войдите в свой аккаунт ResCrub';
-      case 'register': return 'Создайте аккаунт для защиты данных';
-      case 'recovery': return 'Мы поможем восстановить доступ';
-      case 'check-email': return 'Ссылка для подтверждения отправлена';
-      default: return '';
+      case 'login': return 'Войдите в свой аккаунт для управления защитой данных';
+      case 'register': return 'Начните защищать свои персональные данные уже сегодня';
+      case 'recovery': return 'Мы отправим инструкции по восстановлению на ваш email';
+      case 'check-email': return 'Мы отправили письмо с подтверждением на ваш email адрес. Проверьте почту и перейдите по ссылке для активации аккаунта.';
     }
   };
 
-  // Провайдеры OAuth
+  // OAuth handlers - redirect to backend OAuth endpoints
+  const handleOAuthLogin = (providerId: string) => {
+    console.log(`OAuth login with ${providerId}`);
+    // Redirect to backend OAuth start endpoint
+    window.location.href = `/api/oauth/${providerId}/start`;
+  };
+
+  // OAuth providers data
   const oauthProviders = [
     {
-      id: 'replit',
-      name: 'Replit',
-      icon: Shield,
-      color: 'text-primary',
-      testId: 'button-oauth-replit'
-    },
-    {
-      id: 'vk',
-      name: 'VKontakte', 
-      icon: SiVk,
-      color: 'text-blue-600',
-      testId: 'button-oauth-vk'
-    },
-    {
-      id: 'gosuslugi',
+      id: 'esia',
       name: 'Госуслуги',
-      icon: Building,
-      color: 'text-blue-800',
-      testId: 'button-oauth-gosuslugi'
+      icon: Shield,
+      color: 'text-blue-600',
+      testId: 'button-oauth-esia'
     },
     {
       id: 'sberbank',
@@ -423,6 +252,20 @@ export default function Login() {
       icon: CreditCard,
       color: 'text-green-600',
       testId: 'button-oauth-sberbank'
+    },
+    {
+      id: 'tbank',
+      name: 'Т-Банк ID',
+      icon: Building,
+      color: 'text-yellow-600',
+      testId: 'button-oauth-tbank'
+    },
+    {
+      id: 'vk',
+      name: 'VK ID',
+      icon: SiVk,
+      color: 'text-blue-500',
+      testId: 'button-oauth-vk'
     },
     {
       id: 'yandex',
@@ -617,18 +460,12 @@ export default function Login() {
                           />
                         )}
                       />
-                      <Label 
-                        htmlFor="remember" 
-                        className="text-sm cursor-pointer"
-                      >
-                        Запомнить меня
-                      </Label>
+                      <Label htmlFor="remember" className="text-sm">Запомнить меня</Label>
                     </div>
-                    
                     <Button
                       type="button"
                       variant="ghost"
-                      className="p-0 h-auto text-sm hover:text-muted-foreground"
+                      className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground"
                       onClick={() => setMode('recovery')}
                       data-testid="button-forgot-password"
                     >
@@ -640,15 +477,17 @@ export default function Login() {
                     type="submit" 
                     className="w-full"
                     disabled={isLoading}
-                    data-testid="button-login"
+                    data-testid="button-login-submit"
                   >
                     {isLoading ? 'Вход...' : 'Войти'}
                   </Button>
                 </form>
               )}
 
-              {/* OAuth кнопки для входа */}
-              {mode === 'login' && <OAuthButtons />}
+              {/* OAuth кнопки для входа и регистрации */}
+              {(mode === 'login' || mode === 'register') && (
+                <OAuthButtons />
+              )}
 
               {/* Форма регистрации */}
               {mode === 'register' && (
@@ -658,7 +497,6 @@ export default function Login() {
                       <Label htmlFor="firstName" className="text-sm font-medium">Имя</Label>
                       <Input
                         id="firstName"
-                        type="text"
                         placeholder="Иван"
                         data-testid="input-register-firstname"
                         {...registerForm.register('firstName')}
@@ -669,12 +507,10 @@ export default function Login() {
                         </p>
                       )}
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="lastName" className="text-sm font-medium">Фамилия</Label>
                       <Input
                         id="lastName"
-                        type="text"
                         placeholder="Иванов"
                         data-testid="input-register-lastname"
                         {...registerForm.register('lastName')}
@@ -785,7 +621,7 @@ export default function Login() {
                         size="icon"
                         className="absolute right-2 top-1/2 -translate-y-1/2"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        data-testid="button-toggle-confirm-password"
+                        data-testid="button-toggle-confirm-password-register"
                       >
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
@@ -797,55 +633,43 @@ export default function Login() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-start space-x-2">
-                      <Controller
-                        name="agree"
-                        control={registerForm.control}
-                        render={({ field }) => (
-                          <Checkbox 
-                            id="agree" 
-                            data-testid="checkbox-agree"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        )}
-                      />
-                      <Label htmlFor="agree" className="text-sm leading-normal cursor-pointer">
-                        Я согласен с{' '}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
-                          asChild
-                        >
-                          <Link href="/terms">условиями использования</Link>
-                        </Button>
-                        {' '}и{' '}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
-                          asChild
-                        >
-                          <Link href="/privacy">политикой конфиденциальности</Link>
-                        </Button>
-                      </Label>
-                    </div>
-                    {registerForm.formState.errors.agree && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.agree.message}
-                      </p>
-                    )}
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      name="agree"
+                      control={registerForm.control}
+                      render={({ field }) => (
+                        <Checkbox 
+                          id="agree" 
+                          data-testid="checkbox-agree"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="agree" className="text-sm leading-normal">
+                      Я согласен с{' '}
+                      <Link href="/terms" className="text-foreground hover:text-muted-foreground underline underline-offset-4">
+                        условиями использования
+                      </Link>{' '}
+                      и{' '}
+                      <Link href="/privacy" className="text-foreground hover:text-muted-foreground underline underline-offset-4">
+                        политикой конфиденциальности
+                      </Link>
+                    </Label>
                   </div>
+                  {registerForm.formState.errors.agree && (
+                    <p className="text-sm text-destructive">
+                      {registerForm.formState.errors.agree.message}
+                    </p>
+                  )}
 
                   <Button 
                     type="submit" 
                     className="w-full"
                     disabled={isLoading}
-                    data-testid="button-register"
+                    data-testid="button-register-submit"
                   >
-                    {isLoading ? 'Создание аккаунта...' : 'Создать аккаунт'}
+                    {isLoading ? 'Создание...' : 'Создать аккаунт'}
                   </Button>
                 </form>
               )}
@@ -854,9 +678,9 @@ export default function Login() {
               {mode === 'recovery' && (
                 <form onSubmit={recoveryForm.handleSubmit(onRecoverySubmit)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="recovery-email" className="text-sm font-medium">Email</Label>
+                    <Label htmlFor="email-recovery" className="text-sm font-medium">Email</Label>
                     <Input
-                      id="recovery-email"
+                      id="email-recovery"
                       type="email"
                       placeholder="your@email.com"
                       data-testid="input-recovery-email"
@@ -873,24 +697,28 @@ export default function Login() {
                     type="submit" 
                     className="w-full"
                     disabled={isLoading}
-                    data-testid="button-recovery"
+                    data-testid="button-recovery-submit"
                   >
                     {isLoading ? 'Отправка...' : 'Отправить инструкции'}
                   </Button>
                 </form>
               )}
 
-              {/* Сообщение о проверке email */}
+              {/* Экран проверки email после регистрации */}
               {mode === 'check-email' && (
-                <div className="text-center space-y-4">
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <MessageCircle className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <div className="space-y-6 text-center">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <MessageCircle className="w-8 h-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      Проверьте вашу почту и перейдите по ссылке для подтверждения регистрации
+                      Проверьте папку "Спам" если письмо не пришло в основную папку.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Не получили письмо? Обратитесь в техподдержку: <strong>support@rescrub.ru</strong>
                     </p>
                   </div>
                   <Button 
-                    variant="outline" 
                     type="button" 
                     className="w-full"
                     onClick={() => setMode('login')}
