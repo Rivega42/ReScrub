@@ -13,9 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from '@/lib/authContext';
 import { useToast } from '@/hooks/use-toast';
-import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
-import { PasswordCrab } from '@/components/PasswordCrab';
-import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.png';
+import heroShieldImage from '@assets/generated_images/ResCrub_hero_shield_illustration_17021890.png';
 
 type FormMode = 'login' | 'register' | 'recovery' | 'check-email';
 
@@ -62,35 +60,6 @@ export default function Login() {
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Состояния для крабика и проверки пароля
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [isPasswordValid, setIsPasswordValid] = useState(false);
-
-  // Функция для вычисления силы пароля (упрощенная версия для логина)
-  const calculatePasswordStrength = (password: string): number => {
-    if (!password) return 0;
-    
-    let strength = 0;
-    
-    // Минимум 8 символов
-    if (password.length >= 8) strength += 20;
-    
-    // Заглавные буквы
-    if (/[A-Z]/.test(password)) strength += 20;
-    
-    // Строчные буквы
-    if (/[a-z]/.test(password)) strength += 20;
-    
-    // Цифры
-    if (/\d/.test(password)) strength += 20;
-    
-    // Специальные символы
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 20;
-    
-    return Math.min(strength, 100);
-  };
   
   const [, setLocation] = useLocation();
   const { login, register: registerUser, isAuthenticated } = useAuth();
@@ -323,8 +292,8 @@ export default function Login() {
           }}
         >
           <img 
-            src={crabImage} 
-            alt="Красный пиксельный краб подметает документы" 
+            src={heroShieldImage} 
+            alt="Защита персональных данных" 
             className="w-full max-w-lg h-auto object-contain filter drop-shadow-lg opacity-80"
           />
         </div>
@@ -407,26 +376,14 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-sm font-medium">Пароль</Label>
-                      {/* Крабик также для логина */}
-                      <PasswordCrab 
-                        isPasswordFocused={isPasswordFocused}
-                        passwordLength={loginForm.watch('password')?.length || 0}
-                        passwordStrength={calculatePasswordStrength(loginForm.watch('password') || '')}
-                        isVisible={mode === 'login'}
-                      />
-                    </div>
+                    <Label htmlFor="password" className="text-sm font-medium">Пароль</Label>
                     <div className="relative">
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         data-testid="input-login-password"
-                        onFocus={() => setIsPasswordFocused(true)}
-                        {...loginForm.register('password', {
-                          onBlur: () => setIsPasswordFocused(false)
-                        })}
+                        {...loginForm.register('password')}
                       />
                       <Button
                         type="button"
@@ -556,26 +513,14 @@ export default function Login() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password-reg" className="text-sm font-medium">Пароль</Label>
-                      {/* Крабик рядом с лейблом */}
-                      <PasswordCrab 
-                        isPasswordFocused={isPasswordFocused}
-                        passwordLength={registerForm.watch('password')?.length || 0}
-                        passwordStrength={passwordStrength}
-                        isVisible={mode === 'register'}
-                      />
-                    </div>
+                    <Label htmlFor="password-reg" className="text-sm font-medium">Пароль</Label>
                     <div className="relative">
                       <Input
                         id="password-reg"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         data-testid="input-register-password"
-                        onFocus={() => setIsPasswordFocused(true)}
-                        {...registerForm.register('password', {
-                          onBlur: () => setIsPasswordFocused(false)
-                        })}
+                        {...registerForm.register('password')}
                       />
                       <Button
                         type="button"
@@ -588,16 +533,6 @@ export default function Login() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
-                    
-                    {/* Индикатор силы пароля */}
-                    <PasswordStrengthMeter 
-                      password={registerForm.watch('password') || ''}
-                      onStrengthChange={(strength, isValid) => {
-                        setPasswordStrength(strength);
-                        setIsPasswordValid(isValid);
-                      }}
-                    />
-                    
                     {registerForm.formState.errors.password && (
                       <p className="text-sm text-destructive">
                         {registerForm.formState.errors.password.message}
