@@ -18,11 +18,11 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"], // Required for Tailwind
       scriptSrc: process.env.NODE_ENV === 'development' 
         ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://replit.com"] // Dev: allow Vite HMR and Replit banner
-        : ["'self'", "https://replit.com"], // Prod: restrictive
-      imgSrc: ["'self'", "data:", "blob:"],
+        : ["'self'", "https://replit.com", "https://mc.yandex.ru", "https://yastatic.net"], // Prod: + Yandex Metrika
+      imgSrc: ["'self'", "data:", "blob:", "https://mc.yandex.ru"], // + Yandex Metrika images
       connectSrc: process.env.NODE_ENV === 'development'
         ? ["'self'", "ws:", "wss:"] // Dev: allow WebSocket for HMR
-        : ["'self'"],
+        : ["'self'", "https://mc.yandex.ru"], // Prod: + Yandex Metrika connections
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],

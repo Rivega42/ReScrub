@@ -15,7 +15,7 @@ import { useAuth } from '@/lib/authContext';
 import { useToast } from '@/hooks/use-toast';
 import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.png';
 
-type FormMode = 'login' | 'register' | 'recovery';
+type FormMode = 'login' | 'register' | 'recovery' | 'check-email';
 
 // Схемы валидации
 const loginSchema = z.object({
@@ -142,8 +142,8 @@ export default function Login() {
         description: 'Проверьте email для подтверждения аккаунта',
       });
       
-      // Switch to login mode after successful registration
-      setMode('login');
+      // Switch to check-email mode to show instructions
+      setMode('check-email');
     } catch (error: any) {
       const errorMessage = error.message || 'Ошибка регистрации';
       setError(errorMessage);
@@ -177,6 +177,7 @@ export default function Login() {
       case 'login': return 'Добро пожаловать в ResCrub';
       case 'register': return 'Создать аккаунт';
       case 'recovery': return 'Восстановление пароля';
+      case 'check-email': return 'Проверьте вашу почту';
     }
   };
 
@@ -185,6 +186,7 @@ export default function Login() {
       case 'login': return 'Войдите в свой аккаунт для управления защитой данных';
       case 'register': return 'Начните защищать свои персональные данные уже сегодня';
       case 'recovery': return 'Мы отправим инструкции по восстановлению на ваш email';
+      case 'check-email': return 'Мы отправили письмо с подтверждением на ваш email адрес. Проверьте почту и перейдите по ссылке для активации аккаунта.';
     }
   };
 
@@ -628,6 +630,31 @@ export default function Login() {
                 </form>
               )}
 
+              {/* Экран проверки email после регистрации */}
+              {mode === 'check-email' && (
+                <div className="space-y-6 text-center">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <MessageCircle className="w-8 h-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Проверьте папку "Спам" если письмо не пришло в основную папку.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Не получили письмо? Обратитесь в техподдержку: <strong>support@rescrub.ru</strong>
+                    </p>
+                  </div>
+                  <Button 
+                    type="button" 
+                    className="w-full"
+                    onClick={() => setMode('login')}
+                    data-testid="button-goto-login"
+                  >
+                    Перейти к входу
+                  </Button>
+                </div>
+              )}
+
               {/* Переключение между режимами - Cal.com style */}
               <div className="text-center text-sm text-muted-foreground">
                 {mode === 'login' && (
@@ -667,6 +694,20 @@ export default function Login() {
                       className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
                       onClick={() => setMode('login')}
                       data-testid="button-switch-login-from-recovery"
+                    >
+                      Войти
+                    </Button>
+                  </p>
+                )}
+                {mode === 'check-email' && (
+                  <p>
+                    Уже подтвердили email?{' '}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="p-0 h-auto text-sm text-foreground hover:text-muted-foreground underline underline-offset-4"
+                      onClick={() => setMode('login')}
+                      data-testid="button-switch-login-from-check-email"
                     >
                       Войти
                     </Button>
