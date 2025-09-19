@@ -1082,12 +1082,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralCodeByUser(userId: string): Promise<ReferralCode | undefined> {
-    console.log(`🔍 DatabaseStorage: getReferralCodeByUser for userId: ${userId}`);
     const [code] = await db
       .select()
       .from(referralCodes)
       .where(and(eq(referralCodes.userId, userId), eq(referralCodes.isActive, true)));
-    console.log(`🔍 DatabaseStorage: getReferralCodeByUser found:`, code);
     return code;
   }
 
@@ -1173,14 +1171,11 @@ export class DatabaseStorage implements IStorage {
     totalRewards: number;
     activeCode?: string;
   }> {
-    console.log(`📊 DatabaseStorage: getReferralStats for userId: ${userId}`);
-    
     // Get total referrals count
     const totalReferrals = await db
       .select({ count: sql`COUNT(*)` })
       .from(referrals)
       .where(eq(referrals.referrerId, userId));
-    console.log(`📊 Total referrals query result:`, totalReferrals);
 
     // Get successful referrals (subscribed)
     const successfulReferrals = await db
@@ -1192,22 +1187,16 @@ export class DatabaseStorage implements IStorage {
           eq(referrals.status, 'subscribed')
         )
       );
-    console.log(`📊 Successful referrals query result:`, successfulReferrals);
 
     // Get active referral code
-    console.log(`📊 Looking for active referral code for userId: ${userId}`);
     const activeCode = await this.getReferralCodeByUser(userId);
-    console.log(`📊 Found active code:`, activeCode);
 
-    const result = {
+    return {
       totalReferrals: Number(totalReferrals[0]?.count || 0),
       successfulReferrals: Number(successfulReferrals[0]?.count || 0),
       totalRewards: Number(successfulReferrals[0]?.count || 0) * 50, // 50% reward per successful referral
       activeCode: activeCode?.code
     };
-    
-    console.log(`📊 Final getReferralStats result:`, result);
-    return result;
   }
 
   // Seed achievements

@@ -1297,9 +1297,7 @@ ${allPages.map(page => `  <url>
   app.post('/api/referrals/generate', isEmailAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
-      console.log(`🚀 POST /api/referrals/generate for userId: ${userId}`);
       const referralCode = await storage.createReferralCode(userId);
-      console.log(`✅ Generated referral code: ${referralCode.code} for userId: ${userId}`);
       res.json({ success: true, code: referralCode.code });
     } catch (error) {
       console.error('Error generating referral code:', error);
@@ -1348,9 +1346,7 @@ ${allPages.map(page => `  <url>
   app.get('/api/referrals/stats', isEmailAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
-      console.log(`🔍 GET /api/referrals/stats for userId: ${userId}`);
       const stats = await storage.getReferralStats(userId);
-      console.log(`📊 Referral stats result:`, stats);
       res.json(stats);
     } catch (error) {
       console.error('Error getting referral stats:', error);
