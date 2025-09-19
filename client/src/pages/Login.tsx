@@ -397,18 +397,20 @@ export default function Login() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         data-testid="input-login-password"
+                        className="pr-8"
                         {...loginForm.register('password')}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => setShowPassword(!showPassword)}
-                        data-testid="button-toggle-password"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          data-testid="button-toggle-password"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                     {loginForm.formState.errors.password && (
                       <p className="text-sm text-destructive">
@@ -534,18 +536,20 @@ export default function Login() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         data-testid="input-register-password"
+                        className="pr-8"
                         {...registerForm.register('password')}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => setShowPassword(!showPassword)}
-                        data-testid="button-toggle-password-register"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          data-testid="button-toggle-password-register"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                     {registerForm.formState.errors.password && (
                       <p className="text-sm text-destructive">
@@ -569,18 +573,20 @@ export default function Login() {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
                         data-testid="input-register-confirm-password"
+                        className="pr-8"
                         {...registerForm.register('confirmPassword')}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        data-testid="button-toggle-confirm-password-register"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          data-testid="button-toggle-confirm-password-register"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                     {registerForm.formState.errors.confirmPassword && (
                       <p className="text-sm text-destructive">
