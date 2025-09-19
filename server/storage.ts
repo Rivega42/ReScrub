@@ -1090,10 +1090,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralCodeByCode(code: string): Promise<ReferralCode | undefined> {
+    console.log(`🔍 DatabaseStorage: Looking for referral code: ${code}`);
     const [referralCode] = await db
       .select()
       .from(referralCodes)
       .where(and(eq(referralCodes.code, code), eq(referralCodes.isActive, true)));
+    console.log(`🔍 DatabaseStorage: Found referral code:`, referralCode);
     return referralCode;
   }
 

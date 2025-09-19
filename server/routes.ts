@@ -1346,9 +1346,12 @@ ${allPages.map(page => `  <url>
   app.get('/api/referrals/:code', async (req, res) => {
     try {
       const { code } = req.params;
+      console.log(`🚀 API Request: GET /api/referrals/${code}`);
       const referralCode = await storage.getReferralCodeByCode(code);
+      console.log(`🔍 API Result:`, referralCode);
       
       if (!referralCode || !referralCode.isActive) {
+        console.log(`❌ API: Code not found or inactive`);
         return res.status(404).json({ message: 'Referral code not found or inactive' });
       }
       
