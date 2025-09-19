@@ -837,6 +837,10 @@ export function buildTelegramTags(meta: PageMeta, path: string, baseUrl: string 
  * Generate canonical URL from path
  */
 export function canonicalFromPath(path: string, baseUrl: string = SEO_CONSTANTS.BASE_URL): string {
+  // Handle undefined or null path
+  if (!path) {
+    path = '/';
+  }
   // Remove trailing slash except for root
   const cleanPath = path === '/' ? '/' : path.replace(/\/$/, '');
   return `${baseUrl}${cleanPath}`;
@@ -1324,7 +1328,9 @@ export const DEFAULT_CONTACTPOINT_JSONLD = buildJsonLd('ContactPoint', {
  * Generate breadcrumb JSON-LD from path segments
  */
 export function generateBreadcrumbJsonLd(path: string, baseUrl: string = SEO_CONSTANTS.BASE_URL): JsonLdBreadcrumbList {
-  const segments = path.split('/').filter(Boolean);
+  // Ensure path is a string
+  const pathStr = typeof path === 'string' ? path : '/';
+  const segments = pathStr.split('/').filter(Boolean);
   const breadcrumbs: JsonLdBreadcrumbList['itemListElement'] = [
     {
       '@type': 'ListItem',
