@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -61,6 +62,18 @@ interface PointsBalance {
   lastUpdated: string;
 }
 
+interface UserSubscription {
+  id: string;
+  planId: string;
+  status: 'active' | 'pending' | 'cancelled' | 'suspended';
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  plan: {
+    displayName: string;
+    price: number;
+  };
+}
+
 const statusConfig = {
   pending: { label: 'В ожидании', color: 'secondary', icon: Clock },
   sent: { label: 'Отправлен', color: 'default', icon: Activity },
@@ -102,6 +115,12 @@ export default function Dashboard() {
     enabled: true,
   });
 
+  // Fetch user subscription
+  const { data: subscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({
+    queryKey: ['/api/subscription'],
+    enabled: true,
+  });
+
   // Generate referral code mutation
   const generateCodeMutation = useMutation({
     mutationFn: async () => {
@@ -111,7 +130,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['/api/referrals/stats'] });
       toast({
         title: "Реферальный код создан!",
-        description: `Ваш код: ${data.code}`,
+        description: `Ваш код: ${(data as any)?.code || 'Создан'}`,
       });
     },
     onError: (error: any) => {
@@ -171,6 +190,21 @@ export default function Dashboard() {
     const text = encodeURIComponent(`Я уже защитил свои данные и получил приватность! Присоединяйся - получи 30% скидку! ${link}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
+
+  // Calculate days until subscription expires
+  const getSubscriptionDaysRemaining = (subscription: UserSubscription | null) => {
+    if (!subscription || !subscription.currentPeriodEnd) return null;
+    
+    const now = new Date();
+    const endDate = new Date(subscription.currentPeriodEnd);
+    const diffTime = endDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  const daysRemaining = getSubscriptionDaysRemaining(subscription || null);
+  const shouldShowExpiryWarning = subscription && daysRemaining !== null && daysRemaining <= 3;
 
   // Calculate statistics
   const stats = {
@@ -263,6 +297,46 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Subscription Expiry Warning */}
+      {shouldShowExpiryWarning && (
+        <Alert 
+          variant={daysRemaining <= 0 ? "destructive" : "default"} 
+          className="mb-6"
+          data-testid="alert-subscription-expiry"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>
+            {daysRemaining <= 0 
+              ? "Подписка истекла!" 
+              : `Подписка истекает через ${daysRemaining} ${daysRemaining === 1 ? 'день' : daysRemaining <= 4 ? 'дня' : 'дней'}!`
+            }
+          </AlertTitle>
+          <AlertDescription className="mt-2">
+            {daysRemaining <= 0 ? (
+              <>
+                Ваша подписка "{subscription?.plan.displayName}" истекла. 
+                Продлите подписку, чтобы продолжить защищать ваши данные.
+              </>
+            ) : (
+              <>
+                Ваша подписка "{subscription?.plan.displayName}" истекает {new Date(subscription?.currentPeriodEnd || '').toLocaleDateString('ru-RU')}. 
+                Продлите подписку заранее, чтобы избежать перерыва в защите данных.
+              </>
+            )}
+            <div className="mt-3">
+              <Button 
+                variant={daysRemaining <= 0 ? "default" : "outline"}
+                size="sm"
+                data-testid="button-renew-subscription"
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Продлить подписку
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

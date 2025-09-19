@@ -328,10 +328,21 @@ export class SubscriptionManager {
       
       const notifications = await storage.getUserNotifications(subscription.userId);
       
-      // Проверяем есть ли уведомление о подписке за последние 24 часа
+      // Определяем нужную категорию для данного threshold
+      let expectedCategory: string;
+      if (daysRemaining <= 0) {
+        expectedCategory = 'subscription_expired';
+      } else if (daysRemaining === 1) {
+        expectedCategory = 'subscription_expiry_1day';
+      } else {
+        expectedCategory = 'subscription_expiry_3days';
+      }
+      
+      // Проверяем есть ли уведомление для этой подписки с нужной категорией за последние 24 часа
       const recentNotifications = notifications.filter((notification: any) => 
         notification.sentAt && 
         notification.sentAt > yesterday &&
+        notification.category === expectedCategory &&
         notification.data &&
         typeof notification.data === 'object' &&
         'subscriptionId' in notification.data &&
