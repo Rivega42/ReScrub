@@ -33,13 +33,16 @@ import InvitePage from "@/pages/InvitePage";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
   return (
-    <Switch>
+    <>
+      <ScrollToTop />
+      <Switch>
       {/* Public routes */}
       <Route path="/login" component={Login} />
       <Route path="/verify-email" component={VerifyEmail} />
@@ -86,6 +89,7 @@ function Router() {
       
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 
