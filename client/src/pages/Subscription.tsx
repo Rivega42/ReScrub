@@ -43,6 +43,12 @@ interface UserSubscription {
   plan: SubscriptionPlan;
 }
 
+interface PointsBalance {
+  balance: number;
+  currency: string;
+  lastUpdated: string;
+}
+
 export default function Subscription() {
   const { toast } = useToast();
 
@@ -54,6 +60,11 @@ export default function Subscription() {
   // Загрузка текущей подписки пользователя
   const { data: currentSubscription, isLoading: subscriptionLoading } = useQuery<UserSubscription | null>({
     queryKey: ['/api/subscription'],
+  });
+
+  // Загрузка баланса баллов пользователя
+  const { data: pointsBalance } = useQuery<PointsBalance>({
+    queryKey: ['/api/points'],
   });
 
   // Мутация для создания подписки
@@ -74,6 +85,10 @@ export default function Subscription() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Обновляем кэш с балансом баллов и подпиской
+      queryClient.invalidateQueries({ queryKey: ['/api/points'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
+      
       if (data.paymentUrl && data.paymentUrl !== '#') {
         // Перенаправляем на Robokassa для оплаты
         window.location.href = data.paymentUrl;
@@ -83,8 +98,6 @@ export default function Subscription() {
           title: "Подписка создана",
           description: "Платежная система временно недоступна. Подписка создана, но требует активации.",
         });
-        // Обновляем данные о подписке
-        queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
       }
     },
     onError: (error: Error) => {
@@ -129,6 +142,14 @@ export default function Subscription() {
 
   const handleSubscribe = (planId: string) => {
     createSubscriptionMutation.mutate(planId);
+  };
+
+  // Функция для расчета стоимости с учетом баллов
+  const calculatePriceWithPoints = (planPrice: number) => {
+    const userPoints = pointsBalance?.balance || 0;
+    const pointsToUse = Math.min(userPoints, planPrice);
+    const remainingAmount = planPrice - pointsToUse;
+    return { pointsToUse, remainingAmount };
   };
 
   const handleCancelSubscription = () => {
@@ -278,9 +299,43 @@ export default function Subscription() {
               <CardHeader>
                 <div className="text-center">
                   <h3 className="text-xl font-bold">{plan.displayName}</h3>
-                  <p className="text-2xl font-bold mt-2">
-                    {plan.price} <span className="text-sm font-normal text-muted-foreground">{plan.currency}</span>
-                  </p>
+                  <div className="mt-2">
+                    {/* Показываем расчет с баллами */}
+                    {(() => {
+                      const { pointsToUse, remainingAmount } = calculatePriceWithPoints(plan.price);
+                      return (
+                        <div className="space-y-1">
+                          {pointsToUse > 0 ? (
+                            <>
+                              <p className="text-lg text-muted-foreground line-through" data-testid="text-plan-original-price">
+                                {plan.price} {plan.currency}
+                              </p>
+                              <div className="text-sm text-green-600 space-y-0.5">
+                                <p data-testid="text-plan-points-to-use">Будет списано: {pointsToUse} баллов</p>
+                                {remainingAmount > 0 && (
+                                  <p data-testid="text-plan-remaining-amount">Доплата: {remainingAmount} {plan.currency}</p>
+                                )}
+                              </div>
+                              {remainingAmount === 0 ? (
+                                <p className="text-xl font-bold text-green-600 flex items-center justify-center gap-1" data-testid="text-plan-free">
+                                  <CheckCircle className="w-5 h-5" />
+                                  Бесплатно
+                                </p>
+                              ) : (
+                                <p className="text-xl font-bold" data-testid="text-plan-final-price">
+                                  {remainingAmount} <span className="text-sm font-normal text-muted-foreground">{plan.currency}</span>
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-2xl font-bold">
+                              {plan.price} <span className="text-sm font-normal text-muted-foreground">{plan.currency}</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <p className="text-sm text-muted-foreground">за {plan.interval}</p>
                 </div>
               </CardHeader>

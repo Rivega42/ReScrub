@@ -55,6 +55,12 @@ interface ReferralStats {
   activeCode?: string;
 }
 
+interface PointsBalance {
+  balance: number;
+  currency: string;
+  lastUpdated: string;
+}
+
 const statusConfig = {
   pending: { label: 'В ожидании', color: 'secondary', icon: Clock },
   sent: { label: 'Отправлен', color: 'default', icon: Activity },
@@ -87,6 +93,12 @@ export default function Dashboard() {
   // Fetch referral stats
   const { data: referralStats, isLoading: statsLoading } = useQuery<ReferralStats>({
     queryKey: ['/api/referrals/stats'],
+    enabled: true,
+  });
+
+  // Fetch points balance
+  const { data: pointsBalance, isLoading: pointsLoading } = useQuery<PointsBalance>({
+    queryKey: ['/api/points'],
     enabled: true,
   });
 
@@ -253,7 +265,7 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card data-testid="card-stat-total">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Всего запросов</CardTitle>
@@ -311,6 +323,27 @@ export default function Dashboard() {
             <Progress value={completionRate} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
               данных защищено
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-stat-points">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Баллы</CardTitle>
+            <Gift className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {pointsLoading ? (
+              <div className="text-2xl font-bold text-muted-foreground" data-testid="text-points-loading">
+                ...
+              </div>
+            ) : (
+              <div className="text-2xl font-bold text-green-600" data-testid="text-points-balance">
+                {pointsBalance?.balance || 0}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              баллов = рублей (1:1)
             </p>
           </CardContent>
         </Card>
