@@ -1083,6 +1083,88 @@ ${allPages.map(page => `  <url>
   });
 
   // ========================================
+  // PUBLIC PROFILE AND ACHIEVEMENT ROUTES
+  // ========================================
+  
+  // Set username for public profile
+  app.post('/api/profile/username', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const { username } = req.body;
+      
+      if (!username || typeof username !== 'string' || username.length < 3) {
+        return res.status(400).json({ message: 'Username must be at least 3 characters long' });
+      }
+      
+      // Check if username is already taken
+      const existingProfile = await storage.getPublicProfileByUsername(username);
+      if (existingProfile) {
+        return res.status(409).json({ message: 'Username already taken' });
+      }
+      
+      const profile = await storage.setUsername(userId, username);
+      res.json({ success: true, profile });
+    } catch (error) {
+      console.error('Error setting username:', error);
+      res.status(500).json({ message: 'Failed to set username' });
+    }
+  });
+  
+  // Get public profile by username
+  app.get('/api/public/u/:username', async (req, res) => {
+    try {
+      const { username } = req.params;
+      const profile = await storage.getPublicProfileByUsername(username);
+      
+      if (!profile || !profile.isPublic) {
+        return res.status(404).json({ message: 'Public profile not found' });
+      }
+      
+      // Get user achievements
+      const achievements = await storage.listUserAchievements(profile.userId);
+      
+      res.json({
+        username: profile.username,
+        privacyScore: profile.privacyScore,
+        stats: profile.stats,
+        achievements: achievements.filter(a => a.earnedAt).map(a => ({
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          icon: a.icon,
+          earnedAt: a.earnedAt
+        }))
+      });
+    } catch (error) {
+      console.error('Error getting public profile:', error);
+      res.status(500).json({ message: 'Failed to get public profile' });
+    }
+  });
+  
+  // Get user achievements
+  app.get('/api/achievements', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const achievements = await storage.listUserAchievements(userId);
+      res.json(achievements);
+    } catch (error) {
+      console.error('Error getting achievements:', error);
+      res.status(500).json({ message: 'Failed to get achievements' });
+    }
+  });
+  
+  // Get all achievement definitions
+  app.get('/api/achievements/all', async (req, res) => {
+    try {
+      const achievements = await storage.getAllAchievements();
+      res.json(achievements);
+    } catch (error) {
+      console.error('Error getting all achievements:', error);
+      res.status(500).json({ message: 'Failed to get achievements' });
+    }
+  });
+
+  // ========================================
   // SUBSCRIPTION API ENDPOINTS
   // ========================================
 
