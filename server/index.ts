@@ -17,16 +17,16 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"], // Required for Tailwind
       scriptSrc: process.env.NODE_ENV === 'development' 
-        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://replit.com"] // Dev: allow Vite HMR and Replit banner
-        : ["'self'", "https://replit.com", "https://mc.yandex.ru", "https://yastatic.net"], // Prod: + Yandex Metrika
-      imgSrc: ["'self'", "data:", "blob:", "https://mc.yandex.ru"], // + Yandex Metrika images
+        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://replit.com", "https://mc.yandex.ru", "https://mc.yandex.com"] // Dev: allow Vite HMR, Replit banner + Yandex Metrika
+        : ["'self'", "https://replit.com", "https://mc.yandex.ru", "https://mc.yandex.com", "https://yastatic.net"], // Prod: + Yandex Metrika
+      imgSrc: ["'self'", "data:", "blob:", "https://mc.yandex.ru", "https://mc.yandex.com"], // + Yandex Metrika images (both domains)
       connectSrc: process.env.NODE_ENV === 'development'
-        ? ["'self'", "ws:", "wss:"] // Dev: allow WebSocket for HMR
-        : ["'self'", "https://mc.yandex.ru"], // Prod: + Yandex Metrika connections
+        ? ["'self'", "ws:", "wss:", "https://mc.yandex.ru", "https://mc.yandex.com"] // Dev: allow WebSocket for HMR + Yandex Metrika
+        : ["'self'", "https://mc.yandex.ru", "https://mc.yandex.com"], // Prod: + Yandex Metrika connections
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'none'", "https://mc.yandex.com"], // + Yandex Metrika webvisor frames
     },
   },
   crossOriginEmbedderPolicy: false, // Required for Vite HMR in dev
