@@ -2573,5 +2573,6 @@ export class MemStorage implements IStorage {
 
 // Choose storage implementation
 // Use MemStorage for development, DatabaseStorage for production
-const USE_MEMORY_STORAGE = process.env.NODE_ENV === 'development';
+// TEMP: Force PostgreSQL to access production data for monitoring
+const USE_MEMORY_STORAGE = false; // process.env.NODE_ENV === 'development';
 export const storage = USE_MEMORY_STORAGE ? new MemStorage() : new DatabaseStorage();

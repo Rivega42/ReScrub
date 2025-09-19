@@ -2,6 +2,8 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { referralCodes } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
   insertSupportTicketSchema, 
@@ -76,8 +78,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if ((storage as any).referralCodesData) {
             (storage as any).referralCodesData.push(referralCode);
           } else {
-            // Note: In production DB mode, will implement proper insert
-            console.log('Database mode: would insert TEST123 code');
+            // Database mode: create referral code in PostgreSQL
+            console.log('Database mode: creating TEST123 code in PostgreSQL');
+            // Create referral code directly in database since we need specific TEST123 code
+            await db.insert(referralCodes).values({
+              userId: demoAccount.id,
+              code: 'TEST123',
+              isActive: true,
+              maxUses: 100,
+              currentUses: 0
+            });
           }
           console.log('✅ Created demo referral code TEST123 for testing');
         }
