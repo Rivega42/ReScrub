@@ -41,9 +41,9 @@ export default function VerifyEmail() {
           description: 'Ваш аккаунт активирован. Добро пожаловать в ReScrub!',
         });
 
-        // Redirect to login after 3 seconds
+        // Auto-login and redirect to dashboard after 3 seconds
         setTimeout(() => {
-          setLocation('/login');
+          setLocation('/app/dashboard');
         }, 3000);
 
       } catch (error: any) {
@@ -141,11 +141,11 @@ export default function VerifyEmail() {
             {state === 'success' && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Вы будете автоматически перенаправлены на страницу входа через несколько секунд.
+                  Вы будете автоматически перенаправлены в личный кабинет через несколько секунд.
                 </p>
-                <Button asChild className="w-full" data-testid="button-go-login">
-                  <Link href="/login">
-                    Войти в систему
+                <Button asChild className="w-full" data-testid="button-go-dashboard">
+                  <Link href="/app/dashboard">
+                    Перейти в кабинет
                   </Link>
                 </Button>
               </div>

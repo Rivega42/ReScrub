@@ -95,7 +95,7 @@ export const userProfiles = pgTable("user_profiles", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   middleName: varchar("middle_name"),
-  phone: varchar("phone"),
+  phone: varchar("phone").unique(),
   phoneVerified: boolean("phone_verified").default(false),
   dateOfBirth: timestamp("date_of_birth"),
   address: text("address"),
