@@ -28,6 +28,12 @@ export interface EmailData {
   brokerUrl?: string;
   requestDate?: string;
   legalBasis?: string;
+  // Subscription-specific fields
+  planName?: string;
+  planPrice?: string;
+  expiryDate?: string;
+  renewalUrl?: string;
+  daysRemaining?: number;
 }
 
 export interface SendEmailParams {
@@ -61,7 +67,13 @@ export function renderTemplate(template: EmailTemplate, data: EmailData): EmailT
     brokerName: data.brokerName || '',
     brokerUrl: data.brokerUrl || '',
     requestDate: data.requestDate || new Date().toLocaleDateString('ru-RU'),
-    legalBasis: data.legalBasis || 'ст. 14, 15, 21 Федерального закона от 27.07.2006 № 152-ФЗ "О персональных данных"'
+    legalBasis: data.legalBasis || 'ст. 14, 15, 21 Федерального закона от 27.07.2006 № 152-ФЗ "О персональных данных"',
+    // Subscription template data
+    planName: data.planName || '',
+    planPrice: data.planPrice || '',
+    expiryDate: data.expiryDate || '',
+    renewalUrl: data.renewalUrl || '',
+    daysRemaining: data.daysRemaining || 0
   };
 
   try {
@@ -501,10 +513,310 @@ export async function processWebhookEvents(events: WebhookEvent[]): Promise<void
   }
 }
 
+/**
+ * Создание шаблона уведомления за 3 дня до окончания подписки
+ */
+export function createSubscriptionExpiryTemplate3Days(): EmailTemplate {
+  return {
+    subject: 'ResCrub: Ваша подписка заканчивается через 3 дня',
+    text: `Здравствуйте, {{recipientName}}!
+
+Напоминаем, что ваша подписка "{{planName}}" заканчивается через {{daysRemaining}} дня.
+
+📅 Дата окончания: {{expiryDate}}
+💰 Стоимость продления: {{planPrice}}
+
+Чтобы не прерывать защиту ваших персональных данных, продлите подписку прямо сейчас:
+{{renewalUrl}}
+
+С уважением,
+Команда ResCrub`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center; }
+    .content { background: #fff; padding: 30px 20px; border: 1px solid #e5e7eb; }
+    .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px; }
+    .cta-button { display: inline-block; background: #3b82f6; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
+    .footer { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 14px; color: #6b7280; }
+    .plan-info { background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">⏰ Подписка скоро закончится</h1>
+    </div>
+    
+    <div class="content">
+      <p>Здравствуйте, <strong>{{recipientName}}</strong>!</p>
+      
+      <div class="warning">
+        <strong>⚠️ Внимание:</strong> Ваша подписка <strong>"{{planName}}"</strong> заканчивается через <strong>{{daysRemaining}} дня</strong>.
+      </div>
+      
+      <div class="plan-info">
+        📅 <strong>Дата окончания:</strong> {{expiryDate}}<br>
+        💰 <strong>Стоимость продления:</strong> {{planPrice}}
+      </div>
+      
+      <p>Чтобы не прерывать защиту ваших персональных данных и продолжить пользоваться всеми возможностями ResCrub, продлите подписку прямо сейчас:</p>
+      
+      <div style="text-align: center;">
+        <a href="{{renewalUrl}}" class="cta-button">🔄 Продлить подписку</a>
+      </div>
+      
+      <p><small>💡 <strong>Почему важно продлить:</strong><br>
+      • Непрерывная защита ваших данных<br>
+      • Сохранение всех настроек и истории<br>
+      • Автоматическое продление на следующий период</small></p>
+    </div>
+    
+    <div class="footer">
+      С уважением,<br>
+      <strong>Команда ResCrub</strong><br>
+      <small>Защита персональных данных по 152-ФЗ</small>
+    </div>
+  </div>
+</body>
+</html>`
+  };
+}
+
+/**
+ * Создание шаблона уведомления за 1 день до окончания подписки
+ */
+export function createSubscriptionExpiryTemplate1Day(): EmailTemplate {
+  return {
+    subject: 'ResCrub: СРОЧНО - Подписка заканчивается завтра!',
+    text: `Здравствуйте, {{recipientName}}!
+
+🚨 СРОЧНО: Ваша подписка "{{planName}}" заканчивается ЗАВТРА!
+
+📅 Дата окончания: {{expiryDate}}
+💰 Стоимость продления: {{planPrice}}
+
+Не теряйте защиту ваших данных! Продлите подписку прямо сейчас:
+{{renewalUrl}}
+
+⚠️ После окончания подписки ваши данные останутся незащищенными.
+
+С уважением,
+Команда ResCrub`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #dc2626, #991b1b); color: white; padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center; }
+    .content { background: #fff; padding: 30px 20px; border: 1px solid #e5e7eb; }
+    .urgent { background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center; }
+    .cta-button { display: inline-block; background: #dc2626; color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0; box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3); }
+    .footer { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 14px; color: #6b7280; }
+    .plan-info { background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    .blink { animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;" class="blink">🚨 СРОЧНО!</h1>
+      <h2 style="margin: 10px 0 0 0;">Подписка заканчивается завтра</h2>
+    </div>
+    
+    <div class="content">
+      <p>Здравствуйте, <strong>{{recipientName}}</strong>!</p>
+      
+      <div class="urgent">
+        <h3 style="margin-top: 0; color: #dc2626;">⏰ Осталось менее 24 часов!</h3>
+        <p>Ваша подписка <strong>"{{planName}}"</strong> заканчивается <strong>ЗАВТРА</strong>!</p>
+      </div>
+      
+      <div class="plan-info">
+        📅 <strong>Дата окончания:</strong> {{expiryDate}}<br>
+        💰 <strong>Стоимость продления:</strong> {{planPrice}}
+      </div>
+      
+      <p><strong>Не теряйте защиту ваших данных!</strong> Продлите подписку прямо сейчас, чтобы избежать прерывания сервиса:</p>
+      
+      <div style="text-align: center;">
+        <a href="{{renewalUrl}}" class="cta-button">🔄 ПРОДЛИТЬ СЕЙЧАС</a>
+      </div>
+      
+      <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 15px; margin: 20px 0;">
+        <strong>⚠️ Что произойдет после окончания подписки:</strong><br>
+        • Прекращение мониторинга ваших данных<br>
+        • Отсутствие новых запросов на удаление<br>
+        • Потеря доступа к расширенным функциям<br>
+        • Ваши данные останутся незащищенными
+      </div>
+    </div>
+    
+    <div class="footer">
+      С уважением,<br>
+      <strong>Команда ResCrub</strong><br>
+      <small>Защита персональных данных по 152-ФЗ</small>
+    </div>
+  </div>
+</body>
+</html>`
+  };
+}
+
+/**
+ * Создание шаблона уведомления об истекшей подписке
+ */
+export function createSubscriptionExpiredTemplate(): EmailTemplate {
+  return {
+    subject: 'ResCrub: Ваша подписка истекла - восстановите защиту данных',
+    text: `Здравствуйте, {{recipientName}}!
+
+Ваша подписка "{{planName}}" истекла {{expiryDate}}.
+
+❌ Защита ваших персональных данных приостановлена
+💰 Стоимость восстановления: {{planPrice}}
+
+Восстановите подписку, чтобы продолжить защиту:
+{{renewalUrl}}
+
+Ваши данные могут быть скомпрометированы без активной защиты.
+
+С уважением,
+Команда ResCrub`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #6b7280, #374151); color: white; padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center; }
+    .content { background: #fff; padding: 30px 20px; border: 1px solid #e5e7eb; }
+    .expired { background: #fef2f2; border: 2px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center; }
+    .cta-button { display: inline-block; background: #3b82f6; color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0; }
+    .footer { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 14px; color: #6b7280; }
+    .plan-info { background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">❌ Подписка истекла</h1>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">Восстановите защиту данных</p>
+    </div>
+    
+    <div class="content">
+      <p>Здравствуйте, <strong>{{recipientName}}</strong>!</p>
+      
+      <div class="expired">
+        <h3 style="margin-top: 0; color: #dc2626;">🔴 Подписка истекла</h3>
+        <p>Ваша подписка <strong>"{{planName}}"</strong> истекла <strong>{{expiryDate}}</strong></p>
+      </div>
+      
+      <div class="plan-info">
+        📅 <strong>Дата истечения:</strong> {{expiryDate}}<br>
+        💰 <strong>Стоимость восстановления:</strong> {{planPrice}}
+      </div>
+      
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+        <strong>⚠️ Текущий статус:</strong><br>
+        • Мониторинг персональных данных остановлен<br>
+        • Новые запросы на удаление не отправляются<br>
+        • Ваши данные остаются незащищенными
+      </div>
+      
+      <p>Восстановите подписку прямо сейчас, чтобы продолжить защиту ваших персональных данных:</p>
+      
+      <div style="text-align: center;">
+        <a href="{{renewalUrl}}" class="cta-button">🔄 Восстановить подписку</a>
+      </div>
+      
+      <p><small>💡 <strong>При восстановлении вы получите:</strong><br>
+      • Немедленное возобновление защиты<br>
+      • Сохранение всех ваших настроек<br>
+      • Полную историю ваших запросов<br>
+      • Автоматическое продление в будущем</small></p>
+    </div>
+    
+    <div class="footer">
+      Нужна помощь? Напишите нам на support@rescrub.ru<br><br>
+      С уважением,<br>
+      <strong>Команда ResCrub</strong><br>
+      <small>Защита персональных данных по 152-ФЗ</small>
+    </div>
+  </div>
+</body>
+</html>`
+  };
+}
+
+/**
+ * Отправка уведомления о скором окончании подписки
+ */
+export async function sendSubscriptionExpiryNotification(params: {
+  userEmail: string;
+  userName: string;
+  planName: string;
+  planPrice: string;
+  expiryDate: string;
+  daysRemaining: number;
+  userId: string;
+  subscriptionId: string;
+}): Promise<SendEmailResult> {
+  const { userEmail, userName, planName, planPrice, expiryDate, daysRemaining, userId, subscriptionId } = params;
+  
+  let template: EmailTemplate;
+  let category: string;
+  
+  if (daysRemaining <= 0) {
+    template = createSubscriptionExpiredTemplate();
+    category = 'subscription_expired';
+  } else if (daysRemaining === 1) {
+    template = createSubscriptionExpiryTemplate1Day();
+    category = 'subscription_expiry_1day';
+  } else {
+    template = createSubscriptionExpiryTemplate3Days();
+    category = 'subscription_expiry_3days';
+  }
+  
+  const renewalUrl = `https://rescrub.ru/app/subscription?renew=${subscriptionId}`;
+  
+  return await sendEmail({
+    to: userEmail,
+    template,
+    data: {
+      recipientName: userName,
+      senderName: 'ResCrub',
+      senderEmail: 'noreply@rescrub.ru',
+      planName,
+      planPrice,
+      expiryDate,
+      renewalUrl,
+      daysRemaining
+    },
+    userId,
+    category
+  });
+}
+
 export default {
   sendEmail,
   sendBulkDeletionRequests,
   renderTemplate,
   verifyWebhookSignature,
-  processWebhookEvents
+  processWebhookEvents,
+  sendSubscriptionExpiryNotification,
+  createSubscriptionExpiryTemplate3Days,
+  createSubscriptionExpiryTemplate1Day,
+  createSubscriptionExpiredTemplate
 };

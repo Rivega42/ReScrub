@@ -1,5 +1,6 @@
 import { storage } from './storage';
 import { robokassaClient } from './robokassa';
+import { sendSubscriptionExpiryNotification } from './email';
 import type { Subscription } from '@shared/schema';
 
 /**
@@ -33,13 +34,15 @@ export class SubscriptionManager {
 
     // Проверяем подписки сразу при запуске
     this.processRecurringPayments().catch(console.error);
+    this.processExpiryNotifications().catch(console.error);
 
     // Запускаем периодическую проверку каждые 6 часов
     this.intervalId = setInterval(async () => {
       try {
         await this.processRecurringPayments();
+        await this.processExpiryNotifications();
       } catch (error) {
-        console.error('Error in scheduled recurring payments processing:', error);
+        console.error('Error in scheduled subscription processing:', error);
       }
     }, 6 * 60 * 60 * 1000); // 6 hours
 
@@ -115,12 +118,10 @@ export class SubscriptionManager {
   }
 
   /**
-   * Получение всех активных подписок (заглушка для in-memory storage)
+   * Получение всех активных подписок из storage
    */
   private async getAllActiveSubscriptions(): Promise<Subscription[]> {
-    // Поскольку у нас in-memory storage и нет прямого метода для получения всех подписок,
-    // создадим заглушку. В реальной реализации с БД здесь был бы простой SELECT
-    return []; // Для демо возвращаем пустой массив
+    return await storage.getAllActiveSubscriptions();
   }
 
   /**
@@ -230,11 +231,169 @@ export class SubscriptionManager {
   }
 
   /**
+   * Обработка уведомлений о скором окончании подписок
+   */
+  async processExpiryNotifications(): Promise<void> {
+    try {
+      console.log('📧 Processing subscription expiry notifications...');
+      
+      const subscriptionsNeedingNotifications = await this.getSubscriptionsNeedingExpiryNotification();
+      
+      if (subscriptionsNeedingNotifications.length === 0) {
+        console.log('ℹ️ No subscriptions need expiry notifications at this time');
+        return;
+      }
+
+      console.log(`📊 Found ${subscriptionsNeedingNotifications.length} subscriptions needing expiry notifications`);
+
+      for (const item of subscriptionsNeedingNotifications) {
+        try {
+          await this.sendSubscriptionExpiryNotification(item);
+        } catch (error) {
+          console.error(`Error sending expiry notification for subscription ${item.subscription.id}:`, error);
+        }
+      }
+
+      console.log('✅ Expiry notifications processing completed');
+    } catch (error) {
+      console.error('Error in processExpiryNotifications:', error);
+    }
+  }
+
+  /**
+   * Получение подписок, которым нужны уведомления о скором окончании
+   */
+  private async getSubscriptionsNeedingExpiryNotification(): Promise<Array<{
+    subscription: Subscription;
+    daysRemaining: number;
+    planName: string;
+    planPrice: string;
+    userEmail: string;
+    userName: string;
+  }>> {
+    const allActiveSubscriptions = await this.getAllActiveSubscriptions();
+    const now = new Date();
+    const results = [];
+
+    for (const subscription of allActiveSubscriptions) {
+      if (!subscription.currentPeriodEnd || subscription.status !== 'active') {
+        continue;
+      }
+
+      // Рассчитываем дни до окончания
+      const daysRemaining = Math.ceil(
+        (subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Отправляем уведомления за 3 дня, за 1 день и когда подписка истекла
+      const shouldNotify = daysRemaining === 3 || daysRemaining === 1 || daysRemaining === 0;
+      
+      if (shouldNotify) {
+        // Проверяем, что мы не отправляли уведомление для этой подписки и этого периода
+        const notificationSent = await this.checkIfNotificationSent(subscription.id, daysRemaining);
+        
+        if (!notificationSent) {
+          // Получаем информацию о плане и пользователе
+          const plan = await storage.getSubscriptionPlanById(subscription.planId);
+          const user = await storage.getUserAccountById(subscription.userId);
+          
+          if (plan && user) {
+            results.push({
+              subscription,
+              daysRemaining,
+              planName: plan.displayName,
+              planPrice: `${plan.price}₽`,
+              userEmail: user.email,
+              userName: user.email.split('@')[0]
+            });
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Проверка, было ли уже отправлено уведомление для данной подписки и периода
+   */
+  private async checkIfNotificationSent(subscriptionId: string, daysRemaining: number): Promise<boolean> {
+    try {
+      // Проверяем уведомления за последние 24 часа для этой подписки
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      // Получаем все уведомления пользователя (для subscription owner)
+      const subscription = await storage.getSubscriptionById(subscriptionId);
+      if (!subscription) return false;
+      
+      const notifications = await storage.getUserNotifications(subscription.userId);
+      
+      // Проверяем есть ли уведомление о подписке за последние 24 часа
+      const recentNotifications = notifications.filter((notification: any) => 
+        notification.sentAt && 
+        notification.sentAt > yesterday &&
+        notification.data &&
+        typeof notification.data === 'object' &&
+        'subscriptionId' in notification.data &&
+        notification.data.subscriptionId === subscriptionId
+      );
+
+      return recentNotifications.length > 0;
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+      return false; // В случае ошибки отправляем уведомление
+    }
+  }
+
+  /**
+   * Отправка уведомления о скором окончании подписки
+   */
+  private async sendSubscriptionExpiryNotification(item: {
+    subscription: Subscription;
+    daysRemaining: number;
+    planName: string;
+    planPrice: string;
+    userEmail: string;
+    userName: string;
+  }): Promise<void> {
+    const { subscription, daysRemaining, planName, planPrice, userEmail, userName } = item;
+
+    try {
+      const result = await sendSubscriptionExpiryNotification({
+        userEmail,
+        userName,
+        planName,
+        planPrice,
+        expiryDate: subscription.currentPeriodEnd!.toLocaleDateString('ru-RU'),
+        daysRemaining,
+        userId: subscription.userId,
+        subscriptionId: subscription.id
+      });
+
+      if (result.success) {
+        console.log(`✅ Expiry notification sent to ${userEmail} for subscription ${subscription.id} (${daysRemaining} days remaining)`);
+      } else {
+        console.error(`❌ Failed to send expiry notification to ${userEmail}:`, result.error);
+      }
+    } catch (error) {
+      console.error(`Error sending expiry notification for subscription ${subscription.id}:`, error);
+    }
+  }
+
+  /**
    * Ручной запуск обработки периодических платежей (для тестирования)
    */
   async manualRenewalCheck(): Promise<void> {
     console.log('🔧 Manual renewal check initiated...');
     await this.processRecurringPayments();
+  }
+
+  /**
+   * Ручной запуск обработки уведомлений о скором окончании (для тестирования)
+   */
+  async manualExpiryNotificationCheck(): Promise<void> {
+    console.log('🔧 Manual expiry notification check initiated...');
+    await this.processExpiryNotifications();
   }
 }
 

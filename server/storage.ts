@@ -133,6 +133,7 @@ export interface IStorage {
   createSubscription(subscriptionData: InsertSubscription): Promise<Subscription>;
   getUserSubscription(userId: string): Promise<Subscription | null>;
   getSubscriptionById(id: string): Promise<Subscription | null>;
+  getAllActiveSubscriptions(): Promise<Subscription[]>;
   updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | null>;
   cancelSubscription(id: string): Promise<Subscription | null>;
   
@@ -654,6 +655,15 @@ export class DatabaseStorage implements IStorage {
       .from(subscriptions)
       .where(eq(subscriptions.id, id));
     return subscription || null;
+  }
+
+  async getAllActiveSubscriptions(): Promise<Subscription[]> {
+    const activeSubscriptions = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.status, 'active'))
+      .orderBy(desc(subscriptions.createdAt));
+    return activeSubscriptions;
   }
 
   async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | null> {
@@ -2236,6 +2246,10 @@ export class MemStorage implements IStorage {
 
   async getSubscriptionById(id: string): Promise<Subscription | null> {
     return this.subscriptionsData.find(sub => sub.id === id) || null;
+  }
+
+  async getAllActiveSubscriptions(): Promise<Subscription[]> {
+    return this.subscriptionsData.filter(sub => sub.status === 'active');
   }
 
   async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription | null> {
