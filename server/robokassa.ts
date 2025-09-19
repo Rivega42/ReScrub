@@ -4,6 +4,8 @@ import crypto from 'crypto';
 const ROBOKASSA_MERCHANT_LOGIN = process.env.ROBOKASSA_MERCHANT_LOGIN;
 const ROBOKASSA_PASSWORD_1 = process.env.ROBOKASSA_PASSWORD_1;
 const ROBOKASSA_PASSWORD_2 = process.env.ROBOKASSA_PASSWORD_2;
+const ROBOKASSA_TEST_PASSWORD_1 = process.env.ROBOKASSA_TEST_PASSWORD_1;
+const ROBOKASSA_TEST_PASSWORD_2 = process.env.ROBOKASSA_TEST_PASSWORD_2;
 const ROBOKASSA_TEST_MODE = process.env.ROBOKASSA_TEST_MODE === 'true';
 
 // Base URLs for Robokassa API
@@ -56,17 +58,26 @@ export class RobokassaClient {
 
   constructor(
     merchantLogin: string = ROBOKASSA_MERCHANT_LOGIN || '',
-    password1: string = ROBOKASSA_PASSWORD_1 || '',
-    password2: string = ROBOKASSA_PASSWORD_2 || '',
+    password1?: string,
+    password2?: string,
     testMode: boolean = ROBOKASSA_TEST_MODE
   ) {
-    if (!merchantLogin || !password1 || !password2) {
+    // Выбираем пароли в зависимости от режима
+    const actualPassword1 = testMode 
+      ? ROBOKASSA_TEST_PASSWORD_1 || password1 || ROBOKASSA_PASSWORD_1
+      : password1 || ROBOKASSA_PASSWORD_1;
+    
+    const actualPassword2 = testMode 
+      ? ROBOKASSA_TEST_PASSWORD_2 || password2 || ROBOKASSA_PASSWORD_2
+      : password2 || ROBOKASSA_PASSWORD_2;
+
+    if (!merchantLogin || !actualPassword1 || !actualPassword2) {
       throw new Error('Robokassa credentials are not configured properly');
     }
 
     this.merchantLogin = merchantLogin;
-    this.password1 = password1;
-    this.password2 = password2;
+    this.password1 = actualPassword1;
+    this.password2 = actualPassword2;
     this.isTestMode = testMode;
   }
 
