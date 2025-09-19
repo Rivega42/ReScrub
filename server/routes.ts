@@ -1675,6 +1675,15 @@ ${allPages.map(page => `  <url>
             currentPeriodStart: now,
             currentPeriodEnd: currentPeriodEnd,
           });
+
+          // Award 100 points for successful subscription
+          try {
+            await storage.addUserPoints(subscription.userId, 100, 'Успешная подписка');
+            console.log(`💰 Awarded 100 points to user ${subscription.userId} for successful subscription`);
+          } catch (error) {
+            console.error('Error awarding points for subscription:', error);
+            // Don't fail the webhook if points fail - payment is still successful
+          }
         }
       }
 

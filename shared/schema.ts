@@ -83,6 +83,7 @@ export const userAccounts = pgTable("user_accounts", {
   passwordResetToken: varchar("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),
   lastLoginAt: timestamp("last_login_at"),
+  points: integer("points").default(0).notNull(), // Points system: 1 point = 1 ruble
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

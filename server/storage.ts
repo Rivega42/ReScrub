@@ -173,6 +173,11 @@ export interface IStorage {
   seedSubscriptionPlans(): Promise<void>;
   seedDemoAccount(): Promise<void>;
   seedAchievements(): Promise<void>;
+  
+  // Points system operations
+  getUserPoints(userId: string): Promise<number>;
+  addUserPoints(userId: string, points: number, reason?: string): Promise<UserAccount | undefined>;
+  deductUserPoints(userId: string, points: number): Promise<{success: boolean, remainingPoints: number, newBalance: number}>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1257,6 +1262,58 @@ export class DatabaseStorage implements IStorage {
 
     console.log('✅ Achievements seeded successfully');
   }
+
+  // Points system operations
+  async getUserPoints(userId: string): Promise<number> {
+    const [account] = await db
+      .select({ points: userAccounts.points })
+      .from(userAccounts)
+      .where(eq(userAccounts.id, userId));
+    
+    return account?.points || 0;
+  }
+
+  async addUserPoints(userId: string, points: number, reason?: string): Promise<UserAccount | undefined> {
+    const [updatedAccount] = await db
+      .update(userAccounts)
+      .set({ 
+        points: sql`${userAccounts.points} + ${points}`,
+        updatedAt: new Date()
+      })
+      .where(eq(userAccounts.id, userId))
+      .returning();
+    
+    return updatedAccount;
+  }
+
+  async deductUserPoints(userId: string, points: number): Promise<{success: boolean, remainingPoints: number, newBalance: number}> {
+    // First get current points to check if user has enough
+    const currentPoints = await this.getUserPoints(userId);
+    
+    if (currentPoints < points) {
+      return {
+        success: false,
+        remainingPoints: points - currentPoints,
+        newBalance: currentPoints
+      };
+    }
+    
+    // Deduct points
+    const [updatedAccount] = await db
+      .update(userAccounts)
+      .set({ 
+        points: sql`${userAccounts.points} - ${points}`,
+        updatedAt: new Date()
+      })
+      .where(eq(userAccounts.id, userId))
+      .returning();
+    
+    return {
+      success: true,
+      remainingPoints: 0,
+      newBalance: updatedAccount?.points || 0
+    };
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -1404,6 +1461,7 @@ export class MemStorage implements IStorage {
       passwordResetToken: null,
       passwordResetExpires: null,
       lastLoginAt: null,
+      points: 0, // Points system: 1 point = 1 ruble
       createdAt: now,
       updatedAt: now,
     };
@@ -2570,6 +2628,55 @@ export class MemStorage implements IStorage {
 
     this.achievementDefinitionsData = achievements;
     console.log('✅ Achievements seeded successfully');
+  }
+
+  // Points system operations (in-memory stub)
+  async getUserPoints(userId: string): Promise<number> {
+    const account = this.userAccountsData.find(acc => acc.id === userId);
+    return account?.points || 0;
+  }
+
+  async addUserPoints(userId: string, points: number, reason?: string): Promise<UserAccount | undefined> {
+    const accountIndex = this.userAccountsData.findIndex(acc => acc.id === userId);
+    if (accountIndex === -1) return undefined;
+    
+    this.userAccountsData[accountIndex] = {
+      ...this.userAccountsData[accountIndex],
+      points: (this.userAccountsData[accountIndex].points || 0) + points,
+      updatedAt: new Date()
+    };
+    
+    return this.userAccountsData[accountIndex];
+  }
+
+  async deductUserPoints(userId: string, points: number): Promise<{success: boolean, remainingPoints: number, newBalance: number}> {
+    const account = this.userAccountsData.find(acc => acc.id === userId);
+    if (!account) {
+      return { success: false, remainingPoints: points, newBalance: 0 };
+    }
+    
+    const currentPoints = account.points || 0;
+    if (currentPoints < points) {
+      return {
+        success: false,
+        remainingPoints: points - currentPoints,
+        newBalance: currentPoints
+      };
+    }
+    
+    // Update points
+    const accountIndex = this.userAccountsData.findIndex(acc => acc.id === userId);
+    this.userAccountsData[accountIndex] = {
+      ...account,
+      points: currentPoints - points,
+      updatedAt: new Date()
+    };
+    
+    return {
+      success: true,
+      remainingPoints: 0,
+      newBalance: currentPoints - points
+    };
   }
 }
 
