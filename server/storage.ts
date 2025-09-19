@@ -13,6 +13,10 @@ import {
   subscriptionPlans,
   subscriptions,
   payments,
+  achievementDefinitions,
+  userAchievements,
+  referralCodes,
+  referrals,
   type User,
   type UpsertUser,
   type InsertSupportTicket,
@@ -39,6 +43,14 @@ import {
   type InsertSubscription,
   type Payment,
   type InsertPayment,
+  type AchievementDefinition,
+  type InsertAchievementDefinition,
+  type UserAchievement,
+  type InsertUserAchievement,
+  type ReferralCode,
+  type InsertReferralCode,
+  type Referral,
+  type InsertReferral,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -131,9 +143,29 @@ export interface IStorage {
   getUserPayments(userId: string): Promise<Payment[]>;
   getPaymentsBySubscription(subscriptionId: string): Promise<Payment[]>;
 
+  // Public profile operations
+  getPublicProfileByUsername(username: string): Promise<UserProfile | undefined>;
+  setUsername(userId: string, username: string): Promise<UserProfile | undefined>;
+  updateUserStats(userId: string, stats: { totalScans?: number; totalDeletions?: number }): Promise<UserProfile | undefined>;
+  
+  // Achievement operations
+  getAllAchievements(): Promise<AchievementDefinition[]>;
+  getUserAchievements(userId: string): Promise<UserAchievement[]>;
+  awardAchievement(userId: string, achievementKey: string, progress?: number): Promise<UserAchievement | undefined>;
+  checkAndAwardAchievements(userId: string, context: { scans?: number; deletions?: number; isPremium?: boolean }): Promise<UserAchievement[]>;
+  
+  // Referral operations
+  createReferralCode(userId: string): Promise<ReferralCode>;
+  getReferralCodeByUser(userId: string): Promise<ReferralCode | undefined>;
+  getReferralCodeByCode(code: string): Promise<ReferralCode | undefined>;
+  createReferral(referralData: InsertReferral): Promise<Referral>;
+  getReferralsByUser(userId: string): Promise<Referral[]>;
+  updateReferralStatus(id: string, status: string, rewardType?: string): Promise<Referral | undefined>;
+  
   // Seeding operations
   seedSubscriptionPlans(): Promise<void>;
   seedDemoAccount(): Promise<void>;
+  seedAchievements(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -900,6 +932,265 @@ export class DatabaseStorage implements IStorage {
 
     console.log('✅ Demo data seeded successfully');
   }
+
+  // Public profile operations
+  async getPublicProfileByUsername(username: string): Promise<UserProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(userProfiles)
+      .where(and(eq(userProfiles.username, username), eq(userProfiles.isPublic, true)));
+    return profile;
+  }
+
+  async setUsername(userId: string, username: string): Promise<UserProfile | undefined> {
+    const [profile] = await db
+      .update(userProfiles)
+      .set({ username, updatedAt: new Date() })
+      .where(eq(userProfiles.userId, userId))
+      .returning();
+    return profile;
+  }
+
+  async updateUserStats(userId: string, stats: { totalScans?: number; totalDeletions?: number }): Promise<UserProfile | undefined> {
+    const profile = await this.getUserProfile(userId);
+    if (!profile) return undefined;
+
+    const currentStats = profile.stats as any || { totalScans: 0, totalDeletions: 0 };
+    const newStats = { ...currentStats, ...stats };
+    
+    // Calculate privacy score based on activity
+    const privacyScore = Math.min(100, Math.floor(
+      (newStats.totalScans * 10) + (newStats.totalDeletions * 5)
+    ));
+
+    const [updatedProfile] = await db
+      .update(userProfiles)
+      .set({ 
+        stats: newStats,
+        privacyScore,
+        updatedAt: new Date() 
+      })
+      .where(eq(userProfiles.userId, userId))
+      .returning();
+    return updatedProfile;
+  }
+
+  // Achievement operations
+  async getAllAchievements(): Promise<AchievementDefinition[]> {
+    return await db
+      .select()
+      .from(achievementDefinitions)
+      .where(eq(achievementDefinitions.isActive, true))
+      .orderBy(achievementDefinitions.sortOrder);
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return await db
+      .select()
+      .from(userAchievements)
+      .where(eq(userAchievements.userId, userId))
+      .orderBy(userAchievements.earnedAt);
+  }
+
+  async awardAchievement(userId: string, achievementKey: string, progress = 1): Promise<UserAchievement | undefined> {
+    // Check if achievement already exists
+    const [existing] = await db
+      .select()
+      .from(userAchievements)
+      .where(and(
+        eq(userAchievements.userId, userId),
+        eq(userAchievements.achievementKey, achievementKey)
+      ));
+
+    if (existing) {
+      // Update progress if not completed
+      if (!existing.earnedAt && (existing.progress || 0) < (existing.maxProgress || 1)) {
+        const newProgress = Math.min(existing.maxProgress || 1, (existing.progress || 0) + progress);
+        const earnedAt = newProgress >= (existing.maxProgress || 1) ? new Date() : null;
+        
+        const [updated] = await db
+          .update(userAchievements)
+          .set({ progress: newProgress, earnedAt })
+          .where(eq(userAchievements.id, existing.id))
+          .returning();
+        return updated;
+      }
+      return existing;
+    }
+
+    // Create new achievement
+    const [achievement] = await db
+      .insert(userAchievements)
+      .values({
+        userId,
+        achievementKey,
+        progress,
+        maxProgress: 1,
+        earnedAt: progress >= 1 ? new Date() : null
+      })
+      .returning();
+    return achievement;
+  }
+
+  async checkAndAwardAchievements(userId: string, context: { scans?: number; deletions?: number; isPremium?: boolean }): Promise<UserAchievement[]> {
+    const awarded: UserAchievement[] = [];
+
+    // First scan achievement
+    if (context.scans === 1) {
+      const achievement = await this.awardAchievement(userId, 'first_scan');
+      if (achievement) awarded.push(achievement);
+    }
+
+    // Ten deletions achievement
+    if (context.deletions && context.deletions >= 10) {
+      const achievement = await this.awardAchievement(userId, 'ten_deletions');
+      if (achievement) awarded.push(achievement);
+    }
+
+    // Premium member achievement
+    if (context.isPremium) {
+      const achievement = await this.awardAchievement(userId, 'premium_member');
+      if (achievement) awarded.push(achievement);
+    }
+
+    return awarded;
+  }
+
+  // Referral operations
+  async createReferralCode(userId: string): Promise<ReferralCode> {
+    // Generate unique 6-character code
+    const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+    let code = generateCode();
+    
+    // Ensure uniqueness
+    while (await this.getReferralCodeByCode(code)) {
+      code = generateCode();
+    }
+
+    const [referralCode] = await db
+      .insert(referralCodes)
+      .values({ userId, code })
+      .returning();
+    return referralCode;
+  }
+
+  async getReferralCodeByUser(userId: string): Promise<ReferralCode | undefined> {
+    const [code] = await db
+      .select()
+      .from(referralCodes)
+      .where(and(eq(referralCodes.userId, userId), eq(referralCodes.isActive, true)));
+    return code;
+  }
+
+  async getReferralCodeByCode(code: string): Promise<ReferralCode | undefined> {
+    const [referralCode] = await db
+      .select()
+      .from(referralCodes)
+      .where(and(eq(referralCodes.code, code), eq(referralCodes.isActive, true)));
+    return referralCode;
+  }
+
+  async createReferral(referralData: InsertReferral): Promise<Referral> {
+    const [referral] = await db
+      .insert(referrals)
+      .values(referralData)
+      .returning();
+    
+    // Increment code usage
+    await db
+      .update(referralCodes)
+      .set({ 
+        currentUses: sql`${referralCodes.currentUses} + 1` 
+      })
+      .where(eq(referralCodes.code, referralData.code));
+    
+    return referral;
+  }
+
+  async getReferralsByUser(userId: string): Promise<Referral[]> {
+    return await db
+      .select()
+      .from(referrals)
+      .where(eq(referrals.referrerId, userId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async updateReferralStatus(id: string, status: string, rewardType?: string): Promise<Referral | undefined> {
+    const updates: any = { status };
+    if (status === 'subscribed' && rewardType) {
+      updates.subscribedAt = new Date();
+      updates.rewardType = rewardType;
+      updates.rewardGranted = true;
+    } else if (status === 'signed_up') {
+      updates.signedUpAt = new Date();
+    }
+
+    const [referral] = await db
+      .update(referrals)
+      .set(updates)
+      .where(eq(referrals.id, id))
+      .returning();
+    return referral;
+  }
+
+  // Seed achievements
+  async seedAchievements(): Promise<void> {
+    const achievements = [
+      {
+        key: 'first_scan',
+        title: 'Первый шаг',
+        description: 'Выполнил первое сканирование данных',
+        icon: 'search',
+        category: 'privacy',
+        points: 10
+      },
+      {
+        key: 'ten_deletions',
+        title: 'Защитник приватности',
+        description: 'Отправил 10 запросов на удаление данных',
+        icon: 'shield',
+        category: 'privacy',
+        points: 50
+      },
+      {
+        key: 'premium_member',
+        title: 'Премиум пользователь',
+        description: 'Оформил премиум подписку',
+        icon: 'crown',
+        category: 'premium',
+        points: 25
+      },
+      {
+        key: 'invite_1',
+        title: 'Первый друг',
+        description: 'Пригласил первого друга',
+        icon: 'user-plus',
+        category: 'social',
+        points: 15
+      },
+      {
+        key: 'invite_5',
+        title: 'Амбассадор',
+        description: 'Пригласил 5 друзей',
+        icon: 'users',
+        category: 'social',
+        points: 100
+      }
+    ];
+
+    for (const achievement of achievements) {
+      try {
+        await db
+          .insert(achievementDefinitions)
+          .values(achievement)
+          .onConflictDoNothing();
+      } catch (error) {
+        // Ignore conflicts for existing achievements
+      }
+    }
+
+    console.log('✅ Achievements seeded successfully');
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -916,12 +1207,18 @@ export class MemStorage implements IStorage {
   private subscriptionPlansData: SubscriptionPlan[] = [];
   private subscriptionsData: Subscription[] = [];
   private paymentsData: Payment[] = [];
+  private achievementDefinitionsData: AchievementDefinition[] = [];
+  private userAchievementsData: UserAchievement[] = [];
+  private referralCodesData: ReferralCode[] = [];
+  private referralsData: Referral[] = [];
   private ticketIdCounter = 1;
   private idCounter = 1;
 
   constructor() {
     // Seed data brokers for development
     this.seedDataBrokers();
+    // Seed achievements for development
+    this.seedAchievements();
   }
 
   private seedDataBrokers() {
@@ -1085,7 +1382,7 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const profile: UserProfile = {
       id: `profile_${this.idCounter++}_${Date.now()}`,
-      ...profileData,
+      userId: profileData.userId,
       firstName: profileData.firstName || null,
       lastName: profileData.lastName || null,
       middleName: profileData.middleName || null,
@@ -1098,6 +1395,12 @@ export class MemStorage implements IStorage {
       country: profileData.country || "RU",
       notificationPreferences: profileData.notificationPreferences || {},
       privacySettings: profileData.privacySettings || {},
+      // New viral sharing fields
+      username: null,
+      isPublic: false,
+      privacyScore: 0,
+      stats: { totalScans: 0, totalDeletions: 0 },
+      shareImageVersion: 1,
       phoneVerified: false,
       createdAt: now,
       updatedAt: now,
@@ -1893,6 +2196,280 @@ export class MemStorage implements IStorage {
         const bTime = b.createdAt?.getTime() || 0;
         return bTime - aTime;
       });
+  }
+
+  // Public profile operations
+  async getPublicProfileByUsername(username: string): Promise<UserProfile | undefined> {
+    return this.userProfilesData.find(profile => 
+      profile.username === username && profile.isPublic === true
+    );
+  }
+
+  async setUsername(userId: string, username: string): Promise<UserProfile | undefined> {
+    const profile = this.userProfilesData.find(p => p.userId === userId);
+    if (!profile) return undefined;
+    
+    profile.username = username;
+    profile.updatedAt = new Date();
+    return profile;
+  }
+
+  async updateUserStats(userId: string, stats: { totalScans?: number; totalDeletions?: number }): Promise<UserProfile | undefined> {
+    const profile = this.userProfilesData.find(p => p.userId === userId);
+    if (!profile) return undefined;
+
+    const currentStats = profile.stats as any || { totalScans: 0, totalDeletions: 0 };
+    const newStats = { ...currentStats, ...stats };
+    
+    // Calculate privacy score based on activity
+    const privacyScore = Math.min(100, Math.floor(
+      (newStats.totalScans * 10) + (newStats.totalDeletions * 5)
+    ));
+
+    profile.stats = newStats;
+    profile.privacyScore = privacyScore;
+    profile.updatedAt = new Date();
+    
+    return profile;
+  }
+
+  // Achievement operations
+  async getAllAchievements(): Promise<AchievementDefinition[]> {
+    return this.achievementDefinitionsData
+      .filter(achievement => achievement.isActive)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return this.userAchievementsData
+      .filter(achievement => achievement.userId === userId)
+      .sort((a, b) => {
+        const aTime = a.earnedAt?.getTime() || 0;
+        const bTime = b.earnedAt?.getTime() || 0;
+        return bTime - aTime;
+      });
+  }
+
+  async awardAchievement(userId: string, achievementKey: string, progress = 1): Promise<UserAchievement | undefined> {
+    // Check if achievement already exists
+    const existing = this.userAchievementsData.find(
+      achievement => achievement.userId === userId && achievement.achievementKey === achievementKey
+    );
+
+    if (existing) {
+      // Update progress if not completed
+      if (!existing.earnedAt && (existing.progress || 0) < (existing.maxProgress || 1)) {
+        const newProgress = Math.min(existing.maxProgress || 1, (existing.progress || 0) + progress);
+        existing.progress = newProgress;
+        if (newProgress >= (existing.maxProgress || 1)) {
+          existing.earnedAt = new Date();
+        }
+      }
+      return existing;
+    }
+
+    // Create new achievement
+    const achievement: UserAchievement = {
+      id: `achievement_${this.idCounter++}`,
+      userId,
+      achievementKey,
+      progress,
+      maxProgress: 1,
+      earnedAt: progress >= 1 ? new Date() : null,
+      createdAt: new Date()
+    };
+    
+    this.userAchievementsData.push(achievement);
+    return achievement;
+  }
+
+  async checkAndAwardAchievements(userId: string, context: { scans?: number; deletions?: number; isPremium?: boolean }): Promise<UserAchievement[]> {
+    const awarded: UserAchievement[] = [];
+
+    // First scan achievement
+    if (context.scans === 1) {
+      const achievement = await this.awardAchievement(userId, 'first_scan');
+      if (achievement) awarded.push(achievement);
+    }
+
+    // Ten deletions achievement
+    if (context.deletions && context.deletions >= 10) {
+      const achievement = await this.awardAchievement(userId, 'ten_deletions');
+      if (achievement) awarded.push(achievement);
+    }
+
+    // Premium member achievement
+    if (context.isPremium) {
+      const achievement = await this.awardAchievement(userId, 'premium_member');
+      if (achievement) awarded.push(achievement);
+    }
+
+    return awarded;
+  }
+
+  // Referral operations
+  async createReferralCode(userId: string): Promise<ReferralCode> {
+    // Generate unique 6-character code
+    const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+    let code = generateCode();
+    
+    // Ensure uniqueness
+    while (this.referralCodesData.some(c => c.code === code)) {
+      code = generateCode();
+    }
+
+    const referralCode: ReferralCode = {
+      id: `ref_code_${this.idCounter++}`,
+      userId,
+      code,
+      isActive: true,
+      maxUses: 100,
+      currentUses: 0,
+      createdAt: new Date()
+    };
+    
+    this.referralCodesData.push(referralCode);
+    return referralCode;
+  }
+
+  async getReferralCodeByUser(userId: string): Promise<ReferralCode | undefined> {
+    return this.referralCodesData.find(code => 
+      code.userId === userId && code.isActive
+    );
+  }
+
+  async getReferralCodeByCode(code: string): Promise<ReferralCode | undefined> {
+    return this.referralCodesData.find(c => 
+      c.code === code && c.isActive
+    );
+  }
+
+  async createReferral(referralData: InsertReferral): Promise<Referral> {
+    const referral: Referral = {
+      id: `referral_${this.idCounter++}`,
+      referrerId: referralData.referrerId,
+      referredUserId: referralData.referredUserId || null,
+      code: referralData.code,
+      status: referralData.status || 'clicked',
+      rewardGranted: referralData.rewardGranted || false,
+      rewardType: referralData.rewardType || null,
+      clickedAt: referralData.clickedAt || new Date(),
+      signedUpAt: referralData.signedUpAt || null,
+      subscribedAt: referralData.subscribedAt || null,
+      ipAddress: referralData.ipAddress || null,
+      userAgent: referralData.userAgent || null,
+      createdAt: new Date()
+    };
+    
+    this.referralsData.push(referral);
+    
+    // Increment code usage
+    const code = this.referralCodesData.find(c => c.code === referralData.code);
+    if (code) {
+      code.currentUses = (code.currentUses || 0) + 1;
+    }
+    
+    return referral;
+  }
+
+  async getReferralsByUser(userId: string): Promise<Referral[]> {
+    return this.referralsData
+      .filter(referral => referral.referrerId === userId)
+      .sort((a, b) => {
+        const aTime = a.createdAt?.getTime() || 0;
+        const bTime = b.createdAt?.getTime() || 0;
+        return bTime - aTime;
+      });
+  }
+
+  async updateReferralStatus(id: string, status: string, rewardType?: string): Promise<Referral | undefined> {
+    const referral = this.referralsData.find(r => r.id === id);
+    if (!referral) return undefined;
+
+    referral.status = status;
+    if (status === 'subscribed' && rewardType) {
+      referral.subscribedAt = new Date();
+      referral.rewardType = rewardType;
+      referral.rewardGranted = true;
+    } else if (status === 'signed_up') {
+      referral.signedUpAt = new Date();
+    }
+
+    return referral;
+  }
+
+  // Seed achievements
+  async seedAchievements(): Promise<void> {
+    const achievements = [
+      {
+        id: `achievement_def_${this.idCounter++}`,
+        key: 'first_scan',
+        title: 'Первый шаг',
+        description: 'Выполнил первое сканирование данных',
+        icon: 'search',
+        category: 'privacy',
+        points: 10,
+        isSecret: false,
+        sortOrder: 1,
+        isActive: true,
+        createdAt: new Date()
+      },
+      {
+        id: `achievement_def_${this.idCounter++}`,
+        key: 'ten_deletions',
+        title: 'Защитник приватности',
+        description: 'Отправил 10 запросов на удаление данных',
+        icon: 'shield',
+        category: 'privacy',
+        points: 50,
+        isSecret: false,
+        sortOrder: 2,
+        isActive: true,
+        createdAt: new Date()
+      },
+      {
+        id: `achievement_def_${this.idCounter++}`,
+        key: 'premium_member',
+        title: 'Премиум пользователь',
+        description: 'Оформил премиум подписку',
+        icon: 'crown',
+        category: 'premium',
+        points: 25,
+        isSecret: false,
+        sortOrder: 3,
+        isActive: true,
+        createdAt: new Date()
+      },
+      {
+        id: `achievement_def_${this.idCounter++}`,
+        key: 'invite_1',
+        title: 'Первый друг',
+        description: 'Пригласил первого друга',
+        icon: 'user-plus',
+        category: 'social',
+        points: 15,
+        isSecret: false,
+        sortOrder: 4,
+        isActive: true,
+        createdAt: new Date()
+      },
+      {
+        id: `achievement_def_${this.idCounter++}`,
+        key: 'invite_5',
+        title: 'Амбассадор',
+        description: 'Пригласил 5 друзей',
+        icon: 'users',
+        category: 'social',
+        points: 100,
+        isSecret: false,
+        sortOrder: 5,
+        isActive: true,
+        createdAt: new Date()
+      }
+    ];
+
+    this.achievementDefinitionsData = achievements;
+    console.log('✅ Achievements seeded successfully');
   }
 }
 

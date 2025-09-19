@@ -51,6 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Seed demo account for all environments
   try {
     await storage.seedDemoAccount();
+    await storage.seedAchievements();
   } catch (error) {
     console.error('Failed to seed demo account:', error);
   }
