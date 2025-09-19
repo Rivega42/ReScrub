@@ -1547,10 +1547,38 @@ ${allPages.map(page => `  <url>
         return res.status(400).json({ message: 'User already has an active subscription' });
       }
 
-      // Generate unique invoice ID
+      // Get user profile and points balance FIRST before creating any records
+      const userProfile = await storage.getUserProfile(userId);
+      const userAccount = await storage.getUserAccountById(userId);
+      const userPoints = await storage.getUserPoints(userId);
+      
+      const planPriceRubles = plan.price; // Plan price in rubles (1 point = 1 ruble)
+      
+      // Calculate how many points to use (minimum of available points and plan price)
+      const pointsToUse = Math.min(userPoints, planPriceRubles);
+      const remainingAmountToPay = planPriceRubles - pointsToUse;
+
+      console.log(`💰 Payment calculation: Plan=${planPriceRubles}₽, User Points=${userPoints}, Using=${pointsToUse}, Remaining=${remainingAmountToPay}`);
+
+      // ATOMIC: Deduct points FIRST before creating any records
+      if (pointsToUse > 0) {
+        const deductResult = await storage.deductUserPoints(userId, pointsToUse);
+        if (!deductResult.success) {
+          console.error('Failed to deduct points:', deductResult);
+          return res.status(400).json({ 
+            message: 'Недостаточно баллов для оплаты',
+            availablePoints: userPoints,
+            requiredPoints: pointsToUse,
+            insufficientBy: deductResult.remainingPoints 
+          });
+        }
+        console.log(`✅ Deducted ${pointsToUse} points, new balance: ${deductResult.newBalance}`);
+      }
+
+      // Generate unique invoice ID after successful points deduction
       const invoiceId = `sub_${userId}_${Date.now()}`;
       
-      // Create subscription record
+      // Create subscription record with only remaining amount to pay
       const subscription = await storage.createSubscription({
         userId,
         planId,
@@ -1558,33 +1586,86 @@ ${allPages.map(page => `  <url>
         robokassaInvoiceId: invoiceId,
       });
 
-      // Create payment record
+      // Create payment record with remaining amount and points metadata
       const payment = await storage.createPayment({
         subscriptionId: subscription.id,
         userId,
-        amount: plan.price,
+        amount: remainingAmountToPay, // Only remaining amount to pay via gateway
         currency: plan.currency,
         robokassaInvoiceId: invoiceId,
         isRecurring: false, // First payment is not recurring
+        metadata: {
+          pointsUsed: pointsToUse,
+          originalAmount: planPriceRubles,
+          remainingAmount: remainingAmountToPay
+        }
       });
 
-      // Get user profile for payment
-      const userProfile = await storage.getUserProfile(userId);
-      const userAccount = await storage.getUserAccountById(userId);
+      let paymentUrl = null;
+      let subscriptionResult = subscription;
+      let paymentResult = payment;
 
-      // Create Robokassa payment URL
-      const paymentUrl = robokassaClient.createPaymentUrl({
-        invoiceId,
-        amount: plan.price, // Amount in rubles
-        description: `Подписка ${plan.displayName}`,
-        userEmail: userAccount?.email,
-        isRecurring: true, // Enable recurring payments
-      });
+      if (remainingAmountToPay > 0) {
+        // Need to pay remaining amount via Robokassa
+        paymentUrl = robokassaClient.createPaymentUrl({
+          invoiceId,
+          amount: remainingAmountToPay, // Only remaining amount
+          description: `Подписка ${plan.displayName} (доплата ${remainingAmountToPay}₽)`,
+          userEmail: userAccount?.email,
+          isRecurring: false, // Disable recurring for partial payments to prevent billing drift
+        });
+        
+        console.log(`💳 Created Robokassa payment URL for remaining ${remainingAmountToPay}₽`);
+      } else {
+        // Fully paid with points - activate subscription immediately
+        const now = new Date();
+        const currentPeriodEnd = new Date(now);
+        
+        if (plan.interval === 'month') {
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + (plan.intervalCount || 1));
+        } else if (plan.interval === 'year') {
+          currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + (plan.intervalCount || 1));
+        }
+
+        // Update subscription to active
+        subscriptionResult = await storage.updateSubscription(subscription.id, {
+          status: 'active',
+          currentPeriodStart: now,
+          currentPeriodEnd: currentPeriodEnd,
+        });
+
+        // Mark payment as paid
+        paymentResult = await storage.updatePayment(payment.id, {
+          status: 'paid',
+          paidAt: now,
+          paymentMethod: 'points',
+          amount: 0, // No gateway payment needed
+          metadata: {
+            pointsUsed: pointsToUse,
+            originalAmount: planPriceRubles,
+            remainingAmount: 0,
+            paidWithPointsOnly: true
+          }
+        });
+
+        // Award subscription points (already implemented in webhook)
+        try {
+          await storage.addUserPoints(userId, 100, 'Успешная подписка');
+          console.log(`🎁 Awarded 100 bonus points for subscription`);
+        } catch (error) {
+          console.error('Error awarding bonus points:', error);
+        }
+
+        console.log(`🎉 Subscription fully paid with ${pointsToUse} points and activated immediately`);
+      }
 
       res.json({
-        subscription,
-        payment,
+        subscription: subscriptionResult,
+        payment: paymentResult,
         paymentUrl,
+        pointsUsed: pointsToUse,
+        remainingAmount: remainingAmountToPay,
+        fullyPaidWithPoints: remainingAmountToPay === 0
       });
     } catch (error) {
       console.error('Error creating subscription:', error);
@@ -1619,6 +1700,50 @@ ${allPages.map(page => `  <url>
     } catch (error) {
       console.error('Error fetching payment history:', error);
       res.status(500).json({ message: 'Failed to fetch payment history' });
+    }
+  });
+
+  // Get user's points balance
+  app.get('/api/points', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const points = await storage.getUserPoints(userId);
+      res.json({ 
+        balance: points,
+        currency: 'RUB', // 1 point = 1 ruble
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error fetching points balance:', error);
+      res.status(500).json({ message: 'Failed to fetch points balance' });
+    }
+  });
+
+  // Get user's points history (placeholder for future implementation)
+  app.get('/api/points/history', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // TODO: Implement proper points transaction history table
+      // For now, return placeholder data
+      const placeholderHistory = [
+        {
+          id: 'placeholder',
+          type: 'earned',
+          amount: 100,
+          reason: 'Успешная подписка',
+          timestamp: new Date().toISOString(),
+          balance: await storage.getUserPoints(userId)
+        }
+      ];
+      
+      res.json({
+        transactions: placeholderHistory,
+        total: placeholderHistory.length
+      });
+    } catch (error) {
+      console.error('Error fetching points history:', error);
+      res.status(500).json({ message: 'Failed to fetch points history' });
     }
   });
 
