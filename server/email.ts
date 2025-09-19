@@ -42,6 +42,8 @@ export interface EmailData {
   expiryDate?: string;
   renewalUrl?: string;
   daysRemaining?: number;
+  // Email verification fields
+  verificationUrl?: string;
 }
 
 export interface SendEmailParams {
@@ -81,7 +83,9 @@ export function renderTemplate(template: EmailTemplate, data: EmailData): EmailT
     planPrice: data.planPrice || '',
     expiryDate: data.expiryDate || '',
     renewalUrl: data.renewalUrl || '',
-    daysRemaining: data.daysRemaining || 0
+    daysRemaining: data.daysRemaining || 0,
+    // Email verification template data
+    verificationUrl: data.verificationUrl || ''
   };
 
   try {
@@ -859,5 +863,88 @@ export default {
   sendSubscriptionExpiryNotification,
   createSubscriptionExpiryTemplate3Days,
   createSubscriptionExpiryTemplate1Day,
-  createSubscriptionExpiredTemplate
+  createSubscriptionExpiredTemplate,
+  createEmailVerificationTemplate
 };
+
+/**
+ * Создание шаблона для верификации email при регистрации
+ */
+export function createEmailVerificationTemplate(): EmailTemplate {
+  return {
+    subject: 'ResCrub: Подтвердите ваш email',
+    text: `Здравствуйте!
+
+Добро пожаловать в ResCrub - сервис защиты персональных данных по 152-ФЗ!
+
+Для завершения регистрации подтвердите ваш email адрес, перейдя по ссылке:
+{{verificationUrl}}
+
+Ссылка действительна в течение 24 часов.
+
+Если вы не регистрировались на ResСrub, просто проигнорируйте это письмо.
+
+С уважением,
+Команда ResCrub`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center; }
+    .content { background: #fff; padding: 30px 20px; border: 1px solid #e5e7eb; }
+    .welcome { background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 20px; margin: 20px 0; border-radius: 4px; }
+    .cta-button { display: inline-block; background: #3b82f6; color: white !important; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0; }
+    .footer { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 14px; color: #6b7280; }
+    .security-info { background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">🛡️ Добро пожаловать в ResCrub!</h1>
+    </div>
+    
+    <div class="content">
+      <p>Здравствуйте!</p>
+      
+      <div class="welcome">
+        <p><strong>Добро пожаловать в ResCrub</strong> - российский сервис защиты персональных данных в соответствии с 152-ФЗ!</p>
+      </div>
+      
+      <p>Для завершения регистрации и начала защиты ваших данных подтвердите ваш email адрес:</p>
+      
+      <div style="text-align: center;">
+        <a href="{{verificationUrl}}" class="cta-button">✅ Подтвердить Email</a>
+      </div>
+      
+      <div class="security-info">
+        <p><strong>🔒 Безопасность:</strong></p>
+        <p>• Ссылка действительна в течение 24 часов<br>
+        • Если вы не регистрировались на ResCrub, просто проигнорируйте это письмо<br>
+        • Мы никогда не запрашиваем пароли по email</p>
+      </div>
+      
+      <p><strong>Что вас ждет после подтверждения:</strong></p>
+      <ul>
+        <li>🔍 Анализ присутствия ваших данных в интернете</li>
+        <li>📧 Автоматические запросы на удаление персональных данных</li>
+        <li>📊 Мониторинг новых утечек и брокеров данных</li>
+        <li>⚖️ Полное соответствие российскому законодательству</li>
+      </ul>
+    </div>
+    
+    <div class="footer">
+      С уважением,<br>
+      <strong>Команда ResCrub</strong><br>
+      <small>Защита персональных данных по 152-ФЗ</small><br>
+      <small>Если ссылка не работает, скопируйте её в адресную строку браузера</small>
+    </div>
+  </div>
+</body>
+</html>`
+  };
+}

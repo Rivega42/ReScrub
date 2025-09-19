@@ -26,7 +26,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { z } from "zod";
 import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
-import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent } from "./email";
+import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent, sendEmail, createEmailVerificationTemplate } from "./email";
 import { robokassaClient } from "./robokassa";
 import fs from 'fs';
 import path from 'path';
@@ -237,9 +237,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: null,
       });
       
-      // TODO: Send verification email with SendGrid using plainToken
-      // For development, we'll return the token in response (remove in production)
+      // Send verification email using Mailganer SMTP
       const verificationUrl = `${req.protocol}://${req.get('host')}/verify-email?token=${plainToken}&email=${encodeURIComponent(userAccount.email)}`;
+      
+      try {
+        const emailTemplate = createEmailVerificationTemplate();
+        await sendEmail({
+          to: userAccount.email,
+          template: emailTemplate,
+          data: {
+            senderName: 'ResCrub',
+            senderEmail: `noreply@mailone.rescrub.ru`,
+            recipientName: userAccount.email.split('@')[0], // Use email username as name
+            verificationUrl: verificationUrl
+          },
+          userId: userAccount.id,
+          category: 'email_verification'
+        });
+        
+        console.log(`✅ Verification email sent to: ${userAccount.email}`);
+      } catch (emailError: any) {
+        console.error('❌ Failed to send verification email:', emailError.message);
+        // Don't fail registration if email fails - user can request resend later
+      }
       
       const response: any = { 
         success: true, 
