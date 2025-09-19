@@ -1265,20 +1265,30 @@ ${allPages.map(page => `  <url>
         return res.status(404).json({ message: 'Public profile not found' });
       }
       
-      // Get user achievements
-      const achievements = await storage.getUserAchievements(profile.userId);
+      // Get user achievements with definitions
+      const userAchievements = await storage.getUserAchievements(profile.userId);
+      const achievementDefinitions = await storage.getAllAchievements();
+      
+      // Merge user achievements with definitions
+      const achievements = userAchievements
+        .filter(ua => ua.earnedAt)
+        .map(ua => {
+          const definition = achievementDefinitions.find(ad => ad.key === ua.achievementKey);
+          return definition ? {
+            id: ua.id,
+            title: definition.title,
+            description: definition.description,
+            icon: definition.icon,
+            earnedAt: ua.earnedAt
+          } : null;
+        })
+        .filter(Boolean);
       
       res.json({
         username: profile.username,
         privacyScore: profile.privacyScore,
         stats: profile.stats,
-        achievements: achievements.filter(a => a.earnedAt).map(a => ({
-          id: a.id,
-          title: a.title,
-          description: a.description,
-          icon: a.icon,
-          earnedAt: a.earnedAt
-        }))
+        achievements
       });
     } catch (error) {
       console.error('Error getting public profile:', error);
@@ -1650,14 +1660,15 @@ ${allPages.map(page => `  <url>
         }
 
         // Update subscription to active
-        subscriptionResult = await storage.updateSubscription(subscription.id, {
+        const updatedSub = await storage.updateSubscription(subscription.id, {
           status: 'active',
           currentPeriodStart: now,
           currentPeriodEnd: currentPeriodEnd,
         });
+        subscriptionResult = updatedSub || subscription;
 
         // Mark payment as paid
-        paymentResult = await storage.updatePayment(payment.id, {
+        const updatedPay = await storage.updatePayment(payment.id, {
           status: 'paid',
           paidAt: now,
           paymentMethod: 'points',
@@ -1669,6 +1680,7 @@ ${allPages.map(page => `  <url>
             paidWithPointsOnly: true
           }
         });
+        paymentResult = updatedPay || payment;
 
         // Award subscription points (already implemented in webhook)
         try {
