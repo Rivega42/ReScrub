@@ -1297,7 +1297,9 @@ ${allPages.map(page => `  <url>
   app.post('/api/referrals/generate', isEmailAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
+      console.log(`🚀 POST /api/referrals/generate for userId: ${userId}`);
       const referralCode = await storage.createReferralCode(userId);
+      console.log(`✅ Generated referral code: ${referralCode.code} for userId: ${userId}`);
       res.json({ success: true, code: referralCode.code });
     } catch (error) {
       console.error('Error generating referral code:', error);
@@ -1341,6 +1343,20 @@ ${allPages.map(page => `  <url>
       res.status(500).json({ message: 'Failed to track referral click' });
     }
   });
+
+  // Get user's referral stats - MOVED UP to avoid route conflict with :code
+  app.get('/api/referrals/stats', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      console.log(`🔍 GET /api/referrals/stats for userId: ${userId}`);
+      const stats = await storage.getReferralStats(userId);
+      console.log(`📊 Referral stats result:`, stats);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting referral stats:', error);
+      res.status(500).json({ message: 'Failed to get referral stats' });
+    }
+  });
   
   // Get referral info by code (public)
   app.get('/api/referrals/:code', async (req, res) => {
@@ -1370,17 +1386,7 @@ ${allPages.map(page => `  <url>
     }
   });
   
-  // Get user's referral stats
-  app.get('/api/referrals/stats', isEmailAuthenticated, async (req, res) => {
-    try {
-      const userId = req.session.userId;
-      const stats = await storage.getReferralStats(userId);
-      res.json(stats);
-    } catch (error) {
-      console.error('Error getting referral stats:', error);
-      res.status(500).json({ message: 'Failed to get referral stats' });
-    }
-  });
+  // REMOVED duplicate stats route - moved above to fix route conflict
 
   // Generate OG image for referral invite
   app.get('/api/og/invite/:code', async (req, res) => {

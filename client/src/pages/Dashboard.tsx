@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   Shield, 
   AlertTriangle, 
@@ -12,7 +14,13 @@ import {
   Bell,
   Plus,
   Activity,
-  Eye
+  Eye,
+  Users,
+  Link,
+  Copy,
+  Share2,
+  Gift,
+  TrendingUp
 } from "lucide-react";
 
 interface DeletionRequest {
@@ -40,6 +48,13 @@ interface Notification {
   createdAt: string;
 }
 
+interface ReferralStats {
+  totalReferrals: number;
+  successfulReferrals: number;
+  totalRewards: number;
+  activeCode?: string;
+}
+
 const statusConfig = {
   pending: { label: 'В ожидании', color: 'secondary', icon: Clock },
   sent: { label: 'Отправлен', color: 'default', icon: Activity },
@@ -50,6 +65,8 @@ const statusConfig = {
 } as const;
 
 export default function Dashboard() {
+  const { toast } = useToast();
+
   // Fetch deletion requests
   const { data: deletionRequests = [], isLoading: requestsLoading, error: requestsError } = useQuery<DeletionRequest[]>({
     queryKey: ['/api/deletion-requests'],
@@ -66,6 +83,82 @@ export default function Dashboard() {
     queryKey: ['/api/notifications'],
     enabled: true,
   });
+
+  // Fetch referral stats
+  const { data: referralStats, isLoading: statsLoading } = useQuery<ReferralStats>({
+    queryKey: ['/api/referrals/stats'],
+    enabled: true,
+  });
+
+  // Generate referral code mutation
+  const generateCodeMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/referrals/generate', {});
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/referrals/stats'] });
+      toast({
+        title: "Реферальный код создан!",
+        description: `Ваш код: ${data.code}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось создать реферальный код",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Copy referral link function
+  const copyReferralLink = async () => {
+    if (!referralStats?.activeCode) {
+      toast({
+        title: "Нет активного кода",
+        description: "Создайте реферальный код",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const link = `${window.location.origin}/invite/${referralStats.activeCode}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({
+        title: "Ссылка скопирована!",
+        description: "Поделитесь ссылкой с друзьями",
+      });
+    } catch (err) {
+      toast({
+        title: "Ошибка копирования",
+        description: "Попробуйте скопировать вручную",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Social share functions
+  const shareToTelegram = () => {
+    if (!referralStats?.activeCode) return;
+    const link = `${window.location.origin}/invite/${referralStats.activeCode}`;
+    const text = encodeURIComponent("Я уже защитил свои данные и получил приватность! Присоединяйся - получи 30% скидку!");
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`, '_blank');
+  };
+
+  const shareToVK = () => {
+    if (!referralStats?.activeCode) return;
+    const link = `${window.location.origin}/invite/${referralStats.activeCode}`;
+    const text = encodeURIComponent("Я уже защитил свои данные и получил приватность! Присоединяйся - получи 30% скидку!");
+    window.open(`https://vk.com/share.php?url=${encodeURIComponent(link)}&title=${text}`, '_blank');
+  };
+
+  const shareToWhatsApp = () => {
+    if (!referralStats?.activeCode) return;
+    const link = `${window.location.origin}/invite/${referralStats.activeCode}`;
+    const text = encodeURIComponent(`Я уже защитил свои данные и получил приватность! Присоединяйся - получи 30% скидку! ${link}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
 
   // Calculate statistics
   const stats = {
@@ -219,6 +312,166 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground mt-1">
               данных защищено
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Referral Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Referral Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Мои приглашения
+            </CardTitle>
+            <CardDescription>
+              Зарабатывайте, приглашая друзей защитить данные
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <Activity className="h-6 w-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm">Загружаем статистику...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600" data-testid="text-referral-clicks">
+                      {referralStats?.totalReferrals || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">кликов</p>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-green-600" data-testid="text-referral-conversions">
+                      {referralStats?.successfulReferrals || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">регистраций</p>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-purple-600" data-testid="text-referral-earnings">
+                      {referralStats?.totalRewards || 0}₽
+                    </div>
+                    <p className="text-xs text-muted-foreground">заработано</p>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  {!referralStats?.activeCode ? (
+                    <Button
+                      onClick={() => generateCodeMutation.mutate()}
+                      disabled={generateCodeMutation.isPending}
+                      className="w-full"
+                      size="lg"
+                      data-testid="button-generate-referral"
+                    >
+                      {generateCodeMutation.isPending ? (
+                        <Activity className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Gift className="h-4 w-4 mr-2" />
+                      )}
+                      Создать реферальный код
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="p-3 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Ваша ссылка:</p>
+                        <p className="font-mono text-sm break-all" data-testid="text-referral-link">
+                          {window.location.origin}/invite/{referralStats.activeCode}
+                        </p>
+                      </div>
+                      
+                      <Button
+                        onClick={copyReferralLink}
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                        data-testid="button-copy-referral"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Скопировать ссылку
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Social Sharing */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5" />
+              Поделиться с друзьями
+            </CardTitle>
+            <CardDescription>
+              Расскажите о защите данных в соцсетях
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  onClick={shareToTelegram}
+                  disabled={!referralStats?.activeCode}
+                  variant="outline"
+                  size="lg"
+                  className="flex flex-col gap-1 h-auto py-3"
+                  data-testid="button-share-telegram"
+                >
+                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                    T
+                  </div>
+                  <span className="text-xs">Telegram</span>
+                </Button>
+                
+                <Button
+                  onClick={shareToVK}
+                  disabled={!referralStats?.activeCode}
+                  variant="outline"
+                  size="lg"
+                  className="flex flex-col gap-1 h-auto py-3"
+                  data-testid="button-share-vk"
+                >
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                    VK
+                  </div>
+                  <span className="text-xs">ВКонтакте</span>
+                </Button>
+                
+                <Button
+                  onClick={shareToWhatsApp}
+                  disabled={!referralStats?.activeCode}
+                  variant="outline"
+                  size="lg"
+                  className="flex flex-col gap-1 h-auto py-3"
+                  data-testid="button-share-whatsapp"
+                >
+                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-white">
+                    W
+                  </div>
+                  <span className="text-xs">WhatsApp</span>
+                </Button>
+              </div>
+              
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border">
+                <p className="text-sm text-center">
+                  <span className="font-medium">🎁 Вирусное сообщение:</span><br />
+                  "Я уже защитил свои данные и получил приватность! Присоединяйся - получи 30% скидку!"
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>💰 За каждую подписку:</span>
+                <Badge variant="outline" className="font-mono">+50%</Badge>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
