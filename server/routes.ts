@@ -92,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('✅ Created demo referral code TEST123 for testing');
         }
       }
-    } catch (refError) {
+    } catch (refError: any) {
       console.log('Note: Could not create test referral code:', refError.message);
     }
   } catch (error) {
@@ -1246,7 +1246,7 @@ ${allPages.map(page => `  <url>
       }
       
       // Get user achievements
-      const achievements = await storage.listUserAchievements(profile.userId);
+      const achievements = await storage.getUserAchievements(profile.userId);
       
       res.json({
         username: profile.username,
@@ -1270,7 +1270,7 @@ ${allPages.map(page => `  <url>
   app.get('/api/achievements', isEmailAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
-      const achievements = await storage.listUserAchievements(userId);
+      const achievements = await storage.getUserAchievements(userId);
       res.json(achievements);
     } catch (error) {
       console.error('Error getting achievements:', error);
@@ -1297,7 +1297,7 @@ ${allPages.map(page => `  <url>
   app.post('/api/referrals/generate', isEmailAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
-      const referralCode = await storage.generateReferralCode(userId);
+      const referralCode = await storage.createReferralCode(userId);
       res.json({ success: true, code: referralCode.code });
     } catch (error) {
       console.error('Error generating referral code:', error);
