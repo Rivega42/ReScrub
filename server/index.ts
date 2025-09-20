@@ -7,6 +7,8 @@ import { getSession } from "./replitAuth";
 import { seoMetaInjection } from "./middleware/seo";
 import { subscriptionManager } from "./subscription-manager";
 import { storage } from "./storage";
+import { BlogGeneratorService } from "./blog-generator";
+import { BlogScheduler } from "./blog-scheduler";
 
 const app = express();
 
@@ -173,5 +175,16 @@ app.use((req, res, next) => {
     // Start subscription manager for recurring payments
     console.log('🚀 Initializing subscription manager...');
     subscriptionManager.start();
+    
+    // Initialize and start blog scheduler for automatic article generation
+    if (process.env.OPENAI_API_KEY) {
+      console.log('🤖 Initializing blog scheduler...');
+      const blogGenerator = new BlogGeneratorService(storage);
+      const blogScheduler = new BlogScheduler(blogGenerator, storage, 30); // Check every 30 minutes
+      blogScheduler.start();
+      console.log('✅ Blog scheduler started successfully');
+    } else {
+      console.log('⚠️ Blog scheduler disabled: OPENAI_API_KEY not found');
+    }
   });
 })();
