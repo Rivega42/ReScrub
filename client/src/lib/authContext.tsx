@@ -6,6 +6,8 @@ interface User {
   id: string;
   email: string;
   emailVerified: boolean;
+  isAdmin?: boolean;
+  adminRole?: string;
   profile?: {
     id: string;
     firstName: string | null;

@@ -466,6 +466,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: userAccount.id,
           email: userAccount.email,
           emailVerified: userAccount.emailVerified,
+          isAdmin: userAccount.isAdmin,
+          adminRole: userAccount.adminRole,
           profile: userProfile
         }
       });

@@ -9,7 +9,8 @@ import {
   Settings,
   LogOut,
   Shield,
-  CreditCard
+  CreditCard,
+  Crown
 } from "lucide-react";
 
 import {
@@ -81,6 +82,9 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   
+  // Check if user is admin
+  const isAdmin = user?.isAdmin || false;
+  
   // Get unread notifications count for badge
   const { data: notifications = [] } = useQuery({
     queryKey: ['/api/notifications', { unread: true }],
@@ -144,6 +148,32 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Admin Section - only for admins */}
+        {isAdmin && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Администрирование</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location === '/admin'}
+                      data-testid="sidebar-nav-admin"
+                    >
+                      <Link href="/admin">
+                        <Crown className="h-4 w-4" />
+                        <span>Админская панель</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
 
         <SidebarSeparator />
 
