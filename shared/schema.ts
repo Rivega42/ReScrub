@@ -84,6 +84,8 @@ export const userAccounts = pgTable("user_accounts", {
   passwordResetExpires: timestamp("password_reset_expires"),
   lastLoginAt: timestamp("last_login_at"),
   points: integer("points").default(0).notNull(), // Points system: 1 point = 1 ruble
+  isAdmin: boolean("is_admin").default(false), // Admin role for admin panel access
+  adminRole: varchar("admin_role").default("user"), // user | admin | superadmin
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

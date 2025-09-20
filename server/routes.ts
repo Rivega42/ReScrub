@@ -49,6 +49,26 @@ function isEmailAuthenticated(req: any, res: any, next: any) {
   res.status(401).json({ message: "Unauthorized" });
 }
 
+// Admin authentication middleware
+async function isAdmin(req: any, res: any, next: any) {
+  if (!req.session?.userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+  
+  try {
+    const userAccount = await storage.getUserAccountById(req.session.userId);
+    if (!userAccount || !userAccount.isAdmin) {
+      return res.status(403).json({ success: false, message: "Доступ запрещен. Требуются права администратора." });
+    }
+    
+    req.adminUser = userAccount;
+    next();
+  } catch (error) {
+    console.error('Admin auth error:', error);
+    res.status(500).json({ success: false, message: "Ошибка сервера" });
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
   await setupAuth(app);
@@ -2146,6 +2166,97 @@ ${allPages.map(page => `  <url>
       res.status(500).json({ 
         success: false, 
         message: 'Ошибка получения статистики планировщика' 
+      });
+    }
+  });
+
+  // ========================================
+  // ADMIN PANEL API ENDPOINTS
+  // ========================================
+
+  // Get admin dashboard statistics
+  app.get("/api/admin/dashboard", isAdmin, async (req, res) => {
+    try {
+      const stats = {
+        users: {
+          total: await storage.getUsersCount() || 0,
+          verified: await storage.getVerifiedUsersCount() || 0,
+          admins: await storage.getAdminsCount() || 0,
+          recentRegistrations: await storage.getRecentUsersCount(7) || 0
+        },
+        blog: {
+          totalArticles: await storage.getBlogArticlesCount() || 0,
+          publishedArticles: await storage.getPublishedBlogArticlesCount() || 0,
+          schedulerStatus: SchedulerInstance.getBlogScheduler()?.isRunning() || false,
+          lastGenerated: await storage.getLastGeneratedArticleDate() || null,
+          nextGeneration: SchedulerInstance.getBlogScheduler()?.getNextScheduledTime() || null
+        },
+        system: {
+          uptime: Math.floor(process.uptime()),
+          memory: process.memoryUsage(),
+          serverTime: new Date().toISOString(),
+          environment: process.env.NODE_ENV || 'development'
+        }
+      };
+
+      res.json({ success: true, stats });
+    } catch (error) {
+      console.error('Error fetching admin dashboard stats:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статистики админской панели' 
+      });
+    }
+  });
+
+  // Make demo user admin for development - STRICTLY DEV ONLY
+  app.post("/api/admin/setup-demo-admin", async (req, res) => {
+    try {
+      // SECURITY: Only allow in development mode
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(404).json({
+          success: false,
+          message: 'Endpoint not found'
+        });
+      }
+
+      // Additional dev safety check
+      if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development') {
+        return res.status(403).json({
+          success: false,
+          message: 'Доступно только в режиме разработки'
+        });
+      }
+
+      const demoUser = await storage.getUserAccountByEmail('demo@rescrub.ru');
+      if (demoUser) {
+        const updatedUser = await storage.updateUserAccount(demoUser.id, {
+          isAdmin: true,
+          adminRole: 'superadmin'
+        });
+
+        // SECURITY: Return only safe fields to prevent data leakage
+        res.json({
+          success: true,
+          message: 'Demo пользователь назначен администратором',
+          user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            isAdmin: updatedUser.isAdmin,
+            adminRole: updatedUser.adminRole
+          }
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Demo пользователь не найден'
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up demo admin:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка настройки админа' 
       });
     }
   });

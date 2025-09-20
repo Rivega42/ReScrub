@@ -3050,6 +3050,171 @@ export class MemStorage implements IStorage {
     this.blogGenerationSettingsData.push(settings);
     return settings;
   }
+
+  // ========================================
+  // ADMIN PANEL STATISTICS METHODS
+  // ========================================
+
+  // User statistics
+  async getUsersCount(search?: string, role?: string): Promise<number> {
+    try {
+      let query = db.select({ count: sql<number>`cast(count(*) as integer)` }).from(userAccounts);
+      
+      if (search) {
+        query = query.where(sql`${userAccounts.email} ILIKE ${`%${search}%`}`);
+      }
+      if (role && role !== 'all') {
+        query = query.where(eq(userAccounts.adminRole, role));
+      }
+      
+      const [result] = await query;
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting users count:', error);
+      return 0;
+    }
+  }
+
+  async getVerifiedUsersCount(): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(userAccounts)
+        .where(eq(userAccounts.emailVerified, true));
+      
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting verified users count:', error);
+      return 0;
+    }
+  }
+
+  async getAdminsCount(): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(userAccounts)
+        .where(eq(userAccounts.isAdmin, true));
+      
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting admins count:', error);
+      return 0;
+    }
+  }
+
+  async getRecentUsersCount(days: number): Promise<number> {
+    try {
+      const dateFrom = new Date();
+      dateFrom.setDate(dateFrom.getDate() - days);
+      
+      const [result] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(userAccounts)
+        .where(sql`${userAccounts.createdAt} >= ${dateFrom}`);
+      
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting recent users count:', error);
+      return 0;
+    }
+  }
+
+  async getBlogArticlesCount(status?: string, search?: string): Promise<number> {
+    try {
+      let query = db.select({ count: sql<number>`cast(count(*) as integer)` }).from(blogArticles);
+      
+      if (status && status !== 'all') {
+        query = query.where(eq(blogArticles.status, status as any));
+      }
+      if (search) {
+        query = query.where(sql`${blogArticles.title} ILIKE ${`%${search}%`} OR ${blogArticles.content} ILIKE ${`%${search}%`}`);
+      }
+      
+      const [result] = await query;
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting blog articles count:', error);
+      return 0;
+    }
+  }
+
+  async getPublishedBlogArticlesCount(): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(blogArticles)
+        .where(eq(blogArticles.status, 'published'));
+      
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting published blog articles count:', error);
+      return 0;
+    }
+  }
+
+  async getLastGeneratedArticleDate(): Promise<Date | null> {
+    try {
+      const [article] = await db
+        .select({ publishedAt: blogArticles.publishedAt })
+        .from(blogArticles)
+        .where(eq(blogArticles.status, 'published'))
+        .orderBy(desc(blogArticles.publishedAt))
+        .limit(1);
+      
+      return article?.publishedAt || null;
+    } catch (error) {
+      console.error('Error getting last generated article date:', error);
+      return null;
+    }
+  }
+
+  // Email statistics (placeholders)
+  async getEmailsSentCount(days: number): Promise<number> {
+    return 0; // TODO: Implement when we have email logs table
+  }
+
+  async getEmailDeliveryRate(): Promise<number> {
+    return 95.0; // Default delivery rate
+  }
+
+  async getEmailBounceRate(): Promise<number> {
+    return 2.0; // Default bounce rate
+  }
+
+  // Admin user management
+  async getUsers(options: { 
+    limit: number; 
+    offset: number; 
+    search?: string; 
+    role?: string 
+  }): Promise<UserAccount[]> {
+    try {
+      let query = db.select().from(userAccounts);
+      
+      if (options.search) {
+        query = query.where(sql`${userAccounts.email} ILIKE ${`%${options.search}%`}`);
+      }
+      if (options.role && options.role !== 'all') {
+        query = query.where(eq(userAccounts.adminRole, options.role));
+      }
+      
+      const users = await query
+        .orderBy(desc(userAccounts.createdAt))
+        .limit(options.limit)
+        .offset(options.offset);
+      
+      // Hide password hashes for security
+      return users.map(user => ({ ...user, passwordHash: '[HIDDEN]' }));
+    } catch (error) {
+      console.error('Error getting users:', error);
+      return [];
+    }
+  }
+
+  async getSystemLogs(options: { type: string; limit: number }): Promise<any[]> {
+    return []; // TODO: Implement system logs table
+  }
 }
 
 // Choose storage implementation

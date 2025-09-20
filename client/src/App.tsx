@@ -20,6 +20,8 @@ import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import Whitepaper from "@/pages/Whitepaper";
 import Status from "@/pages/Status";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminSetup from "@/pages/AdminSetup";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Requests from "@/pages/Requests";
@@ -60,6 +62,10 @@ function Router() {
       <Route path="/whitepaper" component={Whitepaper} />
       <Route path="/reports" component={Reports} />
       <Route path="/status" component={Status} />
+      
+      {/* Admin routes */}
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin-setup" component={AdminSetup} />
       
       {/* Protected app routes */}
       <Route path="/app/:rest*">
