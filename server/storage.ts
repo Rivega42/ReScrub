@@ -3074,33 +3074,6 @@ export class MemStorage implements IStorage {
     return settings;
   }
 
-  // ========================================
-  // ADMIN PANEL STATISTICS METHODS
-  // ========================================
-
-  // User statistics
-  async getUsersCount(search?: string, role?: string): Promise<number> {
-    try {
-      const conditions = [];
-      
-      if (search) {
-        conditions.push(sql`${userAccounts.email} ILIKE ${`%${search}%`}`);
-      }
-      if (role && role !== 'all') {
-        conditions.push(eq(userAccounts.adminRole, role));
-      }
-      
-      const query = conditions.length > 0 
-        ? db.select({ count: sql<number>`cast(count(*) as integer)` }).from(userAccounts).where(and(...conditions))
-        : db.select({ count: sql<number>`cast(count(*) as integer)` }).from(userAccounts);
-      
-      const [result] = await query;
-      return result?.count || 0;
-    } catch (error) {
-      console.error('Error getting users count:', error);
-      return 0;
-    }
-  }
 
   async getVerifiedUsersCount(): Promise<number> {
     try {
@@ -3245,6 +3218,102 @@ export class MemStorage implements IStorage {
 
   async getSystemLogs(options: { type: string; limit: number }): Promise<any[]> {
     return []; // TODO: Implement system logs table
+  }
+
+  // ========================================
+  // ADMIN PANEL STATISTICS METHODS (MemStorage)
+  // ========================================
+
+  async getUsersCount(search?: string, role?: string): Promise<number> {
+    let users = this.userAccountsData;
+    
+    if (search) {
+      users = users.filter(user => 
+        user.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    if (role && role !== 'all') {
+      users = users.filter(user => user.adminRole === role);
+    }
+    
+    return users.length;
+  }
+
+  async getVerifiedUsersCount(): Promise<number> {
+    return this.userAccountsData.filter(user => user.emailVerified).length;
+  }
+
+  async getAdminsCount(): Promise<number> {
+    return this.userAccountsData.filter(user => user.isAdmin).length;
+  }
+
+  async getRecentUsersCount(days: number): Promise<number> {
+    const dateFrom = new Date();
+    dateFrom.setDate(dateFrom.getDate() - days);
+    
+    return this.userAccountsData.filter(user => 
+      user.createdAt >= dateFrom
+    ).length;
+  }
+
+  async getBlogArticlesCount(status?: string, search?: string): Promise<number> {
+    let articles = this.blogArticlesData;
+    
+    if (status && status !== 'all') {
+      articles = articles.filter(article => article.status === status);
+    }
+    
+    if (search) {
+      articles = articles.filter(article => 
+        article.title.toLowerCase().includes(search.toLowerCase()) ||
+        article.content.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    return articles.length;
+  }
+
+  async getPublishedBlogArticlesCount(): Promise<number> {
+    return this.blogArticlesData.filter(article => article.status === 'published').length;
+  }
+
+  async getLastGeneratedArticleDate(): Promise<Date | null> {
+    const settings = this.blogGenerationSettingsData[0];
+    return settings?.lastGeneratedAt || null;
+  }
+
+  async getEmailsSentCount(days: number): Promise<number> {
+    return 0; // Mock data for in-memory storage
+  }
+
+  async getEmailDeliveryRate(): Promise<number> {
+    return 98.5; // Mock data for in-memory storage
+  }
+
+  async getEmailBounceRate(): Promise<number> {
+    return 1.2; // Mock data for in-memory storage
+  }
+
+  async getUsers(options: { 
+    limit: number; 
+    offset: number; 
+    search?: string; 
+    role?: string 
+  }): Promise<UserAccount[]> {
+    let users = [...this.userAccountsData];
+    
+    if (options.search) {
+      users = users.filter(user => 
+        user.email.toLowerCase().includes(options.search!.toLowerCase())
+      );
+    }
+    
+    if (options.role && options.role !== 'all') {
+      users = users.filter(user => user.adminRole === options.role);
+    }
+    
+    return users.slice(options.offset, options.offset + options.limit);
   }
 }
 

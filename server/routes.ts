@@ -2209,7 +2209,7 @@ ${allPages.map(page => `  <url>
       ]);
 
       // Get scheduler info (synchronous, no DB calls)
-      const blogScheduler = SchedulerInstance.getBlogScheduler();
+      const blogScheduler = SchedulerInstance.get();
 
       const stats = {
         users: {
