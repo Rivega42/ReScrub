@@ -24,6 +24,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminSetup from "@/pages/AdminSetup";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminDataBrokers from "@/pages/AdminDataBrokers";
+import AdminEmailTemplates from "@/pages/AdminEmailTemplates";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Requests from "@/pages/Requests";
@@ -79,6 +80,11 @@ function Router() {
       <Route path="/admin/data-brokers">
         <AuthGuard fallback={<Login />}>
           <AdminDataBrokers />
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/email-templates">
+        <AuthGuard fallback={<Login />}>
+          <AdminEmailTemplates />
         </AuthGuard>
       </Route>
       <Route path="/admin-setup" component={AdminSetup} />

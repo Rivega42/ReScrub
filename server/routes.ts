@@ -3223,6 +3223,363 @@ ${allPages.map(page => `  <url>
   });
 
   // ========================================
+  // EMAIL TEMPLATES MANAGEMENT API ROUTES
+  // ========================================
+
+  // GET /api/admin/email-templates - List all email templates
+  app.get('/api/admin/email-templates', isAdmin, async (req: any, res) => {
+    try {
+      const { category, search, isActive } = req.query;
+      
+      const filters: any = {};
+      if (category && category !== 'all') filters.category = category;
+      if (search) filters.search = search;
+      if (isActive !== undefined) filters.isActive = isActive === 'true';
+      
+      const templates = await storage.getEmailTemplates(filters);
+      
+      res.json(templates);
+    } catch (error) {
+      console.error('Error fetching email templates:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения шаблонов писем'
+      });
+    }
+  });
+
+  // GET /api/admin/email-templates/:id - Get single email template
+  app.get('/api/admin/email-templates/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const template = await storage.getEmailTemplateById(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          message: 'Шаблон не найден'
+        });
+      }
+      
+      res.json(template);
+    } catch (error) {
+      console.error('Error fetching email template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения шаблона'
+      });
+    }
+  });
+
+  // POST /api/admin/email-templates - Create new email template
+  app.post('/api/admin/email-templates', isAdmin, async (req: any, res) => {
+    try {
+      const templateData = {
+        ...req.body,
+        createdBy: req.adminUser.id,
+        updatedBy: req.adminUser.id
+      };
+      
+      const template = await storage.createEmailTemplate(templateData);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'create_email_template',
+        targetType: 'email_template',
+        targetId: template.id,
+        metadata: { name: template.name },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        template
+      });
+    } catch (error) {
+      console.error('Error creating email template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка создания шаблона'
+      });
+    }
+  });
+
+  // PUT /api/admin/email-templates/:id - Update email template
+  app.put('/api/admin/email-templates/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = {
+        ...req.body,
+        updatedBy: req.adminUser.id,
+        updatedAt: new Date()
+      };
+      
+      // Remove fields that shouldn't be updated
+      delete updates.id;
+      delete updates.createdAt;
+      delete updates.createdBy;
+      
+      const template = await storage.updateEmailTemplate(id, updates);
+      
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          message: 'Шаблон не найден'
+        });
+      }
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'update_email_template',
+        targetType: 'email_template',
+        targetId: id,
+        metadata: { changes: Object.keys(updates) },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        template
+      });
+    } catch (error) {
+      console.error('Error updating email template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка обновления шаблона'
+      });
+    }
+  });
+
+  // DELETE /api/admin/email-templates/:id - Delete email template
+  app.delete('/api/admin/email-templates/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get template info before deletion
+      const template = await storage.getEmailTemplateById(id);
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          message: 'Шаблон не найден'
+        });
+      }
+      
+      // Soft delete the template
+      await storage.softDeleteEmailTemplate(id, req.adminUser.id);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'delete_email_template',
+        targetType: 'email_template',
+        targetId: id,
+        metadata: { name: template.name },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        message: 'Шаблон удален'
+      });
+    } catch (error) {
+      console.error('Error deleting email template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка удаления шаблона'
+      });
+    }
+  });
+
+  // POST /api/admin/email-templates/:id/clone - Clone email template
+  app.post('/api/admin/email-templates/:id/clone', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { newName } = req.body;
+      
+      const originalTemplate = await storage.getEmailTemplateById(id);
+      if (!originalTemplate) {
+        return res.status(404).json({
+          success: false,
+          message: 'Оригинальный шаблон не найден'
+        });
+      }
+      
+      const clonedName = newName || `${originalTemplate.name}_copy_${Date.now()}`;
+      const clonedTemplate = await storage.cloneEmailTemplate(id, clonedName, req.adminUser.id);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'clone_email_template',
+        targetType: 'email_template',
+        targetId: id,
+        metadata: { 
+          originalName: originalTemplate.name,
+          clonedName,
+          clonedId: clonedTemplate.id
+        },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        template: clonedTemplate,
+        message: 'Шаблон скопирован'
+      });
+    } catch (error) {
+      console.error('Error cloning email template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка копирования шаблона'
+      });
+    }
+  });
+
+  // POST /api/admin/email-templates/:id/test - Send test email
+  app.post('/api/admin/email-templates/:id/test', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { email, data } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email адрес обязателен'
+        });
+      }
+      
+      const result = await storage.testEmailTemplate(id, email, data);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'test_email_template',
+        targetType: 'email_template',
+        targetId: id,
+        metadata: { testEmail: email },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error testing email template:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка отправки тестового письма'
+      });
+    }
+  });
+
+  // GET /api/admin/email-templates/export - Export all templates
+  app.get('/api/admin/email-templates/export', isAdmin, async (req: any, res) => {
+    try {
+      const templates = await storage.getEmailTemplates({});
+      const exportData = await Promise.all(
+        templates.map(template => storage.exportEmailTemplate(template.id))
+      );
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'export_email_templates',
+        targetType: 'email_template',
+        metadata: { count: templates.length },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      const fileName = `email-templates-${new Date().toISOString().split('T')[0]}.json`;
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.json({
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        templates: exportData
+      });
+    } catch (error) {
+      console.error('Error exporting email templates:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка экспорта шаблонов'
+      });
+    }
+  });
+
+  // POST /api/admin/email-templates/import - Import templates
+  app.post('/api/admin/email-templates/import', isAdmin, async (req: any, res) => {
+    try {
+      const { templates } = req.body;
+      
+      if (!Array.isArray(templates)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Неверный формат данных'
+        });
+      }
+      
+      const imported = [];
+      const errors = [];
+      
+      for (const templateData of templates) {
+        try {
+          const importedTemplate = await storage.importEmailTemplate(
+            templateData, 
+            req.adminUser.id
+          );
+          imported.push(importedTemplate.name);
+        } catch (error: any) {
+          errors.push({
+            name: templateData.name || 'Unknown',
+            error: error.message
+          });
+        }
+      }
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'import_email_templates',
+        targetType: 'email_template',
+        metadata: { 
+          imported: imported.length,
+          failed: errors.length,
+          total: templates.length
+        },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        imported: imported.length,
+        failed: errors.length,
+        errors: errors.slice(0, 10),
+        message: `Импортировано ${imported.length} из ${templates.length} шаблонов`
+      });
+    } catch (error) {
+      console.error('Error importing email templates:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка импорта шаблонов'
+      });
+    }
+  });
+
+  // ========================================
   // PLATFORM SECRETS MANAGEMENT API ROUTES
   // ========================================
 
