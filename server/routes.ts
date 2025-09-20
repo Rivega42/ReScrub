@@ -1889,6 +1889,100 @@ ${allPages.map(page => `  <url>
     }
   });
 
+  // Blog Articles API Endpoints
+  
+  // Get all published blog articles
+  app.get("/api/blog/articles", async (req, res) => {
+    try {
+      const { category, featured, limit = 50, offset = 0 } = req.query;
+      
+      const filters: any = {};
+      if (category && typeof category === 'string') filters.category = category;
+      if (featured !== undefined) filters.featured = featured === 'true';
+      if (limit) filters.limit = Math.min(parseInt(limit as string), 100); // Max 100 
+      if (offset) filters.offset = parseInt(offset as string);
+      
+      const articles = await storage.getPublishedBlogArticles(filters);
+      
+      // Transform to frontend format
+      const transformedArticles = articles.map(article => ({
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        description: article.excerpt || '', // Map excerpt to description
+        content: article.content,
+        category: article.category,
+        tags: article.tags,
+        publishedAt: article.publishedAt ? article.publishedAt.toISOString() : new Date().toISOString(),
+        author: 'Команда ResCrub', // Default author
+        readingTime: Math.ceil(article.content.length / 1000), // Estimate reading time
+        featured: article.featured || false,
+        views: 0 // Not stored in DB yet
+      }));
+      
+      res.json({
+        success: true,
+        articles: transformedArticles
+      });
+    } catch (error) {
+      console.error('Error fetching blog articles:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статей блога' 
+      });
+    }
+  });
+
+  // Get single blog article by slug
+  app.get("/api/blog/articles/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      const article = await storage.getBlogArticleBySlug(slug);
+      if (!article) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Статья не найдена' 
+        });
+      }
+      
+      // Only show published articles
+      if (article.status !== 'published') {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Статья не опубликована' 
+        });
+      }
+      
+      // Transform to frontend format
+      const transformedArticle = {
+        id: article.id,
+        title: article.title,
+        slug: article.slug,
+        description: article.excerpt || '',
+        content: article.content,
+        category: article.category,
+        tags: article.tags,
+        publishedAt: article.publishedAt ? article.publishedAt.toISOString() : new Date().toISOString(),
+        author: 'Команда ResCrub',
+        readingTime: Math.ceil(article.content.length / 1000),
+        featured: article.featured || false,
+        views: 0 // Increment view count in future
+      };
+      
+      res.json({
+        success: true,
+        article: transformedArticle
+      });
+    } catch (error) {
+      console.error('Error fetching blog article:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статьи' 
+      });
+    }
+  });
+
   // Blog Scheduler Management Endpoints
   
   // Get scheduler status and statistics

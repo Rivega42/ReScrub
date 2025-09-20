@@ -8,36 +8,40 @@ import { ArrowRight, Calendar, Clock, User, Search, Filter, ArrowLeft, ExternalL
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
+import { useQuery } from '@tanstack/react-query';
 import { 
   createEnhancedBlogArticle,
   generateBreadcrumbJsonLd,
   SEO_CONSTANTS
 } from '@shared/seo';
-import { blogArticles, type BlogArticle } from '@/data/blogArticles';
-
-// Enhanced articles with SEO features
-const enhancedArticles = blogArticles.map(article => createEnhancedBlogArticle(article));
-
-// Categories for filtering
-const categories = Array.from(new Set(blogArticles.map(article => article.category)));
+import { type BlogArticle } from '@/data/blogArticles';
 
 // Blog listing component
 export default function Blog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [featuredArticles, setFeaturedArticles] = useState<BlogArticle[]>([]);
-  const [recentArticles, setRecentArticles] = useState<BlogArticle[]>([]);
   
-  useEffect(() => {
-    setFeaturedArticles(blogArticles.filter(article => article.featured).slice(0, 3));
-    setRecentArticles(
-      blogArticles
-        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-        .slice(0, 6)
-    );
-  }, []);
+  // Fetch articles from API
+  const { data: articlesResponse, isLoading, error } = useQuery({
+    queryKey: ['/api/blog/articles'],
+    select: (data: any) => data.articles as BlogArticle[]
+  });
+  
+  const articles = articlesResponse || [];
+  
+  // Enhanced articles with SEO features
+  const enhancedArticles = articles.map(article => createEnhancedBlogArticle(article));
+  
+  // Categories for filtering
+  const categories = Array.from(new Set(articles.map(article => article.category)));
+  
+  // Featured and recent articles
+  const featuredArticles = articles.filter(article => article.featured).slice(0, 3);
+  const recentArticles = articles
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, 6);
 
-  const filteredArticles = blogArticles.filter(article => {
+  const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -51,43 +55,6 @@ export default function Blog() {
         title="Блог ResCrub: защита персональных данных и приватность в России"
         description="Экспертные статьи о защите персональных данных, 152-ФЗ, удалении данных из российских сервисов. Пошаговые инструкции и практические советы."
         canonical="/blog"
-        openGraph={{
-          type: 'website',
-          title: 'Блог ResCrub - Защита персональных данных',
-          description: 'Практические руководства по защите приватности, удалению данных и соблюдению 152-ФЗ в России.',
-          images: [{
-            url: '/images/blog-hero.jpg',
-            width: 1200,
-            height: 630,
-            alt: 'Блог ResCrub о защите данных'
-          }]
-        }}
-        jsonLd={{
-          '@context': 'https://schema.org',
-          '@type': 'Blog',
-          name: 'Блог ResCrub',
-          description: 'Экспертные статьи о защите персональных данных и приватности в России',
-          url: 'https://rescrub.com/blog',
-          publisher: {
-            '@type': 'Organization',
-            name: 'ResCrub',
-            logo: {
-              '@type': 'ImageObject',
-              url: 'https://rescrub.com/logo.png'
-            }
-          },
-          blogPost: enhancedArticles.map(article => ({
-            '@type': 'BlogPosting',
-            headline: article.title,
-            description: article.description,
-            datePublished: article.publishedAt,
-            author: {
-              '@type': 'Person',
-              name: article.author
-            },
-            url: 'https://rescrub.com/blog/' + article.slug
-          }))
-        }}
       />
       
       <div className="min-h-screen bg-background">
@@ -104,40 +71,67 @@ export default function Blog() {
             </p>
           </div>
 
-          {/* Search and Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8" data-testid="search-filter-section">
-            <div className="relative flex-1" data-testid="search-container">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Поиск по статьям..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                data-testid="input-search"
-              />
+          {/* Loading State */}
+          {isLoading && (
+            <div className="text-center py-8" data-testid="loading-articles">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Загружаем статьи...</p>
             </div>
-            <div className="flex items-center gap-2" data-testid="filter-container">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 border border-input rounded-md bg-background"
-                data-testid="select-category"
-              >
-                <option value="">Все категории</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          )}
 
-          {/* Featured Articles */}
-          {featuredArticles.length > 0 && (
-            <section className="mb-12" data-testid="featured-articles-section">
-              <h2 className="text-2xl font-bold mb-6" data-testid="text-featured-articles-title">Рекомендуемые статьи</h2>
-              <div className="grid md:grid-cols-3 gap-6">
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-8" data-testid="error-articles">
+              <p className="text-destructive mb-4">Ошибка загрузки статей</p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Попробовать снова
+              </Button>
+            </div>
+          )}
+
+          {/* Content */}
+          {!isLoading && !error && articles.length === 0 && (
+            <div className="text-center py-8" data-testid="no-articles">
+              <p className="text-muted-foreground">Статьи не найдены</p>
+            </div>
+          )}
+
+          {!isLoading && !error && articles.length > 0 && (
+            <>
+              {/* Search and Filter */}
+              <div className="flex flex-col md:flex-row gap-4 mb-8" data-testid="search-filter-section">
+                <div className="relative flex-1" data-testid="search-container">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    type="text"
+                    placeholder="Поиск по статьям..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search"
+                  />
+                </div>
+                <div className="flex items-center gap-2" data-testid="filter-container">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 border border-input rounded-md bg-background"
+                    data-testid="select-category"
+                  >
+                    <option value="">Все категории</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Featured Articles */}
+              {featuredArticles.length > 0 && (
+                <section className="mb-12" data-testid="featured-articles-section">
+                  <h2 className="text-2xl font-bold mb-6" data-testid="text-featured-articles-title">Рекомендуемые статьи</h2>
+                  <div className="grid md:grid-cols-3 gap-6">
                 {featuredArticles.map((article) => (
                   <Card key={article.id} className="hover-elevate transition-all duration-200" data-testid={`card-featured-article-${article.id}`}>
                     <CardHeader>
@@ -184,44 +178,44 @@ export default function Blog() {
                   </Card>
                 ))}
               </div>
-            </section>
-          )}
+                </section>
+              )}
 
-          {/* All Articles */}
-          <section data-testid="all-articles-section">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold" data-testid="text-all-articles-title">
-                {searchTerm || selectedCategory ? 'Результаты поиска' : 'Все статьи'}
-              </h2>
-              <div className="text-sm text-muted-foreground" data-testid="text-results-count">
-                {filteredArticles.length} статей найдено
-              </div>
-            </div>
+              {/* All Articles */}
+              <section data-testid="all-articles-section">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold" data-testid="text-all-articles-title">
+                    {searchTerm || selectedCategory ? 'Результаты поиска' : 'Все статьи'}
+                  </h2>
+                  <div className="text-sm text-muted-foreground" data-testid="text-results-count">
+                    {filteredArticles.length} статей найдено
+                  </div>
+                </div>
 
-            {filteredArticles.length === 0 ? (
-              <div className="text-center py-12" data-testid="no-articles-message">
-                <p className="text-lg text-muted-foreground mb-4">Статьи не найдены</p>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Попробуйте изменить параметры поиска или выбрать другую категорию
-                </p>
-                <Button 
-                  onClick={() => { setSearchTerm(''); setSelectedCategory(''); }}
-                  variant="outline"
-                  data-testid="button-clear-filters"
-                >
-                  Сбросить фильтры
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {filteredArticles.map((article) => (
-                  <Card key={article.id} className="hover-elevate transition-all duration-200" data-testid={`card-article-${article.id}`}>
-                    <CardHeader>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" data-testid={`badge-category-${article.id}`}>{article.category}</Badge>
-                        {article.featured && (
-                          <Badge variant="outline" data-testid={`badge-featured-${article.id}`}>Рекомендуется</Badge>
-                        )}
+                {filteredArticles.length === 0 ? (
+                  <div className="text-center py-12" data-testid="no-articles-message">
+                    <p className="text-lg text-muted-foreground mb-4">Статьи не найдены</p>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Попробуйте изменить параметры поиска или выбрать другую категорию
+                    </p>
+                    <Button 
+                      onClick={() => { setSearchTerm(''); setSelectedCategory(''); }}
+                      variant="outline"
+                      data-testid="button-clear-filters"
+                    >
+                      Сбросить фильтры
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {filteredArticles.map((article) => (
+                      <Card key={article.id} className="hover-elevate transition-all duration-200" data-testid={`card-article-${article.id}`}>
+                        <CardHeader>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="secondary" data-testid={`badge-category-${article.id}`}>{article.category}</Badge>
+                            {article.featured && (
+                              <Badge variant="outline" data-testid={`badge-featured-${article.id}`}>Рекомендуется</Badge>
+                            )}
                       </div>
                       <CardTitle className="text-xl" data-testid={`text-article-title-${article.id}`}>
                         {article.title}
@@ -272,6 +266,8 @@ export default function Blog() {
               </div>
             )}
           </section>
+            </>
+          )}
         </main>
         
         <Footer />

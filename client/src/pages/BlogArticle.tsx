@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useQuery } from '@tanstack/react-query';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -33,7 +34,7 @@ import {
   generateBreadcrumbJsonLd,
   SEO_CONSTANTS
 } from '@shared/seo';
-import { blogArticles, type BlogArticle } from '@/data/blogArticles';
+import { type BlogArticle } from '@/data/blogArticles';
 
 // Helper functions for robust anchor processing
 function childrenToText(children: any): string {
@@ -110,8 +111,14 @@ function cleanTextFromId(children: any): any {
 export default function BlogArticle() {
   const { slug } = useParams<{ slug: string }>();
   
-  // Find the article by slug
-  const article = blogArticles.find(a => a.slug === slug);
+  // Fetch the article by slug from API
+  const { data: articleResponse, isLoading, error } = useQuery({
+    queryKey: ['/api/blog/articles', slug],
+    select: (data: any) => data.article as BlogArticle,
+    enabled: !!slug
+  });
+  
+  const article = articleResponse;
   
   // Convert to enhanced article with advanced SEO
   const enhancedArticle = useMemo(() => {
@@ -119,10 +126,9 @@ export default function BlogArticle() {
     return createEnhancedBlogArticle(article);
   }, [article]);
   
-  // Generate all enhanced articles for internal linking context
-  const allEnhancedArticles = useMemo(() => {
-    return blogArticles.map(a => createEnhancedBlogArticle(a));
-  }, []);
+  // For now, skip internal linking until we have full article API integration
+  // TODO: Load all articles from API for internal linking
+  const allEnhancedArticles: EnhancedBlogArticle[] = [];
   
   // Generate internal links for this article
   const internalLinks = useMemo(() => {
@@ -177,7 +183,24 @@ export default function BlogArticle() {
   // Create stable ID tracker per article  
   const existingIds = useMemo(() => new Set<string>(), [article?.id]);
 
-  if (!article || !enhancedArticle) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Загружаем статью...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Error or not found
+  if (error || !article || !enhancedArticle) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
