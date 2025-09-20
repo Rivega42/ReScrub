@@ -345,22 +345,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = userAccount.id;
       req.session.email = userAccount.email;
       
-      console.log('✅ Login successful - Session created:', {
-        sessionId: req.session.id,
-        userId: req.session.userId,
-        email: req.session.email,
-        isAdmin: userAccount.isAdmin,
-        adminRole: userAccount.adminRole
-      });
-      
-      res.json({ 
-        success: true, 
-        message: "Вход выполнен успешно",
-        user: {
-          id: userAccount.id,
-          email: userAccount.email,
-          emailVerified: userAccount.emailVerified
+      // Force session save to ensure data is persisted
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          return res.status(500).json({ 
+            success: false, 
+            message: "Ошибка сохранения сессии" 
+          });
         }
+        
+        console.log('✅ Login successful - Session created and saved:', {
+          sessionId: req.session.id,
+          userId: req.session.userId,
+          email: req.session.email,
+          isAdmin: userAccount.isAdmin,
+          adminRole: userAccount.adminRole
+        });
+        
+        res.json({ 
+          success: true, 
+          message: "Вход выполнен успешно",
+          user: {
+            id: userAccount.id,
+            email: userAccount.email,
+            emailVerified: userAccount.emailVerified,
+            isAdmin: userAccount.isAdmin
+          }
+        });
       });
     } catch (error: any) {
       console.error("Login error:", error);
