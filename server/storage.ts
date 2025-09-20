@@ -17,6 +17,8 @@ import {
   userAchievements,
   referralCodes,
   referrals,
+  blogArticles,
+  blogGenerationSettings,
   type User,
   type UpsertUser,
   type InsertSupportTicket,
@@ -51,9 +53,13 @@ import {
   type InsertReferralCode,
   type Referral,
   type InsertReferral,
+  type BlogArticle,
+  type InsertBlogArticle,
+  type BlogGenerationSettings,
+  type InsertBlogGenerationSettings,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, like, isNull, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 // Interface for storage operations
@@ -179,6 +185,31 @@ export interface IStorage {
   getUserPoints(userId: string): Promise<number>;
   addUserPoints(userId: string, points: number, reason?: string): Promise<UserAccount | undefined>;
   deductUserPoints(userId: string, points: number): Promise<{success: boolean, remainingPoints: number, newBalance: number}>;
+
+  // Blog article operations
+  createBlogArticle(articleData: InsertBlogArticle): Promise<BlogArticle>;
+  getBlogArticleById(id: string): Promise<BlogArticle | undefined>;
+  getBlogArticleBySlug(slug: string): Promise<BlogArticle | undefined>;
+  getPublishedBlogArticles(filters?: {
+    category?: string;
+    featured?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<BlogArticle[]>;
+  getAllBlogArticles(filters?: {
+    status?: string;
+    category?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<BlogArticle[]>;
+  updateBlogArticle(id: string, updates: Partial<BlogArticle>): Promise<BlogArticle | undefined>;
+  incrementViewCount(id: string): Promise<BlogArticle | undefined>;
+  deleteBlogArticle(id: string): Promise<boolean>;
+
+  // Blog generation settings operations
+  getBlogGenerationSettings(): Promise<BlogGenerationSettings | undefined>;
+  updateBlogGenerationSettings(updates: Partial<BlogGenerationSettings>): Promise<BlogGenerationSettings | undefined>;
+  createBlogGenerationSettings(settingsData: InsertBlogGenerationSettings): Promise<BlogGenerationSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1324,6 +1355,154 @@ export class DatabaseStorage implements IStorage {
       newBalance: updatedAccount?.points || 0
     };
   }
+
+  // Blog article operations
+  async createBlogArticle(articleData: InsertBlogArticle): Promise<BlogArticle> {
+    const [article] = await db
+      .insert(blogArticles)
+      .values(articleData)
+      .returning();
+    return article;
+  }
+
+  async getBlogArticleById(id: string): Promise<BlogArticle | undefined> {
+    const [article] = await db
+      .select()
+      .from(blogArticles)
+      .where(eq(blogArticles.id, id));
+    return article;
+  }
+
+  async getBlogArticleBySlug(slug: string): Promise<BlogArticle | undefined> {
+    const [article] = await db
+      .select()
+      .from(blogArticles)
+      .where(eq(blogArticles.slug, slug));
+    return article;
+  }
+
+  async getPublishedBlogArticles(filters?: {
+    category?: string;
+    featured?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<BlogArticle[]> {
+    const conditions = [eq(blogArticles.status, 'published')];
+
+    if (filters?.category) {
+      conditions.push(eq(blogArticles.category, filters.category));
+    }
+
+    if (filters?.featured !== undefined) {
+      conditions.push(eq(blogArticles.featured, filters.featured));
+    }
+
+    const baseQuery = db
+      .select()
+      .from(blogArticles)
+      .where(and(...conditions))
+      .orderBy(desc(blogArticles.publishedAt));
+
+    if (filters?.limit != null && filters?.offset != null) {
+      return await baseQuery.limit(filters.limit).offset(filters.offset);
+    }
+    if (filters?.limit != null) {
+      return await baseQuery.limit(filters.limit);
+    }
+    if (filters?.offset != null) {
+      return await baseQuery.offset(filters.offset);
+    }
+    
+    return await baseQuery;
+  }
+
+  async getAllBlogArticles(filters?: {
+    status?: string;
+    category?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<BlogArticle[]> {
+    const conditions = [];
+    if (filters?.status) {
+      conditions.push(eq(blogArticles.status, filters.status));
+    }
+    if (filters?.category) {
+      conditions.push(eq(blogArticles.category, filters.category));
+    }
+
+    const whereQuery = conditions.length > 0 
+      ? db.select().from(blogArticles).where(and(...conditions))
+      : db.select().from(blogArticles);
+
+    const orderedQuery = whereQuery.orderBy(desc(blogArticles.createdAt));
+
+    if (filters?.limit != null && filters?.offset != null) {
+      return await orderedQuery.limit(filters.limit).offset(filters.offset);
+    }
+    if (filters?.limit != null) {
+      return await orderedQuery.limit(filters.limit);
+    }
+    if (filters?.offset != null) {
+      return await orderedQuery.offset(filters.offset);
+    }
+    
+    return await orderedQuery;
+  }
+
+  async updateBlogArticle(id: string, updates: Partial<BlogArticle>): Promise<BlogArticle | undefined> {
+    const [updatedArticle] = await db
+      .update(blogArticles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(blogArticles.id, id))
+      .returning();
+    return updatedArticle;
+  }
+
+  async incrementViewCount(id: string): Promise<BlogArticle | undefined> {
+    const [updatedArticle] = await db
+      .update(blogArticles)
+      .set({ 
+        viewCount: sql`${blogArticles.viewCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(blogArticles.id, id))
+      .returning();
+    return updatedArticle;
+  }
+
+  async deleteBlogArticle(id: string): Promise<boolean> {
+    const result = await db
+      .delete(blogArticles)
+      .where(eq(blogArticles.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Blog generation settings operations
+  async getBlogGenerationSettings(): Promise<BlogGenerationSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(blogGenerationSettings)
+      .limit(1);
+    return settings;
+  }
+
+  async updateBlogGenerationSettings(updates: Partial<BlogGenerationSettings>): Promise<BlogGenerationSettings | undefined> {
+    // First, try to update existing settings
+    const [updatedSettings] = await db
+      .update(blogGenerationSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .returning();
+    
+    return updatedSettings;
+  }
+
+  async createBlogGenerationSettings(settingsData: InsertBlogGenerationSettings): Promise<BlogGenerationSettings> {
+    const [settings] = await db
+      .insert(blogGenerationSettings)
+      .values(settingsData)
+      .returning();
+    return settings;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -1344,6 +1523,8 @@ export class MemStorage implements IStorage {
   private userAchievementsData: UserAchievement[] = [];
   private referralCodesData: ReferralCode[] = [];
   private referralsData: Referral[] = [];
+  private blogArticlesData: BlogArticle[] = [];
+  private blogGenerationSettingsData: BlogGenerationSettings[] = [];
   private ticketIdCounter = 1;
   private idCounter = 1;
 
@@ -2691,6 +2872,183 @@ export class MemStorage implements IStorage {
       remainingPoints: 0,
       newBalance: currentPoints - points
     };
+  }
+
+  // Blog article operations (in-memory stub)
+  async createBlogArticle(articleData: InsertBlogArticle): Promise<BlogArticle> {
+    const article: BlogArticle = {
+      id: `blog_${this.idCounter++}`,
+      title: articleData.title,
+      slug: articleData.slug,
+      content: articleData.content,
+      excerpt: articleData.excerpt || null,
+      category: articleData.category || 'data-protection',
+      tags: articleData.tags || [],
+      seoTitle: articleData.seoTitle || null,
+      seoDescription: articleData.seoDescription || null,
+      status: articleData.status || 'draft',
+      publishedAt: articleData.publishedAt || null,
+      generatedBy: articleData.generatedBy || 'openai-gpt-4',
+      authorName: articleData.authorName || 'ResCrub AI',
+      readingTime: articleData.readingTime || 5,
+      isAutoGenerated: articleData.isAutoGenerated || true,
+      relatedTopics: articleData.relatedTopics || [],
+      viewCount: 0,
+      featured: articleData.featured || false,
+      generationPrompt: articleData.generationPrompt || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.blogArticlesData.push(article);
+    return article;
+  }
+
+  async getBlogArticleById(id: string): Promise<BlogArticle | undefined> {
+    return this.blogArticlesData.find(article => article.id === id);
+  }
+
+  async getBlogArticleBySlug(slug: string): Promise<BlogArticle | undefined> {
+    return this.blogArticlesData.find(article => article.slug === slug);
+  }
+
+  async getPublishedBlogArticles(filters?: {
+    category?: string;
+    featured?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<BlogArticle[]> {
+    let articles = this.blogArticlesData.filter(article => article.status === 'published');
+
+    if (filters?.category) {
+      articles = articles.filter(article => article.category === filters.category);
+    }
+
+    if (filters?.featured !== undefined) {
+      articles = articles.filter(article => article.featured === filters.featured);
+    }
+
+    // Sort by publishedAt desc
+    articles.sort((a, b) => {
+      const aDate = a.publishedAt || a.createdAt || new Date();
+      const bDate = b.publishedAt || b.createdAt || new Date();
+      return bDate.getTime() - aDate.getTime();
+    });
+
+    const offset = filters?.offset || 0;
+    const limit = filters?.limit;
+
+    if (limit) {
+      return articles.slice(offset, offset + limit);
+    }
+
+    return articles.slice(offset);
+  }
+
+  async getAllBlogArticles(filters?: {
+    status?: string;
+    category?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<BlogArticle[]> {
+    let articles = [...this.blogArticlesData];
+
+    if (filters?.status) {
+      articles = articles.filter(article => article.status === filters.status);
+    }
+
+    if (filters?.category) {
+      articles = articles.filter(article => article.category === filters.category);
+    }
+
+    // Sort by createdAt desc
+    articles.sort((a, b) => {
+      const aDate = a.createdAt || new Date();
+      const bDate = b.createdAt || new Date();
+      return bDate.getTime() - aDate.getTime();
+    });
+
+    const offset = filters?.offset || 0;
+    const limit = filters?.limit;
+
+    if (limit) {
+      return articles.slice(offset, offset + limit);
+    }
+
+    return articles.slice(offset);
+  }
+
+  async updateBlogArticle(id: string, updates: Partial<BlogArticle>): Promise<BlogArticle | undefined> {
+    const index = this.blogArticlesData.findIndex(article => article.id === id);
+    if (index === -1) return undefined;
+
+    this.blogArticlesData[index] = {
+      ...this.blogArticlesData[index],
+      ...updates,
+      updatedAt: new Date()
+    };
+
+    return this.blogArticlesData[index];
+  }
+
+  async incrementViewCount(id: string): Promise<BlogArticle | undefined> {
+    const index = this.blogArticlesData.findIndex(article => article.id === id);
+    if (index === -1) return undefined;
+
+    this.blogArticlesData[index] = {
+      ...this.blogArticlesData[index],
+      viewCount: (this.blogArticlesData[index].viewCount || 0) + 1,
+      updatedAt: new Date()
+    };
+
+    return this.blogArticlesData[index];
+  }
+
+  async deleteBlogArticle(id: string): Promise<boolean> {
+    const index = this.blogArticlesData.findIndex(article => article.id === id);
+    if (index === -1) return false;
+
+    this.blogArticlesData.splice(index, 1);
+    return true;
+  }
+
+  // Blog generation settings operations (in-memory stub)
+  async getBlogGenerationSettings(): Promise<BlogGenerationSettings | undefined> {
+    return this.blogGenerationSettingsData[0];
+  }
+
+  async updateBlogGenerationSettings(updates: Partial<BlogGenerationSettings>): Promise<BlogGenerationSettings | undefined> {
+    if (this.blogGenerationSettingsData.length === 0) {
+      return undefined;
+    }
+
+    this.blogGenerationSettingsData[0] = {
+      ...this.blogGenerationSettingsData[0],
+      ...updates,
+      updatedAt: new Date()
+    };
+
+    return this.blogGenerationSettingsData[0];
+  }
+
+  async createBlogGenerationSettings(settingsData: InsertBlogGenerationSettings): Promise<BlogGenerationSettings> {
+    const settings: BlogGenerationSettings = {
+      id: `settings_${this.idCounter++}`,
+      isEnabled: settingsData.isEnabled ?? true,
+      frequency: settingsData.frequency || 'daily',
+      maxArticlesPerDay: settingsData.maxArticlesPerDay ?? 3,
+      topics: settingsData.topics || ['защита персональных данных', 'права пользователей', 'кибербезопасность', '152-ФЗ', 'GDPR в России'],
+      contentLength: settingsData.contentLength || 'medium',
+      targetAudience: settingsData.targetAudience || 'general',
+      seoOptimized: settingsData.seoOptimized ?? true,
+      includeStats: settingsData.includeStats ?? true,
+      lastGeneratedAt: null,
+      nextGenerationAt: null,
+      generationHistory: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.blogGenerationSettingsData.push(settings);
+    return settings;
   }
 }
 
