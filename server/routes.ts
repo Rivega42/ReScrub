@@ -345,6 +345,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = userAccount.id;
       req.session.email = userAccount.email;
       
+      console.log('✅ Login successful - Session created:', {
+        sessionId: req.session.id,
+        userId: req.session.userId,
+        email: req.session.email,
+        isAdmin: userAccount.isAdmin,
+        adminRole: userAccount.adminRole
+      });
+      
       res.json({ 
         success: true, 
         message: "Вход выполнен успешно",
@@ -442,8 +450,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user (email auth)
   app.get('/api/auth/me', async (req: any, res) => {
     try {
+      // Debug session data
+      console.log('🔍 /api/auth/me - Session debug:', {
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        email: req.session?.email,
+        cookie: req.session?.cookie
+      });
+      
       // Check if user has an active session
       if (!req.session || !req.session.userId) {
+        console.log('❌ /api/auth/me - No session or userId');
         return res.status(401).json({ 
           success: false, 
           message: "Unauthorized" 
