@@ -2240,6 +2240,7 @@ ${allPages.map(page => `  <url>
 
       // Get scheduler info (synchronous, no DB calls)
       const blogScheduler = SchedulerInstance.get();
+      const schedulerStatus = blogScheduler?.getStatus();
 
       const stats = {
         users: {
@@ -2251,9 +2252,9 @@ ${allPages.map(page => `  <url>
         blog: {
           totalArticles: totalArticles || 0,
           publishedArticles: publishedArticles || 0,
-          schedulerStatus: blogScheduler?.isRunning() || false,
+          schedulerStatus: schedulerStatus?.isRunning || false,
           lastGenerated: lastGeneratedDate ? lastGeneratedDate.toISOString() : null,
-          nextGeneration: blogScheduler?.getNextScheduledTime()?.toISOString() || null
+          nextGeneration: schedulerStatus?.nextRun?.toISOString() || null
         },
         system: {
           uptime: Math.floor(process.uptime()),
