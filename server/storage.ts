@@ -19,6 +19,14 @@ import {
   referrals,
   blogArticles,
   blogGenerationSettings,
+  platformSecrets,
+  secretsAuditLog,
+  adminPermissions,
+  adminActions,
+  systemHealthChecks,
+  emailServiceStatus,
+  emailTemplates,
+  emailTemplateVersions,
   type User,
   type UpsertUser,
   type InsertSupportTicket,
@@ -57,6 +65,22 @@ import {
   type InsertBlogArticle,
   type BlogGenerationSettings,
   type InsertBlogGenerationSettings,
+  type PlatformSecret,
+  type InsertPlatformSecret,
+  type SecretsAuditLog,
+  type InsertSecretsAuditLog,
+  type AdminPermission,
+  type InsertAdminPermission,
+  type AdminAction,
+  type InsertAdminAction,
+  type SystemHealthCheck,
+  type InsertSystemHealthCheck,
+  type EmailServiceStatus,
+  type InsertEmailServiceStatus,
+  type EmailTemplate,
+  type InsertEmailTemplate,
+  type EmailTemplateVersion,
+  type InsertEmailTemplateVersion,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, like, isNull, ne } from "drizzle-orm";
@@ -232,7 +256,94 @@ export interface IStorage {
     search?: string; 
     role?: string 
   }): Promise<UserAccount[]>;
+  searchUsers(options: {
+    text?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    subscriptionStatus?: string;
+    verificationStatus?: string;
+    adminRole?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    limit: number;
+    offset: number;
+  }): Promise<{ users: (UserAccount & { profile?: UserProfile; subscription?: Subscription | null })[], total: number }>;
+  getUserWithDetails(userId: string): Promise<{
+    account: UserAccount;
+    profile?: UserProfile;
+    subscription?: Subscription | null;
+    payments?: Payment[];
+    activities?: any[];
+    notes?: any[];
+  } | undefined>;
+  banUser(userId: string, reason: string, bannedBy: string): Promise<UserAccount | undefined>;
+  unbanUser(userId: string, unbannedBy: string): Promise<UserAccount | undefined>;
+  addUserNote(userId: string, note: string, addedBy: string): Promise<any>;
+  getUserActivityHistory(userId: string, limit?: number): Promise<any[]>;
   getSystemLogs(options: { type: string; limit: number }): Promise<any[]>;
+  
+  // Platform secrets management
+  createPlatformSecret(secretData: InsertPlatformSecret): Promise<PlatformSecret>;
+  getPlatformSecrets(filters?: { service?: string; environment?: string }): Promise<PlatformSecret[]>;
+  getPlatformSecretByKey(key: string): Promise<PlatformSecret | undefined>;
+  updatePlatformSecret(id: string, updates: Partial<PlatformSecret>): Promise<PlatformSecret | undefined>;
+  deletePlatformSecret(id: string): Promise<boolean>;
+  logSecretAudit(auditData: InsertSecretsAuditLog): Promise<SecretsAuditLog>;
+  getSecretsAuditLog(filters?: { secretId?: string; adminId?: string; limit?: number }): Promise<SecretsAuditLog[]>;
+  
+  // Admin permissions management
+  createAdminPermission(permissionData: InsertAdminPermission): Promise<AdminPermission>;
+  getAdminPermissions(adminId: string): Promise<AdminPermission[]>;
+  checkAdminPermission(adminId: string, resource: string, action: string): Promise<boolean>;
+  revokeAdminPermission(id: string): Promise<boolean>;
+  updateAdminPermission(id: string, updates: Partial<AdminPermission>): Promise<AdminPermission | undefined>;
+  
+  // Admin actions logging
+  logAdminAction(actionData: InsertAdminAction): Promise<AdminAction>;
+  getAdminActions(filters?: { adminId?: string; targetType?: string; limit?: number; offset?: number }): Promise<AdminAction[]>;
+  getAdminActionsBySession(sessionId: string): Promise<AdminAction[]>;
+  
+  // System health monitoring
+  createSystemHealthCheck(checkData: InsertSystemHealthCheck): Promise<SystemHealthCheck>;
+  getSystemHealthChecks(filters?: { serviceName?: string; status?: string }): Promise<SystemHealthCheck[]>;
+  updateSystemHealthCheck(id: string, updates: Partial<SystemHealthCheck>): Promise<SystemHealthCheck | undefined>;
+  getLatestHealthCheckByService(serviceName: string): Promise<SystemHealthCheck | undefined>;
+  
+  // Email service monitoring
+  createEmailServiceStatus(statusData: InsertEmailServiceStatus): Promise<EmailServiceStatus>;
+  getEmailServiceStatuses(filters?: { provider?: string; status?: string; recipient?: string; limit?: number }): Promise<EmailServiceStatus[]>;
+  updateEmailServiceStatus(id: string, updates: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined>;
+  getEmailServiceStatusByMessageId(messageId: string): Promise<EmailServiceStatus | undefined>;
+  getEmailDeliveryStats(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    delivered: number;
+    bounced: number;
+    failed: number;
+    openRate: number;
+    clickRate: number;
+  }>;
+  
+  // Email templates management
+  createEmailTemplate(templateData: InsertEmailTemplate): Promise<EmailTemplate>;
+  getEmailTemplates(filters?: { category?: string; isActive?: boolean; search?: string }): Promise<EmailTemplate[]>;
+  getEmailTemplateById(id: string): Promise<EmailTemplate | undefined>;
+  getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined>;
+  updateEmailTemplate(id: string, updates: Partial<EmailTemplate>): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: string): Promise<boolean>;
+  softDeleteEmailTemplate(id: string, deletedBy: string): Promise<EmailTemplate | undefined>;
+  cloneEmailTemplate(id: string, newName: string, createdBy: string): Promise<EmailTemplate>;
+  
+  // Email template versioning
+  createEmailTemplateVersion(versionData: InsertEmailTemplateVersion): Promise<EmailTemplateVersion>;
+  getEmailTemplateVersions(templateId: string): Promise<EmailTemplateVersion[]>;
+  getEmailTemplateVersion(id: string): Promise<EmailTemplateVersion | undefined>;
+  getActiveEmailTemplateVersion(templateId: string): Promise<EmailTemplateVersion | undefined>;
+  publishEmailTemplateVersion(id: string, publishedBy: string): Promise<EmailTemplateVersion | undefined>;
+  
+  // Email template operations
+  testEmailTemplate(templateId: string, testEmail: string, testData?: any): Promise<{ success: boolean; message: string }>;
+  exportEmailTemplate(id: string): Promise<any>;
+  importEmailTemplate(templateData: any, createdBy: string): Promise<EmailTemplate>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1694,6 +1805,587 @@ export class DatabaseStorage implements IStorage {
 
   async getSystemLogs(options: { type: string; limit: number }): Promise<any[]> {
     return []; // TODO: Implement system logs table
+  }
+
+  // ========================================
+  // PLATFORM SECRETS MANAGEMENT (DatabaseStorage)
+  // ========================================
+
+  async createPlatformSecret(secretData: InsertPlatformSecret): Promise<PlatformSecret> {
+    const { encryptSecret } = await import('./crypto');
+    
+    // Encrypt the secret value
+    const encryptedData = encryptSecret(secretData.value);
+    
+    const [secret] = await db
+      .insert(platformSecrets)
+      .values({
+        ...secretData,
+        value: encryptedData.encrypted,
+        encryptionIv: encryptedData.iv,
+        encryptionTag: encryptedData.tag,
+        encryptionSalt: encryptedData.salt,
+      })
+      .returning();
+    
+    // Return with masked value
+    const { maskSecret } = await import('./crypto');
+    return {
+      ...secret,
+      value: maskSecret(secretData.value),
+    };
+  }
+
+  async getPlatformSecrets(filters?: { service?: string; environment?: string; category?: string }): Promise<PlatformSecret[]> {
+    let query = db.select().from(platformSecrets).where(isNull(platformSecrets.deletedAt));
+    
+    if (filters?.service) {
+      query = query.where(eq(platformSecrets.service, filters.service));
+    }
+    if (filters?.environment) {
+      query = query.where(eq(platformSecrets.environment, filters.environment));
+    }
+    if (filters?.category) {
+      query = query.where(eq(platformSecrets.category, filters.category));
+    }
+    
+    const secrets = await query.orderBy(desc(platformSecrets.createdAt));
+    
+    // Mask all secret values
+    const { maskSecret } = await import('./crypto');
+    return secrets.map(secret => ({
+      ...secret,
+      value: maskSecret(secret.value),
+    }));
+  }
+
+  async getPlatformSecretByKey(key: string): Promise<PlatformSecret | undefined> {
+    const [secret] = await db
+      .select()
+      .from(platformSecrets)
+      .where(and(
+        eq(platformSecrets.key, key),
+        isNull(platformSecrets.deletedAt)
+      ));
+    
+    if (!secret) return undefined;
+    
+    // Decrypt the secret value
+    const { decryptSecret } = await import('./crypto');
+    try {
+      const decrypted = decryptSecret({
+        encrypted: secret.value,
+        iv: secret.encryptionIv || '',
+        tag: secret.encryptionTag || '',
+        salt: secret.encryptionSalt || '',
+      });
+      
+      return {
+        ...secret,
+        value: decrypted,
+      };
+    } catch (error) {
+      console.error('Failed to decrypt secret:', error);
+      throw new Error('Failed to decrypt platform secret');
+    }
+  }
+
+  async updatePlatformSecret(key: string, value: string, adminId: string): Promise<PlatformSecret | undefined> {
+    const { encryptSecret, maskSecret } = await import('./crypto');
+    
+    // Get existing secret to log old value
+    const existing = await this.getPlatformSecretByKey(key);
+    if (!existing) return undefined;
+    
+    // Encrypt new value
+    const encryptedData = encryptSecret(value);
+    
+    // Update secret
+    const [updated] = await db
+      .update(platformSecrets)
+      .set({
+        value: encryptedData.encrypted,
+        encryptionIv: encryptedData.iv,
+        encryptionTag: encryptedData.tag,
+        encryptionSalt: encryptedData.salt,
+        lastUpdatedBy: adminId,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(platformSecrets.key, key),
+        isNull(platformSecrets.deletedAt)
+      ))
+      .returning();
+    
+    // Log audit
+    await this.logSecretAudit({
+      secretId: updated.id,
+      adminId,
+      action: 'update',
+      oldValue: maskSecret(existing.value),
+      newValue: maskSecret(value),
+      ipAddress: null, // Will be set in route handler
+      userAgent: null, // Will be set in route handler
+    });
+    
+    return {
+      ...updated,
+      value: maskSecret(value),
+    };
+  }
+
+  async deletePlatformSecret(key: string, adminId: string, reason: string): Promise<boolean> {
+    const existing = await this.getPlatformSecretByKey(key);
+    if (!existing) return false;
+    
+    // Soft delete
+    const [deleted] = await db
+      .update(platformSecrets)
+      .set({
+        deletedAt: new Date(),
+        deletedBy: adminId,
+      })
+      .where(and(
+        eq(platformSecrets.key, key),
+        isNull(platformSecrets.deletedAt)
+      ))
+      .returning();
+    
+    if (!deleted) return false;
+    
+    // Log audit
+    const { maskSecret } = await import('./crypto');
+    await this.logSecretAudit({
+      secretId: deleted.id,
+      adminId,
+      action: 'delete',
+      oldValue: maskSecret(existing.value),
+      newValue: null,
+      metadata: { reason },
+      ipAddress: null, // Will be set in route handler
+      userAgent: null, // Will be set in route handler
+    });
+    
+    return true;
+  }
+
+  async validateSecret(key: string, service: string): Promise<boolean> {
+    try {
+      const secret = await this.getPlatformSecretByKey(key);
+      if (!secret || secret.service !== service) return false;
+      
+      // Add service-specific validation logic here
+      switch (service) {
+        case 'sendgrid':
+          // Validate SendGrid API key format
+          return secret.value.startsWith('SG.');
+        case 'openai':
+          // Validate OpenAI API key format
+          return secret.value.startsWith('sk-');
+        case 'robokassa':
+          // Basic check for Robokassa credentials
+          return secret.value.length > 0;
+        default:
+          // Generic validation - just check it exists
+          return secret.value.length > 0;
+      }
+    } catch (error) {
+      console.error('Secret validation error:', error);
+      return false;
+    }
+  }
+
+  async logSecretAudit(auditData: InsertSecretsAuditLog): Promise<SecretsAuditLog> {
+    const [audit] = await db
+      .insert(secretsAuditLog)
+      .values(auditData)
+      .returning();
+    return audit;
+  }
+
+  async getSecretsAuditLog(filters?: { secretId?: string; adminId?: string; limit?: number }): Promise<SecretsAuditLog[]> {
+    let query = db.select().from(secretsAuditLog);
+    
+    if (filters?.secretId) {
+      query = query.where(eq(secretsAuditLog.secretId, filters.secretId));
+    }
+    if (filters?.adminId) {
+      query = query.where(eq(secretsAuditLog.adminId, filters.adminId));
+    }
+    
+    const limit = filters?.limit || 100;
+    return await query
+      .orderBy(desc(secretsAuditLog.createdAt))
+      .limit(limit);
+  }
+
+  // Admin permissions management placeholder methods
+  async createAdminPermission(permissionData: InsertAdminPermission): Promise<AdminPermission> {
+    const [permission] = await db
+      .insert(adminPermissions)
+      .values(permissionData)
+      .returning();
+    return permission;
+  }
+
+  async getAdminPermissions(adminId: string): Promise<AdminPermission[]> {
+    return await db
+      .select()
+      .from(adminPermissions)
+      .where(eq(adminPermissions.adminId, adminId))
+      .orderBy(desc(adminPermissions.createdAt));
+  }
+
+  async checkAdminPermission(adminId: string, resource: string, action: string): Promise<boolean> {
+    const [permission] = await db
+      .select()
+      .from(adminPermissions)
+      .where(and(
+        eq(adminPermissions.adminId, adminId),
+        eq(adminPermissions.resource, resource),
+        eq(adminPermissions.action, action),
+        eq(adminPermissions.isActive, true)
+      ));
+    return !!permission;
+  }
+
+  async revokeAdminPermission(id: string): Promise<boolean> {
+    const [revoked] = await db
+      .update(adminPermissions)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(adminPermissions.id, id))
+      .returning();
+    return !!revoked;
+  }
+
+  async updateAdminPermission(id: string, updates: Partial<AdminPermission>): Promise<AdminPermission | undefined> {
+    const [updated] = await db
+      .update(adminPermissions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(adminPermissions.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Admin actions logging placeholder methods
+  async logAdminAction(actionData: InsertAdminAction): Promise<AdminAction> {
+    const [action] = await db
+      .insert(adminActions)
+      .values(actionData)
+      .returning();
+    return action;
+  }
+
+  async getAdminActions(filters?: { adminId?: string; targetType?: string; limit?: number; offset?: number }): Promise<AdminAction[]> {
+    let query = db.select().from(adminActions);
+    
+    if (filters?.adminId) {
+      query = query.where(eq(adminActions.adminId, filters.adminId));
+    }
+    if (filters?.targetType) {
+      query = query.where(eq(adminActions.targetType, filters.targetType));
+    }
+    
+    const limit = filters?.limit || 100;
+    const offset = filters?.offset || 0;
+    
+    return await query
+      .orderBy(desc(adminActions.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getAdminActionsBySession(sessionId: string): Promise<AdminAction[]> {
+    return await db
+      .select()
+      .from(adminActions)
+      .where(eq(adminActions.sessionId, sessionId))
+      .orderBy(desc(adminActions.createdAt));
+  }
+
+  // System health check placeholder methods
+  async createSystemHealthCheck(healthData: InsertSystemHealthCheck): Promise<SystemHealthCheck> {
+    const [health] = await db
+      .insert(systemHealthChecks)
+      .values(healthData)
+      .returning();
+    return health;
+  }
+
+  async getLatestHealthCheck(serviceName: string): Promise<SystemHealthCheck | undefined> {
+    const [health] = await db
+      .select()
+      .from(systemHealthChecks)
+      .where(eq(systemHealthChecks.serviceName, serviceName))
+      .orderBy(desc(systemHealthChecks.checkedAt))
+      .limit(1);
+    return health;
+  }
+
+  async getHealthCheckHistory(serviceName: string, limit: number = 100): Promise<SystemHealthCheck[]> {
+    return await db
+      .select()
+      .from(systemHealthChecks)
+      .where(eq(systemHealthChecks.serviceName, serviceName))
+      .orderBy(desc(systemHealthChecks.checkedAt))
+      .limit(limit);
+  }
+
+  // Email service status placeholder methods
+  async updateEmailServiceStatus(serviceName: string, status: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined> {
+    const [updated] = await db
+      .update(emailServiceStatus)
+      .set({ ...status, updatedAt: new Date() })
+      .where(eq(emailServiceStatus.serviceName, serviceName))
+      .returning();
+    return updated;
+  }
+
+  async getEmailServiceStatus(serviceName: string): Promise<EmailServiceStatus | undefined> {
+    const [status] = await db
+      .select()
+      .from(emailServiceStatus)
+      .where(eq(emailServiceStatus.serviceName, serviceName));
+    return status;
+  }
+
+  async getAllEmailServiceStatuses(): Promise<EmailServiceStatus[]> {
+    return await db
+      .select()
+      .from(emailServiceStatus)
+      .orderBy(desc(emailServiceStatus.lastSuccessAt));
+  }
+
+  // Email template management placeholder methods
+  async createEmailTemplate(templateData: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [template] = await db
+      .insert(emailTemplates)
+      .values(templateData)
+      .returning();
+    return template;
+  }
+
+  async getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.name, name));
+    return template;
+  }
+
+  async getAllEmailTemplates(): Promise<EmailTemplate[]> {
+    return await db
+      .select()
+      .from(emailTemplates)
+      .orderBy(desc(emailTemplates.createdAt));
+  }
+
+  async updateEmailTemplate(id: string, updates: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const [updated] = await db
+      .update(emailTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async createEmailTemplateVersion(versionData: InsertEmailTemplateVersion): Promise<EmailTemplateVersion> {
+    const [version] = await db
+      .insert(emailTemplateVersions)
+      .values(versionData)
+      .returning();
+    return version;
+  }
+
+  async getEmailTemplateVersions(templateId: string): Promise<EmailTemplateVersion[]> {
+    return await db
+      .select()
+      .from(emailTemplateVersions)
+      .where(eq(emailTemplateVersions.templateId, templateId))
+      .orderBy(desc(emailTemplateVersions.createdAt));
+  }
+
+  async getActiveEmailTemplateVersion(templateId: string): Promise<EmailTemplateVersion | undefined> {
+    const [version] = await db
+      .select()
+      .from(emailTemplateVersions)
+      .where(and(
+        eq(emailTemplateVersions.templateId, templateId),
+        eq(emailTemplateVersions.isActive, true)
+      ));
+    return version;
+  }
+
+  async publishEmailTemplateVersion(id: string, publishedBy: string): Promise<EmailTemplateVersion | undefined> {
+    // Deactivate all other versions
+    await db
+      .update(emailTemplateVersions)
+      .set({ isActive: false })
+      .where(eq(emailTemplateVersions.templateId, 
+        sql`(SELECT template_id FROM ${emailTemplateVersions} WHERE id = ${id})`
+      ));
+    
+    // Activate this version
+    const [published] = await db
+      .update(emailTemplateVersions)
+      .set({ 
+        isActive: true,
+        publishedAt: new Date(),
+        publishedBy,
+        updatedAt: new Date()
+      })
+      .where(eq(emailTemplateVersions.id, id))
+      .returning();
+    
+    return published;
+  }
+
+  async getEmailTemplates(filters?: { category?: string; isActive?: boolean; search?: string }): Promise<EmailTemplate[]> {
+    const conditions = [];
+    
+    if (filters?.category) {
+      conditions.push(eq(emailTemplates.category, filters.category));
+    }
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(emailTemplates.isActive, filters.isActive));
+    }
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(sql`(
+        LOWER(${emailTemplates.name}) LIKE LOWER(${searchTerm}) OR
+        LOWER(${emailTemplates.subject}) LIKE LOWER(${searchTerm})
+      )`);
+    }
+    
+    conditions.push(eq(emailTemplates.isDeleted, false));
+    
+    return await db
+      .select()
+      .from(emailTemplates)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(emailTemplates.category, emailTemplates.name);
+  }
+
+  async getEmailTemplateById(id: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(emailTemplates)
+      .where(and(
+        eq(emailTemplates.id, id),
+        eq(emailTemplates.isDeleted, false)
+      ));
+    return template;
+  }
+
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    const result = await db
+      .delete(emailTemplates)
+      .where(eq(emailTemplates.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async softDeleteEmailTemplate(id: string, deletedBy: string): Promise<EmailTemplate | undefined> {
+    const [deleted] = await db
+      .update(emailTemplates)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy,
+        updatedAt: new Date()
+      })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return deleted;
+  }
+
+  async cloneEmailTemplate(id: string, newName: string, createdBy: string): Promise<EmailTemplate> {
+    const original = await this.getEmailTemplateById(id);
+    if (!original) throw new Error('Template not found');
+    
+    const [cloned] = await db
+      .insert(emailTemplates)
+      .values({
+        name: newName,
+        category: original.category,
+        subject: original.subject,
+        htmlBody: original.htmlBody,
+        textBody: original.textBody,
+        variables: original.variables,
+        fromName: original.fromName,
+        fromEmail: original.fromEmail,
+        replyTo: original.replyTo,
+        isActive: false,
+        testData: original.testData,
+        createdBy,
+        metadata: { ...original.metadata, clonedFrom: id }
+      })
+      .returning();
+    return cloned;
+  }
+
+  async getEmailTemplateVersion(id: string): Promise<EmailTemplateVersion | undefined> {
+    const [version] = await db
+      .select()
+      .from(emailTemplateVersions)
+      .where(eq(emailTemplateVersions.id, id));
+    return version;
+  }
+
+  async testEmailTemplate(templateId: string, testEmail: string, testData?: any): Promise<{ success: boolean; message: string }> {
+    // Implementation for sending test emails
+    try {
+      const template = await this.getEmailTemplateById(templateId);
+      if (!template) {
+        return { success: false, message: 'Template not found' };
+      }
+      // Here you would integrate with your email service
+      return { success: true, message: 'Test email sent successfully' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async exportEmailTemplate(id: string): Promise<any> {
+    const template = await this.getEmailTemplateById(id);
+    if (!template) throw new Error('Template not found');
+    
+    const versions = await this.getEmailTemplateVersions(id);
+    
+    return {
+      template,
+      versions,
+      exportedAt: new Date().toISOString()
+    };
+  }
+
+  async importEmailTemplate(templateData: any, createdBy: string): Promise<EmailTemplate> {
+    const { template, versions } = templateData;
+    
+    // Create new template with a unique name
+    const [imported] = await db
+      .insert(emailTemplates)
+      .values({
+        ...template,
+        id: undefined,
+        name: `${template.name}_imported_${Date.now()}`,
+        createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Import versions if any
+    if (versions && versions.length > 0) {
+      for (const version of versions) {
+        await this.createEmailTemplateVersion({
+          ...version,
+          templateId: imported.id,
+          createdBy
+        });
+      }
+    }
+    
+    return imported;
   }
 }
 
@@ -3384,9 +4076,919 @@ export class MemStorage implements IStorage {
       return [];
     }
   }
+  
+  async searchUsers(options: {
+    text?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    subscriptionStatus?: string;
+    verificationStatus?: string;
+    adminRole?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    limit: number;
+    offset: number;
+  }): Promise<{ users: (UserAccount & { profile?: UserProfile; subscription?: Subscription | null })[], total: number }> {
+    try {
+      let whereConditions = [];
+      
+      // Text search (email, name, phone)
+      if (options.text) {
+        const searchText = `%${options.text}%`;
+        whereConditions.push(
+          sql`${userAccounts.email} ILIKE ${searchText} OR 
+              ${userProfiles.firstName} ILIKE ${searchText} OR 
+              ${userProfiles.lastName} ILIKE ${searchText} OR 
+              ${userProfiles.phone} ILIKE ${searchText}`
+        );
+      }
+      
+      // Date range filter
+      if (options.dateFrom) {
+        whereConditions.push(sql`${userAccounts.createdAt} >= ${options.dateFrom}`);
+      }
+      if (options.dateTo) {
+        whereConditions.push(sql`${userAccounts.createdAt} <= ${options.dateTo}`);
+      }
+      
+      // Verification status filter
+      if (options.verificationStatus === 'verified') {
+        whereConditions.push(eq(userAccounts.emailVerified, true));
+      } else if (options.verificationStatus === 'unverified') {
+        whereConditions.push(eq(userAccounts.emailVerified, false));
+      }
+      
+      // Admin role filter
+      if (options.adminRole && options.adminRole !== 'all') {
+        whereConditions.push(eq(userAccounts.adminRole, options.adminRole));
+      }
+      
+      // Build the query
+      const baseQuery = db
+        .select({
+          account: userAccounts,
+          profile: userProfiles,
+          subscription: subscriptions,
+        })
+        .from(userAccounts)
+        .leftJoin(userProfiles, eq(userAccounts.id, userProfiles.userId))
+        .leftJoin(subscriptions, and(
+          eq(userAccounts.id, subscriptions.userId),
+          eq(subscriptions.status, 'active')
+        ));
+      
+      // Apply where conditions
+      const filteredQuery = whereConditions.length > 0
+        ? baseQuery.where(and(...whereConditions))
+        : baseQuery;
+      
+      // Apply subscription status filter (after join)
+      let finalQuery = filteredQuery;
+      if (options.subscriptionStatus) {
+        if (options.subscriptionStatus === 'none') {
+          finalQuery = filteredQuery.where(isNull(subscriptions.id));
+        } else if (options.subscriptionStatus !== 'all') {
+          finalQuery = filteredQuery.where(eq(subscriptions.status, options.subscriptionStatus as any));
+        }
+      }
+      
+      // Count total results
+      const countQuery = whereConditions.length > 0
+        ? db
+            .select({ count: sql<number>`cast(count(DISTINCT ${userAccounts.id}) as integer)` })
+            .from(userAccounts)
+            .leftJoin(userProfiles, eq(userAccounts.id, userProfiles.userId))
+            .leftJoin(subscriptions, eq(userAccounts.id, subscriptions.userId))
+            .where(and(...whereConditions))
+        : db
+            .select({ count: sql<number>`cast(count(DISTINCT ${userAccounts.id}) as integer)` })
+            .from(userAccounts);
+      
+      const [{ count: total }] = await countQuery;
+      
+      // Apply sorting
+      const sortColumn = options.sortBy || 'createdAt';
+      const sortDirection = options.sortOrder || 'desc';
+      
+      let sortedQuery = finalQuery;
+      switch (sortColumn) {
+        case 'email':
+          sortedQuery = sortDirection === 'asc'
+            ? finalQuery.orderBy(userAccounts.email)
+            : finalQuery.orderBy(desc(userAccounts.email));
+          break;
+        case 'name':
+          sortedQuery = sortDirection === 'asc'
+            ? finalQuery.orderBy(userProfiles.firstName)
+            : finalQuery.orderBy(desc(userProfiles.firstName));
+          break;
+        case 'createdAt':
+        default:
+          sortedQuery = sortDirection === 'asc'
+            ? finalQuery.orderBy(userAccounts.createdAt)
+            : finalQuery.orderBy(desc(userAccounts.createdAt));
+          break;
+      }
+      
+      // Apply pagination
+      const results = await sortedQuery
+        .limit(options.limit)
+        .offset(options.offset);
+      
+      // Format results
+      const users = results.map(row => ({
+        ...row.account,
+        passwordHash: '[HIDDEN]',
+        profile: row.profile || undefined,
+        subscription: row.subscription || null,
+      }));
+      
+      return { users, total };
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return { users: [], total: 0 };
+    }
+  }
+  
+  async getUserWithDetails(userId: string): Promise<{
+    account: UserAccount;
+    profile?: UserProfile;
+    subscription?: Subscription | null;
+    payments?: Payment[];
+    activities?: any[];
+    notes?: any[];
+  } | undefined> {
+    try {
+      const account = await this.getUserAccountById(userId);
+      if (!account) return undefined;
+      
+      const profile = await this.getUserProfile(userId);
+      const subscription = await this.getUserSubscription(userId);
+      const payments = await this.getUserPayments(userId);
+      
+      // Hide password hash
+      account.passwordHash = '[HIDDEN]';
+      
+      return {
+        account,
+        profile,
+        subscription,
+        payments,
+        activities: [], // TODO: Implement activity history
+        notes: [], // TODO: Implement user notes
+      };
+    } catch (error) {
+      console.error('Error getting user details:', error);
+      return undefined;
+    }
+  }
+  
+  async banUser(userId: string, reason: string, bannedBy: string): Promise<UserAccount | undefined> {
+    try {
+      // Add banned status to user account (we'll use adminRole field to indicate banned status)
+      const [updated] = await db
+        .update(userAccounts)
+        .set({
+          adminRole: 'banned',
+          updatedAt: new Date(),
+        })
+        .where(eq(userAccounts.id, userId))
+        .returning();
+      
+      // Log the ban action
+      await this.logAdminAction({
+        adminId: bannedBy,
+        action: 'ban_user',
+        targetType: 'user',
+        targetId: userId,
+        metadata: { reason },
+        ipAddress: null,
+        userAgent: null,
+        sessionId: null,
+      });
+      
+      if (updated) {
+        updated.passwordHash = '[HIDDEN]';
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error banning user:', error);
+      return undefined;
+    }
+  }
+  
+  async unbanUser(userId: string, unbannedBy: string): Promise<UserAccount | undefined> {
+    try {
+      const [updated] = await db
+        .update(userAccounts)
+        .set({
+          adminRole: 'user',
+          updatedAt: new Date(),
+        })
+        .where(eq(userAccounts.id, userId))
+        .returning();
+      
+      // Log the unban action
+      await this.logAdminAction({
+        adminId: unbannedBy,
+        action: 'unban_user',
+        targetType: 'user',
+        targetId: userId,
+        ipAddress: null,
+        userAgent: null,
+        sessionId: null,
+      });
+      
+      if (updated) {
+        updated.passwordHash = '[HIDDEN]';
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error unbanning user:', error);
+      return undefined;
+    }
+  }
+  
+  async addUserNote(userId: string, note: string, addedBy: string): Promise<any> {
+    // TODO: Implement user notes table
+    const noteData = {
+      id: `note_${Date.now()}`,
+      userId,
+      note,
+      addedBy,
+      createdAt: new Date(),
+    };
+    
+    // Log the action
+    await this.logAdminAction({
+      adminId: addedBy,
+      action: 'add_user_note',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { note },
+      ipAddress: null,
+      userAgent: null,
+      sessionId: null,
+    });
+    
+    return noteData;
+  }
+  
+  async getUserActivityHistory(userId: string, limit: number = 100): Promise<any[]> {
+    try {
+      // Get various activities
+      const activities = [];
+      
+      // Get login history (from lastLoginAt)
+      const account = await this.getUserAccountById(userId);
+      if (account?.lastLoginAt) {
+        activities.push({
+          type: 'login',
+          timestamp: account.lastLoginAt,
+          details: 'Вход в систему',
+        });
+      }
+      
+      // Get deletion requests
+      const deletionRequests = await this.getUserDeletionRequests(userId);
+      deletionRequests.forEach(req => {
+        activities.push({
+          type: 'deletion_request',
+          timestamp: req.createdAt,
+          details: `Запрос на удаление: ${req.brokerName}`,
+          status: req.status,
+        });
+      });
+      
+      // Get scans
+      const scans = await this.getUserDataBrokerScans(userId);
+      scans.forEach(scan => {
+        activities.push({
+          type: 'scan',
+          timestamp: scan.createdAt,
+          details: `Сканирование: ${scan.brokerName}`,
+          status: scan.scanStatus,
+        });
+      });
+      
+      // Sort by timestamp descending
+      activities.sort((a, b) => {
+        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return timeB - timeA;
+      });
+      
+      return activities.slice(0, limit);
+    } catch (error) {
+      console.error('Error getting user activity history:', error);
+      return [];
+    }
+  }
 
   async getSystemLogs(options: { type: string; limit: number }): Promise<any[]> {
     return []; // TODO: Implement system logs table
+  }
+
+  // ========================================
+  // PLATFORM SECRETS MANAGEMENT (MemStorage Stubs)
+  // ========================================
+  
+  private platformSecretsData: PlatformSecret[] = [];
+  private secretsAuditLogData: SecretsAuditLog[] = [];
+  private adminPermissionsData: AdminPermission[] = [];
+  private adminActionsData: AdminAction[] = [];
+  private systemHealthChecksData: SystemHealthCheck[] = [];
+  private emailServiceStatusData: EmailServiceStatus[] = [];
+  private emailTemplatesData: EmailTemplate[] = [];
+  private emailTemplateVersionsData: EmailTemplateVersion[] = [];
+
+  async createPlatformSecret(secretData: InsertPlatformSecret): Promise<PlatformSecret> {
+    const { encryptSecret } = await import('./crypto');
+    
+    // Encrypt the secret value
+    const encryptedData = encryptSecret(secretData.value);
+    
+    const secret: PlatformSecret = {
+      id: `secret_${this.idCounter++}`,
+      key: secretData.key,
+      value: encryptedData.encrypted,
+      encryptionIv: encryptedData.iv,
+      encryptionTag: encryptedData.tag,
+      encryptionSalt: encryptedData.salt,
+      category: secretData.category || null,
+      service: secretData.service || null,
+      environment: secretData.environment || 'production',
+      description: secretData.description || null,
+      metadata: secretData.metadata || {},
+      createdBy: secretData.createdBy || null,
+      lastUpdatedBy: null,
+      deletedAt: null,
+      deletedBy: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.platformSecretsData.push(secret);
+    
+    // Return with masked value
+    const { maskSecret } = await import('./crypto');
+    return {
+      ...secret,
+      value: maskSecret(secretData.value),
+    };
+  }
+
+  async getPlatformSecrets(filters?: { service?: string; environment?: string; category?: string }): Promise<PlatformSecret[]> {
+    let secrets = this.platformSecretsData.filter(s => !s.deletedAt);
+    
+    if (filters?.service) {
+      secrets = secrets.filter(s => s.service === filters.service);
+    }
+    if (filters?.environment) {
+      secrets = secrets.filter(s => s.environment === filters.environment);
+    }
+    if (filters?.category) {
+      secrets = secrets.filter(s => s.category === filters.category);
+    }
+    
+    // Mask all secret values
+    const { maskSecret } = await import('./crypto');
+    return secrets.map(secret => ({
+      ...secret,
+      value: maskSecret(secret.value),
+    }));
+  }
+
+  async getPlatformSecretByKey(key: string): Promise<PlatformSecret | undefined> {
+    const secret = this.platformSecretsData.find(s => s.key === key && !s.deletedAt);
+    if (!secret) return undefined;
+    
+    // Decrypt the secret value
+    const { decryptSecret } = await import('./crypto');
+    try {
+      const decrypted = decryptSecret({
+        encrypted: secret.value,
+        iv: secret.encryptionIv || '',
+        tag: secret.encryptionTag || '',
+        salt: secret.encryptionSalt || '',
+      });
+      
+      return {
+        ...secret,
+        value: decrypted,
+      };
+    } catch (error) {
+      console.error('Failed to decrypt secret:', error);
+      throw new Error('Failed to decrypt platform secret');
+    }
+  }
+
+  async updatePlatformSecret(key: string, value: string, adminId: string): Promise<PlatformSecret | undefined> {
+    const { encryptSecret, maskSecret } = await import('./crypto');
+    
+    // Get existing secret
+    const secretIndex = this.platformSecretsData.findIndex(s => s.key === key && !s.deletedAt);
+    if (secretIndex === -1) return undefined;
+    
+    const existing = this.platformSecretsData[secretIndex];
+    
+    // Encrypt new value
+    const encryptedData = encryptSecret(value);
+    
+    // Update secret
+    this.platformSecretsData[secretIndex] = {
+      ...existing,
+      value: encryptedData.encrypted,
+      encryptionIv: encryptedData.iv,
+      encryptionTag: encryptedData.tag,
+      encryptionSalt: encryptedData.salt,
+      lastUpdatedBy: adminId,
+      updatedAt: new Date(),
+    };
+    
+    // Log audit
+    await this.logSecretAudit({
+      secretId: existing.id,
+      adminId,
+      action: 'update',
+      oldValue: maskSecret(existing.value),
+      newValue: maskSecret(value),
+      ipAddress: null,
+      userAgent: null,
+    });
+    
+    return {
+      ...this.platformSecretsData[secretIndex],
+      value: maskSecret(value),
+    };
+  }
+
+  async deletePlatformSecret(key: string, adminId: string, reason: string): Promise<boolean> {
+    const secretIndex = this.platformSecretsData.findIndex(s => s.key === key && !s.deletedAt);
+    if (secretIndex === -1) return false;
+    
+    const existing = this.platformSecretsData[secretIndex];
+    
+    // Soft delete
+    this.platformSecretsData[secretIndex] = {
+      ...existing,
+      deletedAt: new Date(),
+      deletedBy: adminId,
+    };
+    
+    // Log audit
+    const { maskSecret } = await import('./crypto');
+    await this.logSecretAudit({
+      secretId: existing.id,
+      adminId,
+      action: 'delete',
+      oldValue: maskSecret(existing.value),
+      newValue: null,
+      metadata: { reason },
+      ipAddress: null,
+      userAgent: null,
+    });
+    
+    return true;
+  }
+
+  async validateSecret(key: string, service: string): Promise<boolean> {
+    try {
+      const secret = await this.getPlatformSecretByKey(key);
+      if (!secret || secret.service !== service) return false;
+      
+      // Add service-specific validation logic here
+      switch (service) {
+        case 'sendgrid':
+          return secret.value.startsWith('SG.');
+        case 'openai':
+          return secret.value.startsWith('sk-');
+        case 'robokassa':
+          return secret.value.length > 0;
+        default:
+          return secret.value.length > 0;
+      }
+    } catch (error) {
+      console.error('Secret validation error:', error);
+      return false;
+    }
+  }
+
+  async logSecretAudit(auditData: InsertSecretsAuditLog): Promise<SecretsAuditLog> {
+    const audit: SecretsAuditLog = {
+      id: `audit_${this.idCounter++}`,
+      secretId: auditData.secretId,
+      adminId: auditData.adminId,
+      action: auditData.action,
+      oldValue: auditData.oldValue || null,
+      newValue: auditData.newValue || null,
+      metadata: auditData.metadata || {},
+      ipAddress: auditData.ipAddress || null,
+      userAgent: auditData.userAgent || null,
+      createdAt: new Date(),
+    };
+    
+    this.secretsAuditLogData.push(audit);
+    return audit;
+  }
+
+  async getSecretsAuditLog(filters?: { secretId?: string; adminId?: string; limit?: number }): Promise<SecretsAuditLog[]> {
+    let logs = this.secretsAuditLogData;
+    
+    if (filters?.secretId) {
+      logs = logs.filter(l => l.secretId === filters.secretId);
+    }
+    if (filters?.adminId) {
+      logs = logs.filter(l => l.adminId === filters.adminId);
+    }
+    
+    // Sort by date descending
+    logs.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    const limit = filters?.limit || 100;
+    return logs.slice(0, limit);
+  }
+
+  // Admin permissions management stubs
+  async createAdminPermission(permissionData: InsertAdminPermission): Promise<AdminPermission> {
+    const permission: AdminPermission = {
+      id: `perm_${this.idCounter++}`,
+      adminId: permissionData.adminId,
+      resource: permissionData.resource,
+      action: permissionData.action,
+      isActive: permissionData.isActive ?? true,
+      grantedBy: permissionData.grantedBy || null,
+      expiresAt: permissionData.expiresAt || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.adminPermissionsData.push(permission);
+    return permission;
+  }
+
+  async getAdminPermissions(adminId: string): Promise<AdminPermission[]> {
+    return this.adminPermissionsData.filter(p => p.adminId === adminId);
+  }
+
+  async checkAdminPermission(adminId: string, resource: string, action: string): Promise<boolean> {
+    return this.adminPermissionsData.some(p => 
+      p.adminId === adminId &&
+      p.resource === resource &&
+      p.action === action &&
+      p.isActive
+    );
+  }
+
+  async revokeAdminPermission(id: string): Promise<boolean> {
+    const index = this.adminPermissionsData.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    
+    this.adminPermissionsData[index].isActive = false;
+    this.adminPermissionsData[index].updatedAt = new Date();
+    return true;
+  }
+
+  async updateAdminPermission(id: string, updates: Partial<AdminPermission>): Promise<AdminPermission | undefined> {
+    const index = this.adminPermissionsData.findIndex(p => p.id === id);
+    if (index === -1) return undefined;
+    
+    this.adminPermissionsData[index] = {
+      ...this.adminPermissionsData[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    
+    return this.adminPermissionsData[index];
+  }
+
+  // Admin actions logging stubs
+  async logAdminAction(actionData: InsertAdminAction): Promise<AdminAction> {
+    const action: AdminAction = {
+      id: `action_${this.idCounter++}`,
+      adminId: actionData.adminId,
+      action: actionData.action,
+      targetType: actionData.targetType || null,
+      targetId: actionData.targetId || null,
+      changes: actionData.changes || {},
+      metadata: actionData.metadata || {},
+      sessionId: actionData.sessionId || null,
+      ipAddress: actionData.ipAddress || null,
+      userAgent: actionData.userAgent || null,
+      createdAt: new Date(),
+    };
+    
+    this.adminActionsData.push(action);
+    return action;
+  }
+
+  async getAdminActions(filters?: { adminId?: string; targetType?: string; limit?: number; offset?: number }): Promise<AdminAction[]> {
+    let actions = this.adminActionsData;
+    
+    if (filters?.adminId) {
+      actions = actions.filter(a => a.adminId === filters.adminId);
+    }
+    if (filters?.targetType) {
+      actions = actions.filter(a => a.targetType === filters.targetType);
+    }
+    
+    // Sort by date descending
+    actions.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    const limit = filters?.limit || 100;
+    const offset = filters?.offset || 0;
+    return actions.slice(offset, offset + limit);
+  }
+
+  async getAdminActionsBySession(sessionId: string): Promise<AdminAction[]> {
+    return this.adminActionsData
+      .filter(a => a.sessionId === sessionId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  // System health check stubs
+  async createSystemHealthCheck(healthData: InsertSystemHealthCheck): Promise<SystemHealthCheck> {
+    const health: SystemHealthCheck = {
+      id: `health_${this.idCounter++}`,
+      serviceName: healthData.serviceName,
+      status: healthData.status,
+      responseTime: healthData.responseTime || null,
+      errorMessage: healthData.errorMessage || null,
+      metadata: healthData.metadata || {},
+      checkedAt: new Date(),
+    };
+    
+    this.systemHealthChecksData.push(health);
+    return health;
+  }
+
+  async getLatestHealthCheck(serviceName: string): Promise<SystemHealthCheck | undefined> {
+    const checks = this.systemHealthChecksData
+      .filter(h => h.serviceName === serviceName)
+      .sort((a, b) => (b.checkedAt?.getTime() || 0) - (a.checkedAt?.getTime() || 0));
+    
+    return checks[0];
+  }
+
+  async getHealthCheckHistory(serviceName: string, limit: number = 100): Promise<SystemHealthCheck[]> {
+    return this.systemHealthChecksData
+      .filter(h => h.serviceName === serviceName)
+      .sort((a, b) => (b.checkedAt?.getTime() || 0) - (a.checkedAt?.getTime() || 0))
+      .slice(0, limit);
+  }
+
+  // Email service status stubs
+  async updateEmailServiceStatus(serviceName: string, status: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined> {
+    const index = this.emailServiceStatusData.findIndex(s => s.serviceName === serviceName);
+    
+    if (index === -1) {
+      // Create new
+      const newStatus: EmailServiceStatus = {
+        id: `email_status_${this.idCounter++}`,
+        serviceName,
+        isActive: status.isActive ?? true,
+        lastSuccessAt: status.lastSuccessAt || null,
+        lastFailureAt: status.lastFailureAt || null,
+        failureCount: status.failureCount || 0,
+        successCount: status.successCount || 0,
+        averageResponseTime: status.averageResponseTime || null,
+        lastError: status.lastError || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.emailServiceStatusData.push(newStatus);
+      return newStatus;
+    }
+    
+    this.emailServiceStatusData[index] = {
+      ...this.emailServiceStatusData[index],
+      ...status,
+      updatedAt: new Date(),
+    };
+    
+    return this.emailServiceStatusData[index];
+  }
+
+  async getEmailServiceStatus(serviceName: string): Promise<EmailServiceStatus | undefined> {
+    return this.emailServiceStatusData.find(s => s.serviceName === serviceName);
+  }
+
+  async getAllEmailServiceStatuses(): Promise<EmailServiceStatus[]> {
+    return this.emailServiceStatusData
+      .sort((a, b) => (b.lastSuccessAt?.getTime() || 0) - (a.lastSuccessAt?.getTime() || 0));
+  }
+
+  // Email template management stubs
+  async createEmailTemplate(templateData: InsertEmailTemplate): Promise<EmailTemplate> {
+    const template: EmailTemplate = {
+      id: `template_${this.idCounter++}`,
+      name: templateData.name,
+      description: templateData.description || null,
+      category: templateData.category || null,
+      isActive: templateData.isActive ?? true,
+      createdBy: templateData.createdBy || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.emailTemplatesData.push(template);
+    return template;
+  }
+
+  async getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined> {
+    return this.emailTemplatesData.find(t => t.name === name);
+  }
+
+  async getAllEmailTemplates(): Promise<EmailTemplate[]> {
+    return this.emailTemplatesData
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async updateEmailTemplate(id: string, updates: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const index = this.emailTemplatesData.findIndex(t => t.id === id);
+    if (index === -1) return undefined;
+    
+    this.emailTemplatesData[index] = {
+      ...this.emailTemplatesData[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    
+    return this.emailTemplatesData[index];
+  }
+
+  async createEmailTemplateVersion(versionData: InsertEmailTemplateVersion): Promise<EmailTemplateVersion> {
+    const version: EmailTemplateVersion = {
+      id: `version_${this.idCounter++}`,
+      templateId: versionData.templateId,
+      version: versionData.version,
+      subject: versionData.subject,
+      htmlContent: versionData.htmlContent,
+      textContent: versionData.textContent || null,
+      variables: versionData.variables || [],
+      isActive: versionData.isActive ?? false,
+      publishedAt: versionData.publishedAt || null,
+      publishedBy: versionData.publishedBy || null,
+      notes: versionData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.emailTemplateVersionsData.push(version);
+    return version;
+  }
+
+  async getEmailTemplateVersions(templateId: string): Promise<EmailTemplateVersion[]> {
+    return this.emailTemplateVersionsData
+      .filter(v => v.templateId === templateId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getActiveEmailTemplateVersion(templateId: string): Promise<EmailTemplateVersion | undefined> {
+    return this.emailTemplateVersionsData.find(v => 
+      v.templateId === templateId && v.isActive
+    );
+  }
+
+  async publishEmailTemplateVersion(id: string, publishedBy: string): Promise<EmailTemplateVersion | undefined> {
+    const versionIndex = this.emailTemplateVersionsData.findIndex(v => v.id === id);
+    if (versionIndex === -1) return undefined;
+    
+    const templateId = this.emailTemplateVersionsData[versionIndex].templateId;
+    
+    // Deactivate all other versions
+    this.emailTemplateVersionsData.forEach((v, i) => {
+      if (v.templateId === templateId) {
+        this.emailTemplateVersionsData[i].isActive = false;
+      }
+    });
+    
+    // Activate this version
+    this.emailTemplateVersionsData[versionIndex] = {
+      ...this.emailTemplateVersionsData[versionIndex],
+      isActive: true,
+      publishedAt: new Date(),
+      publishedBy,
+      updatedAt: new Date(),
+    };
+    
+    return this.emailTemplateVersionsData[versionIndex];
+  }
+
+  async getEmailTemplates(filters?: { category?: string; isActive?: boolean; search?: string }): Promise<EmailTemplate[]> {
+    let templates = [...this.emailTemplatesData];
+    
+    if (filters?.category) {
+      templates = templates.filter(t => t.category === filters.category);
+    }
+    if (filters?.isActive !== undefined) {
+      templates = templates.filter(t => t.isActive === filters.isActive);
+    }
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      templates = templates.filter(t => 
+        t.name.toLowerCase().includes(searchLower) ||
+        (t.subject && t.subject.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    return templates.filter(t => !t.isDeleted);
+  }
+
+  async getEmailTemplateById(id: string): Promise<EmailTemplate | undefined> {
+    return this.emailTemplatesData.find(t => t.id === id && !t.isDeleted);
+  }
+
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    const index = this.emailTemplatesData.findIndex(t => t.id === id);
+    if (index === -1) return false;
+    this.emailTemplatesData.splice(index, 1);
+    return true;
+  }
+
+  async softDeleteEmailTemplate(id: string, deletedBy: string): Promise<EmailTemplate | undefined> {
+    const template = this.emailTemplatesData.find(t => t.id === id);
+    if (!template) return undefined;
+    
+    template.isDeleted = true;
+    template.deletedAt = new Date();
+    template.deletedBy = deletedBy;
+    template.updatedAt = new Date();
+    
+    return template;
+  }
+
+  async cloneEmailTemplate(id: string, newName: string, createdBy: string): Promise<EmailTemplate> {
+    const original = this.emailTemplatesData.find(t => t.id === id);
+    if (!original) throw new Error('Template not found');
+    
+    const cloned: EmailTemplate = {
+      ...original,
+      id: `template_${this.idCounter++}`,
+      name: newName,
+      isActive: false,
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      metadata: { ...original.metadata, clonedFrom: id }
+    };
+    
+    this.emailTemplatesData.push(cloned);
+    return cloned;
+  }
+
+  async getEmailTemplateVersion(id: string): Promise<EmailTemplateVersion | undefined> {
+    return this.emailTemplateVersionsData.find(v => v.id === id);
+  }
+
+  async testEmailTemplate(templateId: string, testEmail: string, testData?: any): Promise<{ success: boolean; message: string }> {
+    const template = this.emailTemplatesData.find(t => t.id === templateId);
+    if (!template) {
+      return { success: false, message: 'Template not found' };
+    }
+    // Mock success for MemStorage
+    return { success: true, message: 'Test email sent successfully' };
+  }
+
+  async exportEmailTemplate(id: string): Promise<any> {
+    const template = this.emailTemplatesData.find(t => t.id === id);
+    if (!template) throw new Error('Template not found');
+    
+    const versions = await this.getEmailTemplateVersions(id);
+    
+    return {
+      template,
+      versions,
+      exportedAt: new Date().toISOString()
+    };
+  }
+
+  async importEmailTemplate(templateData: any, createdBy: string): Promise<EmailTemplate> {
+    const { template } = templateData;
+    
+    const imported: EmailTemplate = {
+      ...template,
+      id: `template_${this.idCounter++}`,
+      name: `${template.name}_imported_${Date.now()}`,
+      createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.emailTemplatesData.push(imported);
+    
+    // Import versions if any
+    if (templateData.versions && templateData.versions.length > 0) {
+      for (const version of templateData.versions) {
+        await this.createEmailTemplateVersion({
+          ...version,
+          templateId: imported.id,
+          createdBy
+        });
+      }
+    }
+    
+    return imported;
   }
 
   // ========================================

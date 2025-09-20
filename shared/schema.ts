@@ -509,6 +509,292 @@ export const referrals = pgTable("referrals", {
 ]);
 
 // ====================
+// ADMIN PANEL TABLES
+// ====================
+
+// Platform secrets management - stores encrypted API keys
+export const platformSecrets = pgTable("platform_secrets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").notNull().unique(), // 'mailganer_api_key', 'robokassa_merchant_login', etc
+  encryptedValue: text("encrypted_value").notNull(), // Encrypted secret value
+  description: text("description"), // Description of what this secret is for
+  service: varchar("service").notNull(), // 'mailganer', 'robokassa', 'openai', 'sendgrid'
+  environment: varchar("environment").notNull().default("production"), // 'development', 'staging', 'production'
+  lastRotatedAt: timestamp("last_rotated_at"), // When the secret was last changed
+  expiresAt: timestamp("expires_at"), // When the secret expires (optional)
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  updatedBy: varchar("updated_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_platform_secrets_key").on(table.key),
+  index("IDX_platform_secrets_service").on(table.service),
+  index("IDX_platform_secrets_environment").on(table.environment),
+]);
+
+// Audit log for platform secrets changes
+export const secretsAuditLog = pgTable("secrets_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  secretId: varchar("secret_id").references(() => platformSecrets.id, { onDelete: "cascade" }),
+  adminId: varchar("admin_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  action: varchar("action").notNull(), // 'created', 'updated', 'deleted', 'rotated', 'accessed'
+  secretKey: varchar("secret_key").notNull(), // Store key for audit even if secret is deleted
+  service: varchar("service").notNull(),
+  environment: varchar("environment").notNull(),
+  previousValueHash: varchar("previous_value_hash"), // Hash of previous value for verification
+  newValueHash: varchar("new_value_hash"), // Hash of new value for verification
+  ipAddress: varchar("ip_address"), // IP address of the admin
+  userAgent: text("user_agent"), // Browser/client info
+  reason: text("reason"), // Reason for the change
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional audit data
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_secrets_audit_admin").on(table.adminId),
+  index("IDX_secrets_audit_secret").on(table.secretId),
+  index("IDX_secrets_audit_action").on(table.action),
+  index("IDX_secrets_audit_created").on(table.createdAt),
+]);
+
+// Admin permissions for granular role-based access control
+export const adminPermissions = pgTable("admin_permissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminId: varchar("admin_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  permission: varchar("permission").notNull(), // 'users.view', 'users.edit', 'secrets.manage', 'templates.edit', etc
+  resource: varchar("resource").notNull(), // 'users', 'secrets', 'templates', 'system', 'blog'
+  action: varchar("action").notNull(), // 'view', 'create', 'edit', 'delete', 'manage'
+  scope: jsonb("scope").default(sql`'{}'::jsonb`), // Additional scope constraints
+  grantedBy: varchar("granted_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  grantedAt: timestamp("granted_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // Optional expiry for temporary permissions
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_admin_permissions_admin").on(table.adminId),
+  index("IDX_admin_permissions_permission").on(table.permission),
+  index("IDX_admin_permissions_resource_action").on(table.resource, table.action),
+  // Unique constraint: one admin cannot have duplicate permission
+  sql`UNIQUE (admin_id, permission)`,
+]);
+
+// Admin actions audit log for tracking all administrative actions
+export const adminActions = pgTable("admin_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminId: varchar("admin_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  actionType: varchar("action_type").notNull(), // 'user.updated', 'subscription.cancelled', 'template.created', etc
+  targetType: varchar("target_type").notNull(), // 'user', 'subscription', 'template', 'system'
+  targetId: varchar("target_id"), // ID of the affected entity
+  targetData: jsonb("target_data").default(sql`'{}'::jsonb`), // Snapshot of target data
+  changes: jsonb("changes").default(sql`'{}'::jsonb`), // What was changed (before/after values)
+  description: text("description"), // Human-readable description
+  ipAddress: varchar("ip_address"), // Admin's IP address
+  userAgent: text("user_agent"), // Browser/client info
+  sessionId: varchar("session_id"), // Session identifier for grouping actions
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional context
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_admin_actions_admin").on(table.adminId),
+  index("IDX_admin_actions_type").on(table.actionType),
+  index("IDX_admin_actions_target").on(table.targetType, table.targetId),
+  index("IDX_admin_actions_created").on(table.createdAt),
+  index("IDX_admin_actions_session").on(table.sessionId),
+]);
+
+// System health checks for monitoring service status
+export const systemHealthChecks = pgTable("system_health_checks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceName: varchar("service_name").notNull(), // 'database', 'email', 'payment', 'storage', 'api'
+  serviceCategory: varchar("service_category").notNull(), // 'core', 'external', 'integration'
+  status: varchar("status").notNull().default("unknown"), // 'healthy', 'degraded', 'down', 'unknown'
+  lastCheckAt: timestamp("last_check_at").defaultNow(),
+  nextCheckAt: timestamp("next_check_at"),
+  responseTimeMs: integer("response_time_ms"), // Response time in milliseconds
+  uptime: integer("uptime"), // Uptime percentage (0-100)
+  consecutiveFailures: integer("consecutive_failures").default(0),
+  errorMessage: text("error_message"), // Last error if any
+  errorDetails: jsonb("error_details").default(sql`'{}'::jsonb`), // Detailed error information
+  checkDetails: jsonb("check_details").default(sql`'{}'::jsonb`), // Additional check results
+  isEnabled: boolean("is_enabled").default(true),
+  checkInterval: integer("check_interval").default(60), // Check interval in seconds
+  alertThreshold: integer("alert_threshold").default(3), // Failures before alert
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_system_health_service").on(table.serviceName),
+  index("IDX_system_health_status").on(table.status),
+  index("IDX_system_health_category").on(table.serviceCategory),
+  index("IDX_system_health_last_check").on(table.lastCheckAt),
+]);
+
+// Email service status for Mailganer/SendGrid delivery tracking
+export const emailServiceStatus = pgTable("email_service_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  provider: varchar("provider").notNull(), // 'mailganer', 'sendgrid'
+  messageId: varchar("message_id").unique(), // External message ID from provider
+  recipient: varchar("recipient").notNull(), // Email address
+  sender: varchar("sender").notNull(), // From address
+  subject: text("subject"),
+  templateId: varchar("template_id").references(() => emailTemplates.id, { onDelete: "set null" }),
+  status: varchar("status").notNull().default("pending"), // 'pending', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed', 'spam'
+  deliveryStatus: jsonb("delivery_status").default(sql`'{}'::jsonb`), // Provider-specific status details
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bouncedAt: timestamp("bounced_at"),
+  failedAt: timestamp("failed_at"),
+  bounceType: varchar("bounce_type"), // 'hard', 'soft', 'blocked'
+  bounceReason: text("bounce_reason"),
+  clickCount: integer("click_count").default(0),
+  openCount: integer("open_count").default(0),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional tracking data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_email_service_provider").on(table.provider),
+  index("IDX_email_service_message").on(table.messageId),
+  index("IDX_email_service_recipient").on(table.recipient),
+  index("IDX_email_service_status").on(table.status),
+  index("IDX_email_service_sent").on(table.sentAt),
+  index("IDX_email_service_template").on(table.templateId),
+]);
+
+// Email templates management
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(), // 'welcome_email', 'password_reset', 'deletion_request'
+  category: varchar("category").notNull(), // 'authentication', 'notifications', 'marketing', 'transactional'
+  subject: text("subject").notNull(), // Email subject line with variables like {{firstName}}
+  htmlBody: text("html_body").notNull(), // HTML version of email
+  textBody: text("text_body"), // Plain text version
+  variables: jsonb("variables").default(sql`'[]'::jsonb`), // Array of variable definitions [{name: 'firstName', required: true, defaultValue: ''}]
+  fromName: varchar("from_name"), // Sender name override
+  fromEmail: varchar("from_email"), // Sender email override
+  replyTo: varchar("reply_to"), // Reply-to email
+  isActive: boolean("is_active").default(true),
+  isDeleted: boolean("is_deleted").default(false), // Soft delete flag
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: varchar("deleted_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  testData: jsonb("test_data").default(sql`'{}'::jsonb`), // Test data for preview
+  usageCount: integer("usage_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  createdBy: varchar("created_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  updatedBy: varchar("updated_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_email_templates_name").on(table.name),
+  index("IDX_email_templates_category").on(table.category),
+  index("IDX_email_templates_active").on(table.isActive),
+  index("IDX_email_templates_deleted").on(table.isDeleted),
+]);
+
+// Email template version control
+export const emailTemplateVersions = pgTable("email_template_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull().references(() => emailTemplates.id, { onDelete: "cascade" }),
+  version: integer("version").notNull(), // Version number (1, 2, 3, etc)
+  subject: text("subject").notNull(),
+  htmlBody: text("html_body").notNull(),
+  textBody: text("text_body"),
+  variables: jsonb("variables").default(sql`'[]'::jsonb`),
+  fromName: varchar("from_name"),
+  fromEmail: varchar("from_email"),
+  replyTo: varchar("reply_to"),
+  changeDescription: text("change_description"), // What changed in this version
+  isPublished: boolean("is_published").default(false), // Is this the active version
+  publishedAt: timestamp("published_at"),
+  publishedBy: varchar("published_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  createdBy: varchar("created_by").references(() => userAccounts.id, { onDelete: "set null" }),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_email_template_versions_template").on(table.templateId),
+  index("IDX_email_template_versions_version").on(table.templateId, table.version),
+  index("IDX_email_template_versions_published").on(table.isPublished),
+  // Unique constraint: one template cannot have duplicate version numbers
+  sql`UNIQUE (template_id, version)`,
+]);
+
+// ====================
+// ADMIN PANEL SCHEMAS AND TYPES
+// ====================
+
+// Platform secrets schemas
+export const insertPlatformSecretSchema = createInsertSchema(platformSecrets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSecretsAuditLogSchema = createInsertSchema(secretsAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Admin permissions schemas
+export const insertAdminPermissionSchema = createInsertSchema(adminPermissions).omit({
+  id: true,
+  grantedAt: true,
+  createdAt: true,
+});
+
+export const insertAdminActionSchema = createInsertSchema(adminActions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// System health schemas
+export const insertSystemHealthCheckSchema = createInsertSchema(systemHealthChecks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailServiceStatusSchema = createInsertSchema(emailServiceStatus).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Email template schemas
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  isDeleted: true,
+  deletedAt: true,
+  deletedBy: true,
+  usageCount: true,
+  lastUsedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailTemplateVersionSchema = createInsertSchema(emailTemplateVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Admin panel types
+export type PlatformSecret = typeof platformSecrets.$inferSelect;
+export type InsertPlatformSecret = z.infer<typeof insertPlatformSecretSchema>;
+export type SecretsAuditLog = typeof secretsAuditLog.$inferSelect;
+export type InsertSecretsAuditLog = z.infer<typeof insertSecretsAuditLogSchema>;
+export type AdminPermission = typeof adminPermissions.$inferSelect;
+export type InsertAdminPermission = z.infer<typeof insertAdminPermissionSchema>;
+export type AdminAction = typeof adminActions.$inferSelect;
+export type InsertAdminAction = z.infer<typeof insertAdminActionSchema>;
+export type SystemHealthCheck = typeof systemHealthChecks.$inferSelect;
+export type InsertSystemHealthCheck = z.infer<typeof insertSystemHealthCheckSchema>;
+export type EmailServiceStatus = typeof emailServiceStatus.$inferSelect;
+export type InsertEmailServiceStatus = z.infer<typeof insertEmailServiceStatusSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplateVersion = typeof emailTemplateVersions.$inferSelect;
+export type InsertEmailTemplateVersion = z.infer<typeof insertEmailTemplateVersionSchema>;
+
+// ====================
 // ACHIEVEMENT SCHEMAS AND TYPES
 // ====================
 

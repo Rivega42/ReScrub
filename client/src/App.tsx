@@ -22,6 +22,8 @@ import Whitepaper from "@/pages/Whitepaper";
 import Status from "@/pages/Status";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminSetup from "@/pages/AdminSetup";
+import AdminUsers from "@/pages/AdminUsers";
+import AdminDataBrokers from "@/pages/AdminDataBrokers";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Requests from "@/pages/Requests";
@@ -67,6 +69,16 @@ function Router() {
       <Route path="/admin">
         <AuthGuard fallback={<Login />}>
           <AdminDashboard />
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/users">
+        <AuthGuard fallback={<Login />}>
+          <AdminUsers />
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/data-brokers">
+        <AuthGuard fallback={<Login />}>
+          <AdminDataBrokers />
         </AuthGuard>
       </Route>
       <Route path="/admin-setup" component={AdminSetup} />

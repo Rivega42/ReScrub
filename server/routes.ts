@@ -69,6 +69,45 @@ async function isAdmin(req: any, res: any, next: any) {
   }
 }
 
+// Super admin authentication middleware (for sensitive operations)
+async function requireSuperAdmin(req: any, res: any, next: any) {
+  if (!req.session?.userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+  
+  try {
+    const userAccount = await storage.getUserAccountById(req.session.userId);
+    if (!userAccount || userAccount.adminRole !== 'superadmin') {
+      // Log unauthorized access attempt
+      await storage.logAdminAction({
+        adminId: req.session.userId,
+        action: 'unauthorized_access_attempt',
+        targetType: 'secrets',
+        metadata: {
+          requestPath: req.path,
+          requestMethod: req.method
+        },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      return res.status(403).json({ 
+        success: false, 
+        message: "Доступ запрещен. Требуются права суперадминистратора." 
+      });
+    }
+    
+    req.adminUser = userAccount;
+    req.adminIp = req.ip || req.socket.remoteAddress || 'unknown';
+    req.adminUserAgent = req.headers['user-agent'] || 'unknown';
+    next();
+  } catch (error) {
+    console.error('Super admin auth error:', error);
+    res.status(500).json({ success: false, message: "Ошибка сервера" });
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
   await setupAuth(app);
@@ -2280,6 +2319,505 @@ ${allPages.map(page => `  <url>
     }
   });
 
+  // ========================================
+  // ADMIN USER MANAGEMENT API ENDPOINTS
+  // ========================================
+
+  // Search users with advanced filters
+  app.post("/api/admin/users/search", isAdmin, async (req: any, res) => {
+    try {
+      const {
+        text,
+        dateFrom,
+        dateTo,
+        subscriptionStatus,
+        verificationStatus,
+        adminRole,
+        sortBy,
+        sortOrder,
+        limit = 50,
+        offset = 0
+      } = req.body;
+
+      const searchOptions = {
+        text,
+        dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+        dateTo: dateTo ? new Date(dateTo) : undefined,
+        subscriptionStatus,
+        verificationStatus,
+        adminRole,
+        sortBy,
+        sortOrder,
+        limit: Math.min(limit, 100), // Max 100 per page
+        offset
+      };
+
+      const result = await storage.searchUsers(searchOptions);
+      
+      // Log search action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'search_users',
+        targetType: 'users',
+        metadata: searchOptions,
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({
+        success: true,
+        users: result.users,
+        total: result.total,
+        limit,
+        offset
+      });
+    } catch (error) {
+      console.error('Error searching users:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка поиска пользователей'
+      });
+    }
+  });
+
+  // Get user details with all related data
+  app.get("/api/admin/users/:id", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const userDetails = await storage.getUserWithDetails(userId);
+      
+      if (!userDetails) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
+      res.json({
+        success: true,
+        user: userDetails
+      });
+    } catch (error) {
+      console.error('Error getting user details:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения данных пользователя'
+      });
+    }
+  });
+
+  // Update user details
+  app.patch("/api/admin/users/:id", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const updates = req.body;
+
+      // Validate update fields
+      const allowedAccountFields = ['email', 'emailVerified', 'isAdmin', 'adminRole', 'points'];
+      const allowedProfileFields = ['firstName', 'lastName', 'middleName', 'phone', 'phoneVerified', 'city', 'region'];
+      
+      const accountUpdates: any = {};
+      const profileUpdates: any = {};
+
+      // Separate account and profile updates
+      Object.keys(updates).forEach(key => {
+        if (allowedAccountFields.includes(key)) {
+          accountUpdates[key] = updates[key];
+        } else if (allowedProfileFields.includes(key)) {
+          profileUpdates[key] = updates[key];
+        }
+      });
+
+      // Update account if needed
+      let updatedAccount;
+      if (Object.keys(accountUpdates).length > 0) {
+        updatedAccount = await storage.updateUserAccount(userId, accountUpdates);
+      }
+
+      // Update profile if needed
+      let updatedProfile;
+      if (Object.keys(profileUpdates).length > 0) {
+        updatedProfile = await storage.updateUserProfile(userId, profileUpdates);
+      }
+
+      // Log update action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'update_user',
+        targetType: 'user',
+        targetId: userId,
+        changes: updates,
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({
+        success: true,
+        message: 'Данные пользователя обновлены',
+        account: updatedAccount,
+        profile: updatedProfile
+      });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка обновления пользователя'
+      });
+    }
+  });
+
+  // Manage user subscription
+  app.post("/api/admin/users/:id/subscription", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const { action, planId, months, reason } = req.body;
+
+      let result;
+      switch (action) {
+        case 'change_plan':
+          // Update subscription plan
+          const currentSub = await storage.getUserSubscription(userId);
+          if (currentSub) {
+            result = await storage.updateSubscription(currentSub.id, {
+              planId,
+              updatedAt: new Date()
+            });
+          } else {
+            // Create new subscription
+            result = await storage.createSubscription({
+              userId,
+              planId,
+              status: 'active',
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+            });
+          }
+          break;
+        
+        case 'extend':
+          // Extend subscription by X months
+          const subToExtend = await storage.getUserSubscription(userId);
+          if (subToExtend && subToExtend.currentPeriodEnd) {
+            const newEndDate = new Date(subToExtend.currentPeriodEnd);
+            newEndDate.setMonth(newEndDate.getMonth() + (months || 1));
+            result = await storage.updateSubscription(subToExtend.id, {
+              currentPeriodEnd: newEndDate,
+              status: 'active'
+            });
+          }
+          break;
+        
+        case 'cancel':
+          // Cancel subscription
+          const subToCancel = await storage.getUserSubscription(userId);
+          if (subToCancel) {
+            result = await storage.cancelSubscription(subToCancel.id);
+          }
+          break;
+        
+        case 'add_free_months':
+          // Add free months
+          const subForFree = await storage.getUserSubscription(userId);
+          if (subForFree && subForFree.currentPeriodEnd) {
+            const newEndDate = new Date(subForFree.currentPeriodEnd);
+            newEndDate.setMonth(newEndDate.getMonth() + (months || 1));
+            result = await storage.updateSubscription(subForFree.id, {
+              currentPeriodEnd: newEndDate,
+              metadata: { ...subForFree.metadata, freeMonthsAdded: months, reason }
+            });
+          }
+          break;
+      }
+
+      // Log subscription action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: `subscription_${action}`,
+        targetType: 'subscription',
+        targetId: userId,
+        metadata: { action, planId, months, reason },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({
+        success: true,
+        message: 'Подписка обновлена',
+        subscription: result
+      });
+    } catch (error) {
+      console.error('Error managing subscription:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка управления подпиской'
+      });
+    }
+  });
+
+  // Ban/unban user
+  app.post("/api/admin/users/:id/ban", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const { ban, reason } = req.body;
+
+      let result;
+      if (ban) {
+        result = await storage.banUser(userId, reason, req.adminUser.id);
+      } else {
+        result = await storage.unbanUser(userId, req.adminUser.id);
+      }
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: ban ? 'Пользователь заблокирован' : 'Пользователь разблокирован',
+        user: result
+      });
+    } catch (error) {
+      console.error('Error banning/unbanning user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка блокировки/разблокировки пользователя'
+      });
+    }
+  });
+
+  // Send password reset link
+  app.post("/api/admin/users/:id/reset-password", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      
+      // Get user account
+      const account = await storage.getUserAccountById(userId);
+      if (!account) {
+        return res.status(404).json({
+          success: false,
+          message: 'Пользователь не найден'
+        });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+
+      // Update user with reset token
+      await storage.updateUserAccount(userId, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires
+      });
+
+      // Send email (if email service is configured)
+      try {
+        await sendEmail({
+          to: account.email,
+          subject: 'Сброс пароля - ReScrub',
+          html: `
+            <h2>Сброс пароля</h2>
+            <p>Администратор инициировал сброс вашего пароля.</p>
+            <p>Используйте эту ссылку для установки нового пароля:</p>
+            <a href="${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}">
+              Сбросить пароль
+            </a>
+            <p>Ссылка действительна в течение 1 часа.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Error sending reset email:', emailError);
+      }
+
+      // Log action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'reset_user_password',
+        targetType: 'user',
+        targetId: userId,
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({
+        success: true,
+        message: 'Ссылка для сброса пароля отправлена',
+        resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined // Only show token in dev
+      });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка сброса пароля'
+      });
+    }
+  });
+
+  // Send custom notification to user
+  app.post("/api/admin/users/:id/notify", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const { title, message, type = 'in_app' } = req.body;
+
+      // Create notification
+      const notification = await storage.createNotification({
+        userId,
+        type,
+        category: 'system',
+        title,
+        message,
+        sent: type === 'in_app',
+        sentAt: type === 'in_app' ? new Date() : undefined
+      });
+
+      // If email notification, send email
+      if (type === 'email') {
+        const account = await storage.getUserAccountById(userId);
+        if (account) {
+          try {
+            await sendEmail({
+              to: account.email,
+              subject: title,
+              html: `<h2>${title}</h2><p>${message}</p>`
+            });
+            await storage.updateNotification(notification.id, {
+              sent: true,
+              sentAt: new Date()
+            });
+          } catch (emailError) {
+            console.error('Error sending notification email:', emailError);
+          }
+        }
+      }
+
+      // Log action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'send_notification',
+        targetType: 'user',
+        targetId: userId,
+        metadata: { title, message, type },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({
+        success: true,
+        message: 'Уведомление отправлено',
+        notification
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка отправки уведомления'
+      });
+    }
+  });
+
+  // Get user activity history
+  app.get("/api/admin/users/:id/activity", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const limit = parseInt(req.query.limit) || 100;
+
+      const activities = await storage.getUserActivityHistory(userId, limit);
+
+      res.json({
+        success: true,
+        activities
+      });
+    } catch (error) {
+      console.error('Error getting user activity:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения истории активности'
+      });
+    }
+  });
+
+  // Add internal note about user
+  app.post("/api/admin/users/:id/notes", isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.params.id;
+      const { note } = req.body;
+
+      const noteData = await storage.addUserNote(userId, note, req.adminUser.id);
+
+      res.json({
+        success: true,
+        message: 'Заметка добавлена',
+        note: noteData
+      });
+    } catch (error) {
+      console.error('Error adding note:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка добавления заметки'
+      });
+    }
+  });
+
+  // Export users to CSV
+  app.post("/api/admin/users/export", isAdmin, async (req: any, res) => {
+    try {
+      const searchOptions = {
+        ...req.body,
+        limit: 10000, // Export up to 10k users
+        offset: 0
+      };
+
+      const result = await storage.searchUsers(searchOptions);
+      
+      // Create CSV content
+      const csvHeaders = ['ID', 'Email', 'Имя', 'Фамилия', 'Телефон', 'Статус', 'Роль', 'Подписка', 'Дата регистрации'];
+      const csvRows = result.users.map(user => [
+        user.id,
+        user.email,
+        user.profile?.firstName || '',
+        user.profile?.lastName || '',
+        user.profile?.phone || '',
+        user.emailVerified ? 'Подтвержден' : 'Не подтвержден',
+        user.adminRole,
+        user.subscription?.status || 'Нет',
+        user.createdAt?.toISOString() || ''
+      ]);
+
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      // Log export action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'export_users',
+        targetType: 'users',
+        metadata: { count: result.users.length },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="users-export.csv"');
+      res.send('\ufeff' + csvContent); // Add BOM for Excel UTF-8 compatibility
+    } catch (error) {
+      console.error('Error exporting users:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка экспорта пользователей'
+      });
+    }
+  });
+
   // Make demo user admin for development - STRICTLY DEV ONLY
   app.post("/api/admin/setup-demo-admin", async (req, res) => {
     try {
@@ -2328,6 +2866,700 @@ ${allPages.map(page => `  <url>
       res.status(500).json({ 
         success: false, 
         message: 'Ошибка настройки админа' 
+      });
+    }
+  });
+
+  // ========================================
+  // DATA BROKERS MANAGEMENT API ROUTES
+  // ========================================
+
+  // GET /api/admin/data-brokers - List all data brokers with filters
+  app.get('/api/admin/data-brokers', isAdmin, async (req: any, res) => {
+    try {
+      const { search, category, difficulty, status } = req.query;
+      
+      const filters: any = {};
+      if (search) filters.search = search;
+      if (category && category !== 'all') filters.category = category;
+      if (difficulty && difficulty !== 'all') filters.difficulty = difficulty;
+      
+      const brokers = await storage.getAllDataBrokers(filters);
+      
+      // Apply status filter if provided
+      let filteredBrokers = brokers;
+      if (status && status !== 'all') {
+        switch (status) {
+          case 'active':
+            filteredBrokers = brokers.filter(b => b.isActive);
+            break;
+          case 'inactive':
+            filteredBrokers = brokers.filter(b => !b.isActive);
+            break;
+          case 'automated':
+            filteredBrokers = brokers.filter(b => b.automatedRemoval);
+            break;
+          case 'verified':
+            filteredBrokers = brokers.filter(b => b.lastVerifiedAt);
+            break;
+          case 'unverified':
+            filteredBrokers = brokers.filter(b => !b.lastVerifiedAt);
+            break;
+          case 'with_warnings':
+            filteredBrokers = brokers.filter(b => b.warnings);
+            break;
+        }
+      }
+      
+      res.json(filteredBrokers);
+    } catch (error) {
+      console.error('Error fetching data brokers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка получения операторов данных'
+      });
+    }
+  });
+
+  // POST /api/admin/data-brokers - Create new data broker
+  app.post('/api/admin/data-brokers', isAdmin, async (req: any, res) => {
+    try {
+      const brokerData = {
+        ...req.body,
+        createdBy: req.adminUser.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // Validate required fields
+      if (!brokerData.name || !brokerData.category || !brokerData.difficultyLevel) {
+        return res.status(400).json({
+          success: false,
+          message: 'Название, категория и уровень сложности обязательны'
+        });
+      }
+      
+      const newBroker = await storage.insertDataBroker(brokerData);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'create_data_broker',
+        targetType: 'data_broker',
+        targetId: newBroker.id,
+        metadata: { name: newBroker.name },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        broker: newBroker
+      });
+    } catch (error) {
+      console.error('Error creating data broker:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка создания оператора данных'
+      });
+    }
+  });
+
+  // PATCH /api/admin/data-brokers/:id - Update data broker
+  app.patch('/api/admin/data-brokers/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = {
+        ...req.body,
+        updatedBy: req.adminUser.id,
+        updatedAt: new Date()
+      };
+      
+      // Remove fields that shouldn't be updated directly
+      delete updates.id;
+      delete updates.createdAt;
+      delete updates.createdBy;
+      
+      const updatedBroker = await storage.updateDataBroker(id, updates);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'update_data_broker',
+        targetType: 'data_broker',
+        targetId: id,
+        metadata: { changes: Object.keys(updates) },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        broker: updatedBroker
+      });
+    } catch (error) {
+      console.error('Error updating data broker:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка обновления оператора данных'
+      });
+    }
+  });
+
+  // DELETE /api/admin/data-brokers/:id - Delete data broker
+  app.delete('/api/admin/data-brokers/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get broker info before deletion for logging
+      const broker = await storage.getDataBrokerById(id);
+      if (!broker) {
+        return res.status(404).json({
+          success: false,
+          message: 'Оператор не найден'
+        });
+      }
+      
+      await storage.deleteDataBroker(id);
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'delete_data_broker',
+        targetType: 'data_broker',
+        targetId: id,
+        metadata: { name: broker.name },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        message: 'Оператор успешно удален'
+      });
+    } catch (error) {
+      console.error('Error deleting data broker:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка удаления оператора данных'
+      });
+    }
+  });
+
+  // POST /api/admin/data-brokers/import - Bulk import data brokers
+  app.post('/api/admin/data-brokers/import', isAdmin, async (req: any, res) => {
+    try {
+      const { brokers } = req.body;
+      
+      if (!Array.isArray(brokers) || brokers.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Массив операторов обязателен'
+        });
+      }
+      
+      let imported = 0;
+      let failed = 0;
+      const errors: any[] = [];
+      
+      for (const brokerData of brokers) {
+        try {
+          const dataToInsert = {
+            ...brokerData,
+            createdBy: req.adminUser.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
+          // Validate required fields
+          if (!dataToInsert.name || !dataToInsert.category || !dataToInsert.difficultyLevel) {
+            failed++;
+            errors.push({ name: dataToInsert.name, error: 'Отсутствуют обязательные поля' });
+            continue;
+          }
+          
+          await storage.insertDataBroker(dataToInsert);
+          imported++;
+        } catch (error: any) {
+          failed++;
+          errors.push({ name: brokerData.name, error: error.message });
+        }
+      }
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'import_data_brokers',
+        targetType: 'data_broker',
+        metadata: { imported, failed, total: brokers.length },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        imported,
+        failed,
+        errors: errors.slice(0, 10), // Limit errors to first 10
+        message: `Импортировано ${imported} из ${brokers.length} операторов`
+      });
+    } catch (error) {
+      console.error('Error importing data brokers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка импорта операторов данных'
+      });
+    }
+  });
+
+  // GET /api/admin/data-brokers/export - Export data brokers to CSV
+  app.get('/api/admin/data-brokers/export', isAdmin, async (req: any, res) => {
+    try {
+      const brokers = await storage.getAllDataBrokers({});
+      
+      // Create CSV content
+      const csvHeaders = [
+        'ID',
+        'Название',
+        'Юридическое название',
+        'Категория',
+        'Сайт',
+        'Email',
+        'Телефон',
+        'Сложность',
+        'Время ответа',
+        'Активен',
+        'Автоматизация',
+        'Процент успеха',
+        'Регистрационный номер',
+        'Последняя проверка',
+        'Создан'
+      ];
+      
+      const csvRows = brokers.map(broker => [
+        broker.id,
+        broker.name,
+        broker.legalName || '',
+        broker.category,
+        broker.website || '',
+        broker.email || '',
+        broker.phone || '',
+        broker.difficultyLevel,
+        broker.responseTime || '',
+        broker.isActive ? 'Да' : 'Нет',
+        broker.automatedRemoval ? 'Да' : 'Нет',
+        broker.successRate !== undefined ? `${broker.successRate}%` : '',
+        broker.regulatorNumber || '',
+        broker.lastVerifiedAt ? new Date(broker.lastVerifiedAt).toLocaleDateString('ru-RU') : '',
+        broker.createdAt ? new Date(broker.createdAt).toLocaleDateString('ru-RU') : ''
+      ]);
+      
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'export_data_brokers',
+        targetType: 'data_broker',
+        metadata: { count: brokers.length },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="data-brokers-export.csv"');
+      res.send('\ufeff' + csvContent); // Add BOM for Excel UTF-8 compatibility
+    } catch (error) {
+      console.error('Error exporting data brokers:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка экспорта операторов данных'
+      });
+    }
+  });
+
+  // POST /api/admin/data-brokers/:id/verify - Mark data broker as verified
+  app.post('/api/admin/data-brokers/:id/verify', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      const updatedBroker = await storage.updateDataBroker(id, {
+        lastVerifiedAt: new Date(),
+        verifiedBy: req.adminUser.id
+      });
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'verify_data_broker',
+        targetType: 'data_broker',
+        targetId: id,
+        metadata: { verifiedAt: new Date().toISOString() },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        broker: updatedBroker,
+        message: 'Оператор успешно проверен'
+      });
+    } catch (error) {
+      console.error('Error verifying data broker:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка проверки оператора данных'
+      });
+    }
+  });
+
+  // ========================================
+  // PLATFORM SECRETS MANAGEMENT API ROUTES
+  // ========================================
+
+  // Rate limiting for secret endpoints (max 10 requests per minute)
+  const secretsRateLimiter = express();
+  let secretRequestCounts = new Map<string, { count: number; resetTime: number }>();
+  
+  function rateLimitSecrets(req: any, res: any, next: any) {
+    const userId = req.session?.userId || 'anonymous';
+    const now = Date.now();
+    const window = 60000; // 1 minute window
+    const maxRequests = 10;
+    
+    const userRequests = secretRequestCounts.get(userId);
+    
+    if (!userRequests || now > userRequests.resetTime) {
+      // Create new window
+      secretRequestCounts.set(userId, {
+        count: 1,
+        resetTime: now + window
+      });
+      return next();
+    }
+    
+    if (userRequests.count >= maxRequests) {
+      return res.status(429).json({
+        success: false,
+        message: 'Слишком много запросов. Подождите минуту.',
+        retryAfter: Math.ceil((userRequests.resetTime - now) / 1000)
+      });
+    }
+    
+    userRequests.count++;
+    next();
+  }
+
+  // GET /api/admin/secrets - List all secrets (values masked)
+  app.get('/api/admin/secrets', requireSuperAdmin, rateLimitSecrets, async (req: any, res) => {
+    try {
+      const { category, service, environment } = req.query;
+      
+      // Log access
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'list_secrets',
+        targetType: 'secrets',
+        metadata: { filters: { category, service, environment } },
+        sessionId: req.sessionID,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+      
+      const secrets = await storage.getPlatformSecrets({ 
+        category,
+        service,
+        environment 
+      });
+      
+      res.json({ 
+        success: true, 
+        secrets,
+        count: secrets.length 
+      });
+    } catch (error) {
+      console.error('Error listing secrets:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения списка секретов' 
+      });
+    }
+  });
+
+  // GET /api/admin/secrets/:key - Get specific secret (decrypted for authorized admin)
+  app.get('/api/admin/secrets/:key', requireSuperAdmin, rateLimitSecrets, async (req: any, res) => {
+    try {
+      const { key } = req.params;
+      
+      // Get and decrypt secret
+      const secret = await storage.getPlatformSecretByKey(key);
+      
+      if (!secret) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Секрет не найден' 
+        });
+      }
+      
+      // Log access with masked value
+      const { maskSecret } = await import('./crypto');
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'view_secret',
+        targetType: 'secrets',
+        targetId: secret.id,
+        metadata: { 
+          key,
+          maskedValue: maskSecret(secret.value)
+        },
+        sessionId: req.sessionID,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+      
+      // Audit log for secret access
+      await storage.logSecretAudit({
+        secretId: secret.id,
+        adminId: req.adminUser.id,
+        action: 'view',
+        oldValue: null,
+        newValue: null,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+      
+      res.json({ 
+        success: true, 
+        secret: {
+          ...secret,
+          value: secret.value, // Return decrypted value
+          decrypted: true
+        }
+      });
+    } catch (error) {
+      console.error('Error retrieving secret:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения секрета' 
+      });
+    }
+  });
+
+  // POST /api/admin/secrets - Create/update secret with encryption
+  app.post('/api/admin/secrets', requireSuperAdmin, rateLimitSecrets, async (req: any, res) => {
+    try {
+      const { key, value, category, service, environment, description, metadata } = req.body;
+      
+      // Validate required fields
+      if (!key || !value) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Ключ и значение обязательны' 
+        });
+      }
+      
+      // Check if secret exists
+      const existingSecret = await storage.getPlatformSecretByKey(key);
+      
+      if (existingSecret) {
+        // Update existing secret
+        const updatedSecret = await storage.updatePlatformSecret(key, value, req.adminUser.id);
+        
+        // Log action
+        await storage.logAdminAction({
+          adminId: req.adminUser.id,
+          action: 'update_secret',
+          targetType: 'secrets',
+          targetId: updatedSecret?.id,
+          changes: { key },
+          sessionId: req.sessionID,
+          ipAddress: req.adminIp,
+          userAgent: req.adminUserAgent
+        });
+        
+        res.json({ 
+          success: true, 
+          message: 'Секрет обновлен',
+          secret: updatedSecret 
+        });
+      } else {
+        // Create new secret
+        const newSecret = await storage.createPlatformSecret({
+          key,
+          value,
+          category: category || null,
+          service: service || null,
+          environment: environment || 'production',
+          description: description || null,
+          metadata: metadata || {},
+          createdBy: req.adminUser.id
+        });
+        
+        // Log action
+        await storage.logAdminAction({
+          adminId: req.adminUser.id,
+          action: 'create_secret',
+          targetType: 'secrets',
+          targetId: newSecret.id,
+          changes: { key },
+          sessionId: req.sessionID,
+          ipAddress: req.adminIp,
+          userAgent: req.adminUserAgent
+        });
+        
+        // Audit log
+        const { maskSecret } = await import('./crypto');
+        await storage.logSecretAudit({
+          secretId: newSecret.id,
+          adminId: req.adminUser.id,
+          action: 'create',
+          oldValue: null,
+          newValue: maskSecret(value),
+          ipAddress: req.adminIp,
+          userAgent: req.adminUserAgent
+        });
+        
+        res.status(201).json({ 
+          success: true, 
+          message: 'Секрет создан',
+          secret: newSecret 
+        });
+      }
+    } catch (error) {
+      console.error('Error creating/updating secret:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка создания/обновления секрета' 
+      });
+    }
+  });
+
+  // DELETE /api/admin/secrets/:key - Soft delete with reason
+  app.delete('/api/admin/secrets/:key', requireSuperAdmin, rateLimitSecrets, async (req: any, res) => {
+    try {
+      const { key } = req.params;
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Причина удаления обязательна' 
+        });
+      }
+      
+      const deleted = await storage.deletePlatformSecret(key, req.adminUser.id, reason);
+      
+      if (!deleted) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Секрет не найден' 
+        });
+      }
+      
+      // Log action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'delete_secret',
+        targetType: 'secrets',
+        metadata: { key, reason },
+        sessionId: req.sessionID,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+      
+      res.json({ 
+        success: true, 
+        message: 'Секрет удален' 
+      });
+    } catch (error) {
+      console.error('Error deleting secret:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка удаления секрета' 
+      });
+    }
+  });
+
+  // GET /api/admin/secrets/audit - Get audit log with filters
+  app.get('/api/admin/secrets/audit', requireSuperAdmin, rateLimitSecrets, async (req: any, res) => {
+    try {
+      const { secretId, adminId, limit } = req.query;
+      
+      // Log access
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'view_audit_log',
+        targetType: 'secrets_audit',
+        metadata: { filters: { secretId, adminId, limit } },
+        sessionId: req.sessionID,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+      
+      const auditLog = await storage.getSecretsAuditLog({
+        secretId,
+        adminId,
+        limit: limit ? parseInt(limit) : 100
+      });
+      
+      res.json({ 
+        success: true, 
+        auditLog,
+        count: auditLog.length 
+      });
+    } catch (error) {
+      console.error('Error fetching audit log:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения журнала аудита' 
+      });
+    }
+  });
+
+  // POST /api/admin/secrets/validate - Validate a secret with its service
+  app.post('/api/admin/secrets/validate', requireSuperAdmin, rateLimitSecrets, async (req: any, res) => {
+    try {
+      const { key, service } = req.body;
+      
+      if (!key || !service) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Ключ и сервис обязательны' 
+        });
+      }
+      
+      const isValid = await storage.validateSecret(key, service);
+      
+      // Log validation attempt
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'validate_secret',
+        targetType: 'secrets',
+        metadata: { key, service, isValid },
+        sessionId: req.sessionID,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+      
+      res.json({ 
+        success: true, 
+        isValid,
+        message: isValid ? 'Секрет валиден' : 'Секрет невалиден или не соответствует сервису'
+      });
+    } catch (error) {
+      console.error('Error validating secret:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка валидации секрета' 
       });
     }
   });
