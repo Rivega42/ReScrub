@@ -16,6 +16,7 @@ import {
   Pause,
   Settings
 } from 'lucide-react';
+import { useLocation } from 'wouter';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
@@ -48,6 +49,8 @@ interface AdminStats {
 }
 
 export default function AdminDashboard() {
+  const [location, setLocation] = useLocation();
+  
   const { data: statsData, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/admin/dashboard'],
     select: (data: any) => data.stats as AdminStats,
@@ -55,6 +58,31 @@ export default function AdminDashboard() {
   });
 
   const stats = statsData;
+  
+  // Navigation handlers
+  const handleManageUsers = () => {
+    setLocation('/admin/users');
+  };
+  
+  const handleManageBlog = () => {
+    setLocation('/admin/blog');
+  };
+  
+  const handleEmailLogs = () => {
+    setLocation('/admin/email-logs');
+  };
+  
+  const handleSystemMonitor = () => {
+    setLocation('/admin/system');
+  };
+  
+  const handleViewLogs = () => {
+    alert('Функция просмотра логов в разработке');
+  };
+  
+  const handleSystemSettings = () => {
+    alert('Функция настроек системы в разработке');
+  };
 
   // Format uptime
   const formatUptime = (seconds: number) => {
@@ -341,10 +369,10 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" data-testid="button-view-logs">
+                    <Button size="sm" variant="outline" onClick={handleViewLogs} data-testid="button-view-logs">
                       Просмотр логов
                     </Button>
-                    <Button size="sm" variant="outline" data-testid="button-system-settings">
+                    <Button size="sm" variant="outline" onClick={handleSystemSettings} data-testid="button-system-settings">
                       Настройки системы
                     </Button>
                   </div>
@@ -362,19 +390,19 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button variant="outline" className="h-20 flex-col" data-testid="button-manage-users">
+                  <Button variant="outline" className="h-20 flex-col" onClick={handleManageUsers} data-testid="button-manage-users">
                     <Users className="h-6 w-6 mb-2" />
                     Управление пользователями
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col" data-testid="button-manage-blog">
+                  <Button variant="outline" className="h-20 flex-col" onClick={handleManageBlog} data-testid="button-manage-blog">
                     <FileText className="h-6 w-6 mb-2" />
                     Управление блогом
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col" data-testid="button-email-logs">
+                  <Button variant="outline" className="h-20 flex-col" onClick={handleEmailLogs} data-testid="button-email-logs">
                     <Mail className="h-6 w-6 mb-2" />
                     Email логи
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col" data-testid="button-system-monitor">
+                  <Button variant="outline" className="h-20 flex-col" onClick={handleSystemMonitor} data-testid="button-system-monitor">
                     <Server className="h-6 w-6 mb-2" />
                     Мониторинг системы
                   </Button>
