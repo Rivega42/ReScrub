@@ -2174,22 +2174,54 @@ ${allPages.map(page => `  <url>
   // ADMIN PANEL API ENDPOINTS
   // ========================================
 
-  // Get admin dashboard statistics
+  // Simple in-memory cache for admin dashboard stats (30 second TTL)
+  let dashboardStatsCache: { data: any; timestamp: number } | null = null;
+  const DASHBOARD_CACHE_TTL = 30000; // 30 seconds
+
+  // Get admin dashboard statistics with caching and parallel queries
   app.get("/api/admin/dashboard", isAdmin, async (req, res) => {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (dashboardStatsCache && (now - dashboardStatsCache.timestamp) < DASHBOARD_CACHE_TTL) {
+        return res.json({ success: true, stats: dashboardStatsCache.data, cached: true });
+      }
+
+      // PERFORMANCE: Execute all DB queries in parallel using Promise.all
+      const [
+        totalUsers,
+        verifiedUsers,
+        admins,
+        recentUsers,
+        totalArticles,
+        publishedArticles,
+        lastGeneratedDate
+      ] = await Promise.all([
+        storage.getUsersCount().catch(() => 0),
+        storage.getVerifiedUsersCount().catch(() => 0),
+        storage.getAdminsCount().catch(() => 0),
+        storage.getRecentUsersCount(7).catch(() => 0),
+        storage.getBlogArticlesCount().catch(() => 0),
+        storage.getPublishedBlogArticlesCount().catch(() => 0),
+        storage.getLastGeneratedArticleDate().catch(() => null)
+      ]);
+
+      // Get scheduler info (synchronous, no DB calls)
+      const blogScheduler = SchedulerInstance.getBlogScheduler();
+
       const stats = {
         users: {
-          total: await storage.getUsersCount() || 0,
-          verified: await storage.getVerifiedUsersCount() || 0,
-          admins: await storage.getAdminsCount() || 0,
-          recentRegistrations: await storage.getRecentUsersCount(7) || 0
+          total: totalUsers || 0,
+          verified: verifiedUsers || 0,
+          admins: admins || 0,
+          recentRegistrations: recentUsers || 0
         },
         blog: {
-          totalArticles: await storage.getBlogArticlesCount() || 0,
-          publishedArticles: await storage.getPublishedBlogArticlesCount() || 0,
-          schedulerStatus: SchedulerInstance.getBlogScheduler()?.isRunning() || false,
-          lastGenerated: await storage.getLastGeneratedArticleDate() || null,
-          nextGeneration: SchedulerInstance.getBlogScheduler()?.getNextScheduledTime() || null
+          totalArticles: totalArticles || 0,
+          publishedArticles: publishedArticles || 0,
+          schedulerStatus: blogScheduler?.isRunning() || false,
+          lastGenerated: lastGeneratedDate ? lastGeneratedDate.toISOString() : null,
+          nextGeneration: blogScheduler?.getNextScheduledTime()?.toISOString() || null
         },
         system: {
           uptime: Math.floor(process.uptime()),
@@ -2197,6 +2229,12 @@ ${allPages.map(page => `  <url>
           serverTime: new Date().toISOString(),
           environment: process.env.NODE_ENV || 'development'
         }
+      };
+
+      // Update cache
+      dashboardStatsCache = {
+        data: stats,
+        timestamp: now
       };
 
       res.json({ success: true, stats });
