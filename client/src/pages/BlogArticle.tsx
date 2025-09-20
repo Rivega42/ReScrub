@@ -65,33 +65,22 @@ function createHeadingId(children: any, existingIds: Set<string>): string {
     .replace(/\s+/g, '-')
     .substring(0, 50);
     
-  // Ensure uniqueness
-  const usedIds = new Map<string, number>();
-  existingIds.forEach(id => {
-    // Ensure id is a string
-    if (typeof id !== 'string') return;
-    
-    const match = id.match(/^(.+?)-(\d+)$/);
-    if (match) {
-      const base = match[1];
-      const num = parseInt(match[2]);
-      usedIds.set(base, Math.max(usedIds.get(base) || 0, num));
-    } else {
-      usedIds.set(id, 0);
-    }
-  });
+  // Generate unique ID directly
+  if (!existingIds.has(baseId)) {
+    existingIds.add(baseId);
+    return baseId;
+  }
   
-  return function generateUniqueId(baseId: string): string {
-    if (!usedIds.has(baseId)) {
-      usedIds.set(baseId, 0);
-      return baseId;
-    }
-    
-    const count = usedIds.get(baseId) || 0;
-    usedIds.set(baseId, count + 1);
-    
-    return count === 0 ? baseId : `${baseId}-${count + 1}`;
-  };
+  // Find next available ID with counter
+  let counter = 1;
+  let uniqueId = `${baseId}-${counter}`;
+  while (existingIds.has(uniqueId)) {
+    counter++;
+    uniqueId = `${baseId}-${counter}`;
+  }
+  
+  existingIds.add(uniqueId);
+  return uniqueId;
 }
 
 function cleanTextFromId(children: any): any {
