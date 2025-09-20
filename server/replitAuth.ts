@@ -35,8 +35,8 @@ export function getSession() {
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
-    saveUninitialized: false,
-    name: 'rescrub.sid', // Custom session name for security
+    saveUninitialized: true, // ✅ ИСПРАВЛЕНО: Сохранять пустые сессии для правильной работы cookies
+    name: 'connect.sid', // ✅ ИСПРАВЛЕНО: Стандартное имя для лучшей совместимости
     cookie: {
       httpOnly: true,
       secure: false, // Allow HTTP for development
