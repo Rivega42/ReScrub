@@ -210,6 +210,29 @@ export interface IStorage {
   getBlogGenerationSettings(): Promise<BlogGenerationSettings | undefined>;
   updateBlogGenerationSettings(updates: Partial<BlogGenerationSettings>): Promise<BlogGenerationSettings | undefined>;
   createBlogGenerationSettings(settingsData: InsertBlogGenerationSettings): Promise<BlogGenerationSettings>;
+
+  // Admin panel statistics methods
+  getUsersCount(search?: string, role?: string): Promise<number>;
+  getVerifiedUsersCount(): Promise<number>;
+  getAdminsCount(): Promise<number>;
+  getRecentUsersCount(days: number): Promise<number>;
+  getBlogArticlesCount(status?: string, search?: string): Promise<number>;
+  getPublishedBlogArticlesCount(): Promise<number>;
+  getLastGeneratedArticleDate(): Promise<Date | null>;
+  
+  // Email statistics methods
+  getEmailsSentCount(days: number): Promise<number>;
+  getEmailDeliveryRate(): Promise<number>;
+  getEmailBounceRate(): Promise<number>;
+  
+  // Admin user management
+  getUsers(options: { 
+    limit: number; 
+    offset: number; 
+    search?: string; 
+    role?: string 
+  }): Promise<UserAccount[]>;
+  getSystemLogs(options: { type: string; limit: number }): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3058,14 +3081,18 @@ export class MemStorage implements IStorage {
   // User statistics
   async getUsersCount(search?: string, role?: string): Promise<number> {
     try {
-      let query = db.select({ count: sql<number>`cast(count(*) as integer)` }).from(userAccounts);
+      const conditions = [];
       
       if (search) {
-        query = query.where(sql`${userAccounts.email} ILIKE ${`%${search}%`}`);
+        conditions.push(sql`${userAccounts.email} ILIKE ${`%${search}%`}`);
       }
       if (role && role !== 'all') {
-        query = query.where(eq(userAccounts.adminRole, role));
+        conditions.push(eq(userAccounts.adminRole, role));
       }
+      
+      const query = conditions.length > 0 
+        ? db.select({ count: sql<number>`cast(count(*) as integer)` }).from(userAccounts).where(and(...conditions))
+        : db.select({ count: sql<number>`cast(count(*) as integer)` }).from(userAccounts);
       
       const [result] = await query;
       return result?.count || 0;
@@ -3122,14 +3149,18 @@ export class MemStorage implements IStorage {
 
   async getBlogArticlesCount(status?: string, search?: string): Promise<number> {
     try {
-      let query = db.select({ count: sql<number>`cast(count(*) as integer)` }).from(blogArticles);
+      const conditions = [];
       
       if (status && status !== 'all') {
-        query = query.where(eq(blogArticles.status, status as any));
+        conditions.push(eq(blogArticles.status, status as any));
       }
       if (search) {
-        query = query.where(sql`${blogArticles.title} ILIKE ${`%${search}%`} OR ${blogArticles.content} ILIKE ${`%${search}%`}`);
+        conditions.push(sql`${blogArticles.title} ILIKE ${`%${search}%`} OR ${blogArticles.content} ILIKE ${`%${search}%`}`);
       }
+      
+      const query = conditions.length > 0 
+        ? db.select({ count: sql<number>`cast(count(*) as integer)` }).from(blogArticles).where(and(...conditions))
+        : db.select({ count: sql<number>`cast(count(*) as integer)` }).from(blogArticles);
       
       const [result] = await query;
       return result?.count || 0;
