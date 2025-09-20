@@ -9,6 +9,7 @@ import { subscriptionManager } from "./subscription-manager";
 import { storage } from "./storage";
 import { BlogGeneratorService } from "./blog-generator";
 import { BlogScheduler } from "./blog-scheduler";
+import { SchedulerInstance } from "./scheduler-instance";
 
 const app = express();
 
@@ -177,12 +178,18 @@ app.use((req, res, next) => {
     subscriptionManager.start();
     
     // Initialize and start blog scheduler for automatic article generation
-    if (process.env.OPENAI_API_KEY) {
+    if (process.env.OPENAI_API_KEY && !SchedulerInstance.isInitialized()) {
       console.log('🤖 Initializing blog scheduler...');
       const blogGenerator = new BlogGeneratorService(storage);
       const blogScheduler = new BlogScheduler(blogGenerator, storage, 30); // Check every 30 minutes
+      
+      // Store instance for API access
+      SchedulerInstance.set(blogScheduler);
+      
       blogScheduler.start();
       console.log('✅ Blog scheduler started successfully');
+    } else if (process.env.OPENAI_API_KEY) {
+      console.log('ℹ️ Blog scheduler already initialized, skipping');
     } else {
       console.log('⚠️ Blog scheduler disabled: OPENAI_API_KEY not found');
     }

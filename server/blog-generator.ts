@@ -109,7 +109,7 @@ export class BlogGeneratorService {
             }
           ],
           response_format: { type: "json_object" },
-          max_tokens: MAX_TOKENS
+          max_completion_tokens: MAX_TOKENS
         });
 
         // Проверяем что ответ корректный

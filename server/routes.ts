@@ -28,6 +28,7 @@ import { z } from "zod";
 import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
 import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent, sendEmail, createEmailVerificationTemplate } from "./email";
 import { robokassaClient } from "./robokassa";
+import { SchedulerInstance } from "./scheduler-instance";
 import fs from 'fs';
 import path from 'path';
 
@@ -1885,6 +1886,173 @@ ${allPages.map(page => `  <url>
     } catch (error) {
       console.error('Error processing Robokassa fail webhook:', error);
       res.status(500).send('Internal server error');
+    }
+  });
+
+  // Blog Scheduler Management Endpoints
+  
+  // Get scheduler status and statistics
+  app.get("/api/blog/scheduler/status", isEmailAuthenticated, async (req, res) => {
+    try {
+      const scheduler = SchedulerInstance.get();
+      if (!scheduler) {
+        return res.status(503).json({ 
+          success: false, 
+          message: "Планировщик блога не инициализирован" 
+        });
+      }
+
+      const status = scheduler.getStatus();
+      const stats = scheduler.getSchedulerStats();
+      const settings = await scheduler.getGenerationSettings();
+
+      res.json({
+        success: true,
+        scheduler: {
+          status,
+          stats,
+          settings
+        }
+      });
+    } catch (error) {
+      console.error('Error getting scheduler status:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статуса планировщика' 
+      });
+    }
+  });
+
+  // Force blog generation
+  app.post("/api/blog/scheduler/force", isEmailAuthenticated, async (req, res) => {
+    try {
+      const scheduler = SchedulerInstance.get();
+      if (!scheduler) {
+        return res.status(503).json({ 
+          success: false, 
+          message: "Планировщик блога не инициализирован" 
+        });
+      }
+
+      const result = await scheduler.forceGeneration();
+      
+      res.json({
+        success: true,
+        result: {
+          articlesGenerated: result.articlesGenerated,
+          nextGenerationAt: result.nextGenerationAt,
+          message: result.message
+        }
+      });
+    } catch (error) {
+      console.error('Error forcing blog generation:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка принудительной генерации статей' 
+      });
+    }
+  });
+
+  // Get detailed generation settings  
+  app.get("/api/blog/scheduler/settings", isEmailAuthenticated, async (req, res) => {
+    try {
+      const scheduler = SchedulerInstance.get();
+      if (!scheduler) {
+        return res.status(503).json({ 
+          success: false, 
+          message: "Планировщик блога не инициализирован" 
+        });
+      }
+
+      const settings = await scheduler.getGenerationSettings();
+      
+      res.json({
+        success: true,
+        settings
+      });
+    } catch (error) {
+      console.error('Error getting generation settings:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения настроек генерации' 
+      });
+    }
+  });
+
+  // Update generation settings
+  app.post("/api/blog/scheduler/settings", isEmailAuthenticated, async (req, res) => {
+    try {
+      const scheduler = SchedulerInstance.get();
+      if (!scheduler) {
+        return res.status(503).json({ 
+          success: false, 
+          message: "Планировщик блога не инициализирован" 
+        });
+      }
+
+      // Validate request body
+      const updateSchema = z.object({
+        enabled: z.boolean().optional(),
+        frequency: z.enum(['hourly', 'daily', 'weekly']).optional(),
+        maxArticlesPerDay: z.number().int().min(1).max(50).optional()
+      });
+
+      const validatedData = updateSchema.parse(req.body);
+      
+      await scheduler.updateGenerationSettings({
+        enabled: validatedData.enabled,
+        frequency: validatedData.frequency,
+        maxArticlesPerDay: validatedData.maxArticlesPerDay
+      });
+      
+      // Return updated settings
+      const settings = await scheduler.getGenerationSettings();
+      
+      res.json({
+        success: true,
+        message: 'Настройки генерации обновлены',
+        settings
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные',
+          errors: error.errors
+        });
+      }
+      
+      console.error('Error updating generation settings:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка обновления настроек генерации' 
+      });
+    }
+  });
+
+  // Get comprehensive scheduler statistics
+  app.get("/api/blog/scheduler/stats", isEmailAuthenticated, async (req, res) => {
+    try {
+      const scheduler = SchedulerInstance.get();
+      if (!scheduler) {
+        return res.status(503).json({ 
+          success: false, 
+          message: "Планировщик блога не инициализирован" 
+        });
+      }
+
+      const stats = scheduler.getSchedulerStats();
+      
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error) {
+      console.error('Error getting scheduler stats:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статистики планировщика' 
+      });
     }
   });
 
