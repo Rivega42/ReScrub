@@ -10,6 +10,7 @@ import { storage } from "./storage";
 import { BlogGeneratorService } from "./blog-generator";
 import { BlogScheduler } from "./blog-scheduler";
 import { SchedulerInstance } from "./scheduler-instance";
+import { healthCheckService } from "./healthChecker";
 
 const app = express();
 
@@ -193,5 +194,10 @@ app.use((req, res, next) => {
     } else {
       console.log('⚠️ Blog scheduler disabled: OPENAI_API_KEY not found');
     }
+    
+    // Start automatic health checks for system monitoring
+    console.log('🏥 Starting system health monitoring service...');
+    healthCheckService.start();
+    console.log('✅ Health check service started successfully');
   });
 })();

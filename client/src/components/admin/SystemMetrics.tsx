@@ -121,7 +121,6 @@ export function SystemMetrics({ metrics, isLoading }: SystemMetricsProps) {
               <Progress 
                 value={metrics.cpu.usage} 
                 className="h-2"
-                className="h-2"
               />
               <div className="text-xs text-muted-foreground">
                 Нагрузка: {metrics.cpu.loadAverage.map(l => l.toFixed(2)).join(', ')}
@@ -154,7 +153,6 @@ export function SystemMetrics({ metrics, isLoading }: SystemMetricsProps) {
               <Progress 
                 value={metrics.memory.percentage} 
                 className="h-2"
-                className="h-2"
               />
               <div className="text-xs text-muted-foreground">
                 {formatBytes(metrics.memory.used)} / {formatBytes(metrics.memory.total)}
@@ -186,7 +184,6 @@ export function SystemMetrics({ metrics, isLoading }: SystemMetricsProps) {
               </div>
               <Progress 
                 value={metrics.disk.percentage} 
-                className="h-2"
                 className="h-2"
               />
               <div className="text-xs text-muted-foreground">

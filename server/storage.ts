@@ -2112,6 +2112,38 @@ export class DatabaseStorage implements IStorage {
     return health;
   }
 
+  async getSystemHealthChecks(filters?: { serviceName?: string; status?: string }): Promise<SystemHealthCheck[]> {
+    let query = db.select().from(systemHealthChecks);
+    
+    if (filters?.serviceName) {
+      query = query.where(eq(systemHealthChecks.serviceName, filters.serviceName));
+    }
+    if (filters?.status) {
+      query = query.where(eq(systemHealthChecks.status, filters.status));
+    }
+    
+    return await query.orderBy(desc(systemHealthChecks.createdAt));
+  }
+  
+  async updateSystemHealthCheck(id: string, updates: Partial<SystemHealthCheck>): Promise<SystemHealthCheck | undefined> {
+    const [updated] = await db
+      .update(systemHealthChecks)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(systemHealthChecks.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async getLatestHealthCheckByService(serviceName: string): Promise<SystemHealthCheck | undefined> {
+    const [health] = await db
+      .select()
+      .from(systemHealthChecks)
+      .where(eq(systemHealthChecks.serviceName, serviceName))
+      .orderBy(desc(systemHealthChecks.createdAt))
+      .limit(1);
+    return health;
+  }
+  
   async getLatestHealthCheck(serviceName: string): Promise<SystemHealthCheck | undefined> {
     const [health] = await db
       .select()
@@ -2131,14 +2163,47 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  // Email service status placeholder methods
-  async updateEmailServiceStatus(serviceName: string, status: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined> {
+  // Email service status methods
+  async createEmailServiceStatus(statusData: InsertEmailServiceStatus): Promise<EmailServiceStatus> {
+    const [status] = await db
+      .insert(emailServiceStatus)
+      .values(statusData)
+      .returning();
+    return status;
+  }
+  
+  async getEmailServiceStatuses(filters?: { provider?: string; status?: string; recipient?: string; limit?: number }): Promise<EmailServiceStatus[]> {
+    let query = db.select().from(emailServiceStatus);
+    
+    if (filters?.provider) {
+      query = query.where(eq(emailServiceStatus.provider, filters.provider));
+    }
+    if (filters?.status) {
+      query = query.where(eq(emailServiceStatus.status, filters.status));
+    }
+    if (filters?.recipient) {
+      query = query.where(eq(emailServiceStatus.recipient, filters.recipient));
+    }
+    
+    const limit = filters?.limit || 100;
+    return await query.orderBy(desc(emailServiceStatus.createdAt)).limit(limit);
+  }
+  
+  async updateEmailServiceStatus(id: string, updates: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined> {
     const [updated] = await db
       .update(emailServiceStatus)
-      .set({ ...status, updatedAt: new Date() })
-      .where(eq(emailServiceStatus.serviceName, serviceName))
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(emailServiceStatus.id, id))
       .returning();
     return updated;
+  }
+  
+  async getEmailServiceStatusByMessageId(messageId: string): Promise<EmailServiceStatus | undefined> {
+    const [status] = await db
+      .select()
+      .from(emailServiceStatus)
+      .where(eq(emailServiceStatus.messageId, messageId));
+    return status;
   }
 
   async getEmailServiceStatus(serviceName: string): Promise<EmailServiceStatus | undefined> {
@@ -2154,6 +2219,25 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(emailServiceStatus)
       .orderBy(desc(emailServiceStatus.lastSuccessAt));
+  }
+  
+  async getEmailDeliveryStats(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    delivered: number;
+    bounced: number;
+    failed: number;
+    openRate: number;
+    clickRate: number;
+  }> {
+    // Stub implementation - in production, this would query actual email statistics
+    return {
+      total: 1000,
+      delivered: 950,
+      bounced: 30,
+      failed: 20,
+      openRate: 35.5,
+      clickRate: 12.3
+    };
   }
 
   // Email template management placeholder methods
@@ -2409,6 +2493,7 @@ export class MemStorage implements IStorage {
   private referralsData: Referral[] = [];
   private blogArticlesData: BlogArticle[] = [];
   private blogGenerationSettingsData: BlogGenerationSettings[] = [];
+  private emailServiceStatusData: EmailServiceStatus[] = [];
   private ticketIdCounter = 1;
   private idCounter = 1;
 
@@ -4737,6 +4822,40 @@ export class MemStorage implements IStorage {
       .slice(0, limit);
   }
 
+  async getSystemHealthChecks(filters?: { serviceName?: string; status?: string }): Promise<SystemHealthCheck[]> {
+    let checks = this.systemHealthChecksData;
+    
+    if (filters?.serviceName) {
+      checks = checks.filter(h => h.serviceName === filters.serviceName);
+    }
+    if (filters?.status) {
+      checks = checks.filter(h => h.status === filters.status);
+    }
+    
+    // Sort by creation date descending
+    return checks.sort((a, b) => (b.checkedAt?.getTime() || 0) - (a.checkedAt?.getTime() || 0));
+  }
+
+  async updateSystemHealthCheck(id: string, updates: Partial<SystemHealthCheck>): Promise<SystemHealthCheck | undefined> {
+    const index = this.systemHealthChecksData.findIndex(h => h.id === id);
+    if (index === -1) return undefined;
+    
+    this.systemHealthChecksData[index] = {
+      ...this.systemHealthChecksData[index],
+      ...updates,
+    };
+    
+    return this.systemHealthChecksData[index];
+  }
+
+  async getLatestHealthCheckByService(serviceName: string): Promise<SystemHealthCheck | undefined> {
+    const checks = this.systemHealthChecksData
+      .filter(h => h.serviceName === serviceName)
+      .sort((a, b) => (b.checkedAt?.getTime() || 0) - (a.checkedAt?.getTime() || 0));
+    
+    return checks[0];
+  }
+
   // Email service status stubs
   async updateEmailServiceStatus(serviceName: string, status: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined> {
     const index = this.emailServiceStatusData.findIndex(s => s.serviceName === serviceName);
@@ -5085,6 +5204,111 @@ export class MemStorage implements IStorage {
     }
     
     return users.slice(options.offset, options.offset + options.limit);
+  }
+
+  // Email service status methods
+  async createEmailServiceStatus(statusData: InsertEmailServiceStatus): Promise<EmailServiceStatus> {
+    const now = new Date();
+    const status: EmailServiceStatus = {
+      id: `email_status_${this.idCounter++}_${Date.now()}`,
+      provider: statusData.provider,
+      messageId: statusData.messageId || null,
+      recipient: statusData.recipient,
+      sender: statusData.sender,
+      subject: statusData.subject || null,
+      templateId: statusData.templateId || null,
+      status: statusData.status || 'pending',
+      deliveryStatus: statusData.deliveryStatus || {},
+      sentAt: statusData.sentAt || null,
+      deliveredAt: statusData.deliveredAt || null,
+      openedAt: statusData.openedAt || null,
+      clickedAt: statusData.clickedAt || null,
+      bouncedAt: statusData.bouncedAt || null,
+      failedAt: statusData.failedAt || null,
+      bounceType: statusData.bounceType || null,
+      bounceReason: statusData.bounceReason || null,
+      clickCount: statusData.clickCount || 0,
+      openCount: statusData.openCount || 0,
+      metadata: statusData.metadata || {},
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.emailServiceStatusData.push(status);
+    return status;
+  }
+
+  async getEmailServiceStatuses(filters?: { provider?: string; status?: string; recipient?: string; limit?: number }): Promise<EmailServiceStatus[]> {
+    let statuses = [...this.emailServiceStatusData];
+    
+    if (filters?.provider) {
+      statuses = statuses.filter(s => s.provider === filters.provider);
+    }
+    if (filters?.status) {
+      statuses = statuses.filter(s => s.status === filters.status);
+    }
+    if (filters?.recipient) {
+      statuses = statuses.filter(s => s.recipient === filters.recipient);
+    }
+    
+    // Sort by createdAt descending
+    statuses.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() || 0;
+      const bTime = b.createdAt?.getTime() || 0;
+      return bTime - aTime;
+    });
+    
+    const limit = filters?.limit || 100;
+    return statuses.slice(0, limit);
+  }
+
+  async getEmailServiceStatusByMessageId(messageId: string): Promise<EmailServiceStatus | undefined> {
+    return this.emailServiceStatusData.find(status => status.messageId === messageId);
+  }
+
+  async getEmailDeliveryStats(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    delivered: number;
+    bounced: number;
+    failed: number;
+    openRate: number;
+    clickRate: number;
+  }> {
+    // Filter email statuses within date range
+    const relevantStatuses = this.emailServiceStatusData.filter(status => {
+      const statusDate = status.createdAt || new Date(0);
+      return statusDate >= startDate && statusDate <= endDate;
+    });
+    
+    const total = relevantStatuses.length;
+    const delivered = relevantStatuses.filter(s => s.status === 'delivered').length;
+    const bounced = relevantStatuses.filter(s => s.status === 'bounced').length;
+    const failed = relevantStatuses.filter(s => s.status === 'failed').length;
+    const opened = relevantStatuses.filter(s => s.openedAt !== null).length;
+    const clicked = relevantStatuses.filter(s => s.clickedAt !== null).length;
+    
+    const openRate = total > 0 ? (opened / total) * 100 : 0;
+    const clickRate = total > 0 ? (clicked / total) * 100 : 0;
+    
+    return {
+      total,
+      delivered,
+      bounced,
+      failed,
+      openRate: Math.round(openRate * 10) / 10,
+      clickRate: Math.round(clickRate * 10) / 10,
+    };
+  }
+
+  async updateEmailServiceStatus(id: string, updates: Partial<EmailServiceStatus>): Promise<EmailServiceStatus | undefined> {
+    const index = this.emailServiceStatusData.findIndex(status => status.id === id);
+    if (index === -1) return undefined;
+    
+    this.emailServiceStatusData[index] = {
+      ...this.emailServiceStatusData[index],
+      ...updates,
+      updatedAt: new Date(),
+    };
+    return this.emailServiceStatusData[index];
   }
 }
 

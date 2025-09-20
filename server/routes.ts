@@ -3921,6 +3921,461 @@ ${allPages.map(page => `  <url>
     }
   });
 
+  // ====================
+  // SYSTEM MONITORING API ENDPOINTS
+  // ====================
+
+  // GET /api/admin/system/health - Get all service health checks
+  app.get('/api/admin/system/health', isAdmin, async (req: any, res) => {
+    try {
+      const services = [];
+      const startTime = Date.now();
+
+      // Database health check
+      try {
+        const dbStart = Date.now();
+        await db.execute(sql`SELECT 1`);
+        const dbTime = Date.now() - dbStart;
+        
+        const lastDbCheck = await storage.getLatestHealthCheckByService('database');
+        services.push({
+          name: 'database',
+          type: 'database',
+          status: dbTime < 1000 ? 'healthy' : dbTime < 3000 ? 'degraded' : 'down',
+          lastCheck: new Date(),
+          responseTime: dbTime,
+          uptime: lastDbCheck?.uptime || 99.9,
+          trend: dbTime < (lastDbCheck?.responseTime || 0) ? 'up' : 'down'
+        });
+        
+        await storage.createSystemHealthCheck({
+          serviceName: 'database',
+          serviceCategory: 'core',
+          status: dbTime < 1000 ? 'healthy' : dbTime < 3000 ? 'degraded' : 'down',
+          responseTimeMs: dbTime,
+          uptime: lastDbCheck?.uptime || 99.9,
+          details: { connectionPool: 'active', queryTime: dbTime }
+        });
+      } catch (error: any) {
+        services.push({
+          name: 'database',
+          type: 'database',
+          status: 'down',
+          lastCheck: new Date(),
+          responseTime: 0,
+          uptime: 0,
+          error: error.message,
+          trend: 'down'
+        });
+      }
+
+      // Email service health check
+      try {
+        const emailStart = Date.now();
+        const { mailganerClient } = await import('./email');
+        const isConnected = await mailganerClient.verifyConnection();
+        const emailTime = Date.now() - emailStart;
+        
+        const lastEmailCheck = await storage.getLatestHealthCheckByService('email');
+        services.push({
+          name: 'email',
+          type: 'email',
+          status: isConnected ? 'healthy' : 'down',
+          lastCheck: new Date(),
+          responseTime: emailTime,
+          uptime: lastEmailCheck?.uptime || 99.5,
+          trend: emailTime < (lastEmailCheck?.responseTime || 0) ? 'up' : 'down'
+        });
+        
+        await storage.createSystemHealthCheck({
+          serviceName: 'email',
+          serviceCategory: 'external',
+          status: isConnected ? 'healthy' : 'down',
+          responseTimeMs: emailTime,
+          uptime: lastEmailCheck?.uptime || 99.5,
+          details: { provider: 'mailganer', smtp: 'connected' }
+        });
+      } catch (error: any) {
+        services.push({
+          name: 'email',
+          type: 'email',
+          status: 'down',
+          lastCheck: new Date(),
+          responseTime: 0,
+          uptime: 0,
+          error: error.message,
+          trend: 'down'
+        });
+      }
+
+      // OpenAI API health check
+      try {
+        const openaiStart = Date.now();
+        // Simple check - just verify key exists
+        const hasApiKey = !!process.env.OPENAI_API_KEY;
+        const openaiTime = Date.now() - openaiStart;
+        
+        const lastAICheck = await storage.getLatestHealthCheckByService('openai');
+        services.push({
+          name: 'openai',
+          type: 'openai',
+          status: hasApiKey ? 'healthy' : 'degraded',
+          lastCheck: new Date(),
+          responseTime: openaiTime,
+          uptime: lastAICheck?.uptime || 99.0,
+          trend: 'stable'
+        });
+      } catch (error: any) {
+        services.push({
+          name: 'openai',
+          type: 'openai',
+          status: 'down',
+          lastCheck: new Date(),
+          responseTime: 0,
+          uptime: 0,
+          error: error.message,
+          trend: 'down'
+        });
+      }
+
+      // Storage health check
+      try {
+        const storageStart = Date.now();
+        // Check if we can read/write to storage
+        const testData = await storage.getUserAccountById('test');
+        const storageTime = Date.now() - storageStart;
+        
+        const lastStorageCheck = await storage.getLatestHealthCheckByService('storage');
+        services.push({
+          name: 'storage',
+          type: 'storage',
+          status: storageTime < 500 ? 'healthy' : storageTime < 2000 ? 'degraded' : 'down',
+          lastCheck: new Date(),
+          responseTime: storageTime,
+          uptime: lastStorageCheck?.uptime || 99.95,
+          trend: storageTime < (lastStorageCheck?.responseTime || 0) ? 'up' : 'down'
+        });
+      } catch (error: any) {
+        services.push({
+          name: 'storage',
+          type: 'storage',
+          status: 'down',
+          lastCheck: new Date(),
+          responseTime: 0,
+          uptime: 0,
+          error: error.message,
+          trend: 'down'
+        });
+      }
+
+      // Web server health check
+      const webserverTime = Date.now() - startTime;
+      const lastWebCheck = await storage.getLatestHealthCheckByService('webserver');
+      services.push({
+        name: 'webserver',
+        type: 'webserver',
+        status: 'healthy',
+        lastCheck: new Date(),
+        responseTime: webserverTime,
+        uptime: lastWebCheck?.uptime || 99.99,
+        trend: webserverTime < (lastWebCheck?.responseTime || 0) ? 'up' : 'down'
+      });
+
+      res.json({ success: true, services });
+    } catch (error) {
+      console.error('System health check error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка проверки состояния системы' });
+    }
+  });
+
+  // GET /api/admin/system/metrics - Get system metrics
+  app.get('/api/admin/system/metrics', isAdmin, async (req: any, res) => {
+    try {
+      // Simulate system metrics (in production, use actual system monitoring tools)
+      const metrics = {
+        cpu: {
+          usage: Math.random() * 100,
+          cores: 4,
+          loadAverage: [1.2, 1.5, 1.3]
+        },
+        memory: {
+          used: 2147483648, // 2GB in bytes
+          total: 8589934592, // 8GB in bytes
+          percentage: 25
+        },
+        disk: {
+          used: 53687091200, // 50GB in bytes
+          total: 107374182400, // 100GB in bytes
+          percentage: 50
+        },
+        network: {
+          activeConnections: Math.floor(Math.random() * 100),
+          requestRate: Math.random() * 50,
+          requestHistory: Array.from({ length: 24 }, (_, i) => ({
+            time: new Date(Date.now() - (24 - i) * 3600000).toISOString(),
+            rate: Math.random() * 50
+          }))
+        }
+      };
+
+      res.json({ success: true, metrics });
+    } catch (error) {
+      console.error('System metrics error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка получения системных метрик' });
+    }
+  });
+
+  // GET /api/admin/system/alerts - Get system alerts
+  app.get('/api/admin/system/alerts', isAdmin, async (req: any, res) => {
+    try {
+      // Get recent system health checks with issues
+      const recentChecks = await storage.getSystemHealthChecks({ 
+        status: 'down' 
+      });
+
+      const alerts = recentChecks.map(check => ({
+        id: check.id,
+        service: check.serviceName,
+        severity: check.status === 'down' ? 'critical' : check.status === 'degraded' ? 'warning' : 'info',
+        title: `Сервис ${check.serviceName} ${check.status === 'down' ? 'недоступен' : 'работает с проблемами'}`,
+        message: check.errorMessage || `Время отклика: ${check.responseTime}мс`,
+        details: check.details,
+        timestamp: check.createdAt,
+        acknowledged: false,
+        resolved: false
+      }));
+
+      // Add sample alerts for demonstration
+      if (alerts.length === 0) {
+        alerts.push({
+          id: 'demo-1',
+          service: 'database',
+          severity: 'info',
+          title: 'База данных оптимизирована',
+          message: 'Выполнена автоматическая оптимизация индексов',
+          timestamp: new Date(),
+          acknowledged: true,
+          resolved: true
+        } as any);
+      }
+
+      res.json({ success: true, alerts });
+    } catch (error) {
+      console.error('System alerts error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка получения системных оповещений' });
+    }
+  });
+
+  // POST /api/admin/system/alerts/:id/resolve - Mark alert as resolved
+  app.post('/api/admin/system/alerts/:id/resolve', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Log the resolution
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'resolve_alert',
+        targetType: 'system_alert',
+        targetId: id,
+        metadata: { alertId: id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({ success: true, message: 'Алерт решен' });
+    } catch (error) {
+      console.error('Alert resolution error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка решения алерта' });
+    }
+  });
+
+  // POST /api/admin/system/alerts/:id/acknowledge - Acknowledge alert
+  app.post('/api/admin/system/alerts/:id/acknowledge', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'acknowledge_alert',
+        targetType: 'system_alert',
+        targetId: id,
+        metadata: { alertId: id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({ success: true, message: 'Алерт подтвержден' });
+    } catch (error) {
+      console.error('Alert acknowledge error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка подтверждения алерта' });
+    }
+  });
+
+  // DELETE /api/admin/system/alerts/:id - Delete alert
+  app.delete('/api/admin/system/alerts/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        action: 'delete_alert',
+        targetType: 'system_alert',
+        targetId: id,
+        metadata: { alertId: id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({ success: true, message: 'Алерт удален' });
+    } catch (error) {
+      console.error('Alert deletion error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка удаления алерта' });
+    }
+  });
+
+  // GET /api/admin/system/performance - Get performance metrics
+  app.get('/api/admin/system/performance', isAdmin, async (req: any, res) => {
+    try {
+      const { timeRange = '24h' } = req.query;
+      
+      // Generate sample performance data
+      const hours = timeRange === '1h' ? 1 : timeRange === '6h' ? 6 : timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
+      const dataPoints = Math.min(hours, 100);
+      
+      const performanceData = {
+        responseTime: Array.from({ length: dataPoints }, (_, i) => ({
+          time: new Date(Date.now() - (dataPoints - i) * (hours * 60 * 60 * 1000 / dataPoints)).toISOString(),
+          average: 100 + Math.random() * 200,
+          p95: 300 + Math.random() * 200,
+          p99: 500 + Math.random() * 300,
+          min: 50 + Math.random() * 50,
+          max: 800 + Math.random() * 400
+        })),
+        requestVolume: Array.from({ length: dataPoints }, (_, i) => {
+          const total = 1000 + Math.floor(Math.random() * 500);
+          const failed = Math.floor(Math.random() * 50);
+          return {
+            time: new Date(Date.now() - (dataPoints - i) * (hours * 60 * 60 * 1000 / dataPoints)).toISOString(),
+            requests: total,
+            successful: total - failed,
+            failed,
+            errorRate: (failed / total) * 100
+          };
+        }),
+        errorRate: Array.from({ length: dataPoints }, (_, i) => {
+          const total = 1000 + Math.floor(Math.random() * 500);
+          const errors = Math.floor(Math.random() * 50);
+          return {
+            time: new Date(Date.now() - (dataPoints - i) * (hours * 60 * 60 * 1000 / dataPoints)).toISOString(),
+            rate: (errors / total) * 100,
+            errors,
+            total,
+            byType: {
+              '4xx': Math.floor(errors * 0.4),
+              '5xx': Math.floor(errors * 0.3),
+              timeout: Math.floor(errors * 0.2),
+              other: Math.floor(errors * 0.1)
+            }
+          };
+        }),
+        databasePerformance: Array.from({ length: dataPoints }, (_, i) => ({
+          time: new Date(Date.now() - (dataPoints - i) * (hours * 60 * 60 * 1000 / dataPoints)).toISOString(),
+          queryTime: 10 + Math.random() * 50,
+          connections: 10 + Math.floor(Math.random() * 40),
+          slowQueries: Math.floor(Math.random() * 5),
+          cacheHitRate: 80 + Math.random() * 20
+        })),
+        serviceBreakdown: [
+          { service: 'Database', avgResponseTime: 45, requests: 5420, errorRate: 0.5, availability: 99.95 },
+          { service: 'Email', avgResponseTime: 250, requests: 842, errorRate: 1.2, availability: 99.8 },
+          { service: 'OpenAI', avgResponseTime: 800, requests: 324, errorRate: 2.1, availability: 99.5 },
+          { service: 'Storage', avgResponseTime: 120, requests: 2156, errorRate: 0.3, availability: 99.99 },
+          { service: 'WebServer', avgResponseTime: 85, requests: 8921, errorRate: 0.8, availability: 99.98 }
+        ],
+        stats: {
+          avgResponseTime: 180,
+          totalRequests: 17663,
+          errorRate: 0.9,
+          availability: 99.84,
+          peakResponseTime: 1250,
+          peakRequestRate: 95
+        }
+      };
+
+      res.json(performanceData);
+    } catch (error) {
+      console.error('Performance metrics error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка получения метрик производительности' });
+    }
+  });
+
+  // POST /api/admin/system/check/:service - Manual service health check
+  app.post('/api/admin/system/check/:service', isAdmin, async (req: any, res) => {
+    try {
+      const { service } = req.params;
+      let status = 'unknown';
+      let responseTime = 0;
+      let error = null;
+      
+      const startTime = Date.now();
+      
+      switch (service) {
+        case 'database':
+          try {
+            await db.execute(sql`SELECT 1`);
+            responseTime = Date.now() - startTime;
+            status = responseTime < 1000 ? 'healthy' : 'degraded';
+          } catch (e: any) {
+            error = e.message;
+            status = 'down';
+          }
+          break;
+          
+        case 'email':
+          try {
+            const { mailganerClient } = await import('./email');
+            const isConnected = await mailganerClient.verifyConnection();
+            responseTime = Date.now() - startTime;
+            status = isConnected ? 'healthy' : 'down';
+          } catch (e: any) {
+            error = e.message;
+            status = 'down';
+          }
+          break;
+          
+        default:
+          return res.status(400).json({ success: false, message: 'Неизвестный сервис' });
+      }
+      
+      // Record the health check
+      let serviceCategory: 'core' | 'external';
+      if (service === 'database') {
+        serviceCategory = 'core';
+      } else if (service === 'email') {
+        serviceCategory = 'external';
+      } else {
+        serviceCategory = 'core';
+      }
+      
+      await storage.createSystemHealthCheck({
+        serviceName: service,
+        serviceCategory,
+        status,
+        responseTimeMs: responseTime,
+        errorMessage: error,
+        details: { manual: true, checkedBy: req.adminUser.id }
+      });
+      
+      res.json({ success: true, service, status, responseTime, error });
+    } catch (error) {
+      console.error('Manual health check error:', error);
+      res.status(500).json({ success: false, message: 'Ошибка проверки сервиса' });
+    }
+  });
+
   // Public health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

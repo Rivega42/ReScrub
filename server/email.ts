@@ -198,7 +198,7 @@ class MailganerSMTPClient {
   }
 }
 
-const mailganerClient = new MailganerSMTPClient();
+export const mailganerClient = new MailganerSMTPClient();
 
 // Проверка SMTP соединения при старте
 (async () => {

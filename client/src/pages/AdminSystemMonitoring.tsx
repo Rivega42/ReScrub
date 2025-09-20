@@ -7,18 +7,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  ServiceHealthCard 
-} from '@/components/admin/ServiceHealthCard';
+  ServiceHealthGrid,
+  type ServiceHealth 
+} from '@/components/admin/ServiceHealthGrid';
 import { 
   SystemMetrics 
 } from '@/components/admin/SystemMetrics';
 import { 
-  AlertsPanel,
+  SystemAlerts,
   type SystemAlert
-} from '@/components/admin/AlertsPanel';
+} from '@/components/admin/SystemAlerts';
 import { 
-  ResponseTimeChart 
-} from '@/components/admin/ResponseTimeChart';
+  PerformanceCharts 
+} from '@/components/admin/PerformanceCharts';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
@@ -37,21 +38,62 @@ import {
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
-interface ServiceHealth {
-  name: string;
-  type: 'database' | 'email' | 'openai' | 'storage' | 'webserver';
-  status: 'healthy' | 'degraded' | 'down';
-  lastCheck: Date;
-  responseTime: number;
-  uptime: number;
-  error?: string;
-  trend?: 'up' | 'down' | 'stable';
+interface PerformanceData {
+  responseTime: Array<{
+    time: string;
+    average: number;
+    p95: number;
+    p99: number;
+    min: number;
+    max: number;
+  }>;
+  requestVolume: Array<{
+    time: string;
+    requests: number;
+    successful: number;
+    failed: number;
+    errorRate: number;
+  }>;
+  errorRate: Array<{
+    time: string;
+    rate: number;
+    errors: number;
+    total: number;
+    byType?: {
+      '4xx': number;
+      '5xx': number;
+      timeout: number;
+      other: number;
+    };
+  }>;
+  databasePerformance: Array<{
+    time: string;
+    queryTime: number;
+    connections: number;
+    slowQueries: number;
+    cacheHitRate: number;
+  }>;
+  serviceBreakdown: Array<{
+    service: string;
+    avgResponseTime: number;
+    requests: number;
+    errorRate: number;
+    availability: number;
+  }>;
+  stats?: {
+    avgResponseTime: number;
+    totalRequests: number;
+    errorRate: number;
+    availability: number;
+    peakResponseTime: number;
+    peakRequestRate: number;
+  };
 }
 
 export default function AdminSystemMonitoring() {
   const { toast } = useToast();
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('24h');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '6h' | '24h' | '7d' | '30d'>('24h');
   const [selectedServices, setSelectedServices] = useState<string[]>(['database', 'email', 'openai', 'storage', 'webserver']);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAlertCountRef = useRef<number>(0);
@@ -74,29 +116,29 @@ export default function AdminSystemMonitoring() {
     refetchInterval: autoRefreshEnabled ? 10000 : false, // Чаще для алертов
   });
 
-  // Получить историю времени отклика
-  const { data: responseTimesData, isLoading: isLoadingResponseTimes, refetch: refetchResponseTimes } = useQuery({
-    queryKey: ['/api/admin/system/response-times', selectedTimeRange],
+  // Получить данные производительности
+  const { data: performanceData, isLoading: isLoadingPerformance, refetch: refetchPerformance } = useQuery<PerformanceData>({
+    queryKey: ['/api/admin/system/performance', selectedTimeRange],
   });
 
-  // Мутация для подтверждения алерта
-  const acknowledgeAlertMutation = useMutation({
+  // Мутация для решения алерта
+  const resolveAlertMutation = useMutation({
     mutationFn: (alertId: string) => apiRequest({
       method: 'POST',
-      url: `/api/admin/system/alerts/${alertId}/acknowledge`,
+      url: `/api/admin/system/alerts/${alertId}/resolve`,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/system/alerts'] });
       toast({
-        title: "Алерт подтвержден",
-        description: "Алерт был успешно обработан"
+        title: "Алерт решен",
+        description: "Проблема была успешно решена"
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: error.message || "Не удалось подтвердить алерт"
+        description: error.message || "Не удалось решить алерт"
       });
     }
   });
@@ -182,7 +224,7 @@ export default function AdminSystemMonitoring() {
       refetchHealth(),
       refetchMetrics(),
       refetchAlerts(),
-      refetchResponseTimes()
+      refetchPerformance()
     ]);
     
     toast({
@@ -202,8 +244,7 @@ export default function AdminSystemMonitoring() {
   const services: ServiceHealth[] = healthData?.services || [];
   const metrics = metricsData?.metrics;
   const alerts: SystemAlert[] = alertsData?.alerts || [];
-  const responseTimeHistory = responseTimesData?.data || [];
-  const responseTimeStats = responseTimesData?.stats;
+  const performanceStats = performanceData?.stats;
 
   // Подсчет статистики
   const healthyCount = services.filter(s => s.status === 'healthy').length;
@@ -353,27 +394,15 @@ export default function AdminSystemMonitoring() {
             </TabsList>
 
             <TabsContent value="services" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {isLoadingHealth ? (
-                  <>
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <ServiceHealthCard 
-                        key={i}
-                        service={null as any}
-                      />
-                    ))}
-                  </>
-                ) : (
-                  services.map(service => (
-                    <ServiceHealthCard
-                      key={service.type}
-                      service={service}
-                      onRefresh={() => checkServiceMutation.mutate(service.type)}
-                      isRefreshing={checkServiceMutation.isPending}
-                    />
-                  ))
-                )}
-              </div>
+              <ServiceHealthGrid
+                services={services}
+                isLoading={isLoadingHealth}
+                onRefreshService={(serviceName) => checkServiceMutation.mutate(serviceName)}
+                onViewLogs={(service) => {
+                  // Implement view logs functionality
+                  console.log('View logs for', service.name);
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="metrics" className="space-y-6">
@@ -384,33 +413,37 @@ export default function AdminSystemMonitoring() {
             </TabsContent>
 
             <TabsContent value="alerts" className="space-y-6">
-              <AlertsPanel
+              <SystemAlerts
                 alerts={alerts}
-                onAcknowledge={(alertId) => acknowledgeAlertMutation.mutate(alertId)}
+                isLoading={isLoadingAlerts}
+                onAcknowledge={async (alertId) => {
+                  await apiRequest({
+                    method: 'POST',
+                    url: `/api/admin/system/alerts/${alertId}/acknowledge`,
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['/api/admin/system/alerts'] });
+                  toast({ title: "Алерт подтвержден" });
+                }}
+                onResolve={(alertId) => resolveAlertMutation.mutate(alertId)}
                 onDelete={async (alertId) => {
-                  // Удаление алерта (можно добавить API endpoint)
                   await apiRequest({
                     method: 'DELETE',
                     url: `/api/admin/system/alerts/${alertId}`,
                   });
                   queryClient.invalidateQueries({ queryKey: ['/api/admin/system/alerts'] });
+                  toast({ title: "Алерт удален" });
                 }}
-                onPlaySound={playAlertSound}
-                isLoading={isLoadingAlerts}
               />
             </TabsContent>
 
             <TabsContent value="response" className="space-y-6">
-              <ResponseTimeChart
-                data={responseTimeHistory}
-                timeRange={selectedTimeRange}
-                onTimeRangeChange={setSelectedTimeRange}
-                selectedServices={selectedServices}
-                onServiceToggle={toggleService}
-                onRefresh={() => refetchResponseTimes()}
+              <PerformanceCharts
+                data={performanceData}
+                isLoading={isLoadingPerformance}
+                timeRange={selectedTimeRange as any}
+                onTimeRangeChange={setSelectedTimeRange as any}
+                onRefresh={() => refetchPerformance()}
                 onExport={handleExport}
-                isLoading={isLoadingResponseTimes}
-                stats={responseTimeStats}
               />
             </TabsContent>
           </Tabs>
