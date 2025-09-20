@@ -428,7 +428,7 @@ export default function Login() {
                           <Checkbox 
                             id="remember" 
                             data-testid="checkbox-remember"
-                            className="h-3 w-3"
+                            size="sm"
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />

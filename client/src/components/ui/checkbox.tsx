@@ -1,35 +1,52 @@
 import * as React from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { Check } from "lucide-react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+const checkboxVariants = cva(
+  "peer shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+  {
+    variants: {
+      size: {
+        sm: "h-3 w-3",
+        md: "h-4 w-4", 
+        lg: "h-5 w-5",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+)
+
+const iconSizes = {
+  sm: "h-2.5 w-2.5",
+  md: "h-3 w-3", 
+  lg: "h-4 w-4",
+} as const
+
+export interface CheckboxProps
+  extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,
+    VariantProps<typeof checkboxVariants> {}
+
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => {
-  // Extract size from className if present, default to 16px (h-4 w-4)
-  const sizeMatch = className?.match(/h-(\d+)/) 
-  const size = sizeMatch ? parseInt(sizeMatch[1]) * 4 : 16 // Convert Tailwind units to pixels
-  const iconSize = Math.max(8, size - 4) // Icon 4px smaller than checkbox, minimum 8px
-  
-  return (
-    <CheckboxPrimitive.Root
-      ref={ref}
-      className={cn(
-        "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-        className
-      )}
-      {...props}
+  CheckboxProps
+>(({ className, size, ...props }, ref) => (
+  <CheckboxPrimitive.Root
+    ref={ref}
+    className={cn(checkboxVariants({ size }), className)}
+    {...props}
+  >
+    <CheckboxPrimitive.Indicator
+      className={cn("flex items-center justify-center text-current")}
     >
-      <CheckboxPrimitive.Indicator
-        className={cn("flex items-center justify-center text-current")}
-      >
-        <Check style={{ width: `${iconSize}px`, height: `${iconSize}px` }} />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
-  )
-})
+      <Check className={iconSizes[size || "md"]} />
+    </CheckboxPrimitive.Indicator>
+  </CheckboxPrimitive.Root>
+))
 Checkbox.displayName = CheckboxPrimitive.Root.displayName
 
 export { Checkbox }
