@@ -1,7 +1,10 @@
 import { Link } from "wouter";
+import { useState } from "react";
+import ConsentSettingsModal from "./ConsentSettingsModal";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
 
   return (
     <footer className="border-t border-border">
@@ -131,6 +134,15 @@ export default function Footer() {
                       Условия использования
                     </Link>
                   </li>
+                  <li>
+                    <button
+                      onClick={() => setIsConsentModalOpen(true)}
+                      className="text-sm leading-6 text-muted-foreground hover:text-foreground text-left"
+                      data-testid="button-footer-privacy-settings"
+                    >
+                      Настройки конфиденциальности
+                    </button>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -144,6 +156,12 @@ export default function Footer() {
           </p>
         </div>
       </div>
+
+      {/* Модальное окно настроек конфиденциальности */}
+      <ConsentSettingsModal 
+        isOpen={isConsentModalOpen} 
+        onClose={() => setIsConsentModalOpen(false)} 
+      />
     </footer>
   );
 }

@@ -34,6 +34,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -155,6 +156,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <CookieConsentBanner />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
