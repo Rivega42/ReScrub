@@ -63,8 +63,12 @@ function Router() {
       <Route path="/reports" component={Reports} />
       <Route path="/status" component={Status} />
       
-      {/* Admin routes */}
-      <Route path="/admin" component={AdminDashboard} />
+      {/* Protected Admin routes */}
+      <Route path="/admin">
+        <AuthGuard fallback={<Login />}>
+          <AdminDashboard />
+        </AuthGuard>
+      </Route>
       <Route path="/admin-setup" component={AdminSetup} />
       
       {/* Protected app routes */}
