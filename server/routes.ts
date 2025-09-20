@@ -522,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        res.clearCookie('rescrub.sid'); // Custom session cookie name from replitAuth
+        res.clearCookie('connect.sid'); // ✅ ИСПРАВЛЕНО: Правильное имя сессии
         res.json({ 
           success: true, 
           message: "Выход выполнен успешно" 
