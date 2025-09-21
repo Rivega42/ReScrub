@@ -105,7 +105,11 @@ function Router() {
           <AdminBlog />
         </AuthGuard>
       </Route>
-      <Route path="/admin-setup" component={AdminSetup} />
+      <Route path="/admin-setup">
+        <AuthGuard fallback={<Login />}>
+          <AdminSetup />
+        </AuthGuard>
+      </Route>
       
       {/* Protected app routes */}
       <Route path="/app/:rest*">

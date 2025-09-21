@@ -27,9 +27,10 @@ export default function AdminSetup() {
   const { toast } = useToast();
 
   const setupMutation = useMutation({
-    mutationFn: () => apiRequest('/api/admin/setup-demo-admin', {
-      method: 'POST',
-    }) as Promise<SetupResponse>,
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/admin/setup-demo-admin');
+      return await response.json() as SetupResponse;
+    },
     onSuccess: (data) => {
       if (data.success) {
         setSetupComplete(true);
