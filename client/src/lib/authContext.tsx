@@ -60,14 +60,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const response = await apiRequest('POST', '/api/auth/login', { email, password });
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Ошибка входа');
+      try {
+        const response = await apiRequest('POST', '/api/auth/login', { email, password });
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.message || 'Ошибка входа');
+        }
+        
+        return data;
+      } catch (error: any) {
+        // Parse JSON error from apiRequest format: "403: {JSON}"
+        let errorMessage = 'Ошибка входа';
+        
+        if (error.message) {
+          const match = error.message.match(/^\d+:\s*(.+)$/);
+          if (match) {
+            try {
+              const errorData = JSON.parse(match[1]);
+              errorMessage = errorData.message || errorMessage;
+            } catch {
+              // If JSON parsing fails, use the part after status code
+              errorMessage = match[1];
+            }
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
-      
-      return data;
     },
     onSuccess: async () => {
       // Force immediate refetch and wait for it to complete
@@ -79,14 +101,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const response = await apiRequest('POST', '/api/auth/register', { email, password });
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Ошибка регистрации');
+      try {
+        const response = await apiRequest('POST', '/api/auth/register', { email, password });
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.message || 'Ошибка регистрации');
+        }
+        
+        return data;
+      } catch (error: any) {
+        // Parse JSON error from apiRequest format: "403: {JSON}"
+        let errorMessage = 'Ошибка регистрации';
+        
+        if (error.message) {
+          const match = error.message.match(/^\d+:\s*(.+)$/);
+          if (match) {
+            try {
+              const errorData = JSON.parse(match[1]);
+              errorMessage = errorData.message || errorMessage;
+            } catch {
+              // If JSON parsing fails, use the part after status code
+              errorMessage = match[1];
+            }
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
-      
-      return data;
     },
   });
 
