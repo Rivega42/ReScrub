@@ -28,11 +28,11 @@ export default function BusinessMonitoring() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Мониторинг персональных данных 152-ФЗ — ResCrub Business"
-        description="Непрерывный мониторинг утечек данных, контроль обработки персональных данных, SIEM система для соблюдения 152-ФЗ. Защита данных в режиме реального времени."
+        title="Мониторинг персональных данных 152фз — ResCrub Business"
+        description="Непрерывный мониторинг утечек данных, контроль обработки персональных данных, SIEM система для соблюдения 152фз. Защита данных в режиме реального времени."
         productType="monitoring"
         productData={{
-          name: "Система мониторинга персональных данных 152-ФЗ",
+          name: "Система мониторинга персональных данных 152фз",
           description: "Профессиональная система для непрерывного контроля и мониторинга персональных данных",
           category: "Security Monitoring Software",
           url: "/business/monitoring",
@@ -43,15 +43,16 @@ export default function BusinessMonitoring() {
           }
         }}
         neuralSignals={{
-          primaryKeywords: ['мониторинг утечек данных', 'контроль персональных данных 152-ФЗ', 'SIEM система персональные данные'],
+          primaryKeywords: ['мониторинг утечек данных', 'контроль персональных данных 152фз', 'SIEM система персональные данные'],
           searchIntent: 'transactional',
           contentDepth: 'expert',
           expertiseLevel: 9
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['мониторинг персональных данных российские компании', 'система контроля 152-ФЗ', 'непрерывный аудит данных'],
-            longTail: ['как настроить мониторинг персональных данных в компании по 152 фз']
+            primary: ['мониторинг утечек данных для бизнеса', 'корпоративный SIEM мониторинг 152фз', 'аудит персональных данных предприятий'],
+            semantic: ['enterprise data breach monitoring', 'непрерывный аудит compliance', 'контроль персональных данных предприятий'],
+            longTail: ['как настроить корпоративный мониторинг персональных данных в компании']
           }
         }}
       />
@@ -70,7 +71,7 @@ export default function BusinessMonitoring() {
                     Мониторинг 24/7
                   </Badge>
                   <Badge variant="secondary">
-                    152-ФЗ Compliance
+                    152фз Compliance
                   </Badge>
                   <Badge variant="outline">
                     Real-time
@@ -85,7 +86,7 @@ export default function BusinessMonitoring() {
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Профессиональная система мониторинга для непрерывного контроля 
                   обработки персональных данных. Выявление утечек, нарушений 
-                  и несоответствий 152-ФЗ в режиме реального времени.
+                  и несоответствий 152фз в режиме реального времени.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -175,7 +176,7 @@ export default function BusinessMonitoring() {
                 Возможности системы мониторинга
               </h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                Комплексная система контроля персональных данных для полного соответствия 152-ФЗ
+                Комплексная система контроля персональных данных для полного соответствия 152фз
               </p>
             </div>
 
@@ -254,7 +255,7 @@ export default function BusinessMonitoring() {
                 </div>
                 <p className="text-muted-foreground">
                   Автоматическая генерация отчетов для соответствия требованиям 
-                  152-ФЗ и подготовки к проверкам регулятора.
+                  152фз и подготовки к проверкам регулятора.
                 </p>
               </Card>
             </div>

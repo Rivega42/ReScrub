@@ -29,17 +29,18 @@ export default function BusinessIntegrations() {
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
         title="Интеграции — ResCrub Business Platform"
-        description="Готовые интеграции ResCrub Business с CRM, ERP, системами аналитики и популярными бизнес-приложениями. 150+ готовых коннекторов для автоматизации 152-ФЗ compliance."
+        description="Готовые интеграции ResCrub Business с CRM, ERP, системами аналитики и популярными бизнес-приложениями. 150+ готовых коннекторов для автоматизации 152фз compliance."
         neuralSignals={{
-          primaryKeywords: ['интеграция 152-ФЗ CRM', 'подключение системы защиты данных', 'автоматизация compliance интеграция'],
+          primaryKeywords: ['интеграция 152фз CRM', 'подключение системы защиты данных', 'автоматизация compliance интеграция'],
           searchIntent: 'informational',
           contentDepth: 'comprehensive',
           expertiseLevel: 7
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['интеграция защиты персональных данных', 'подключение 152-ФЗ к CRM', 'автоматизация compliance для бизнеса'],
-            longTail: ['как интегрировать систему защиты персональных данных с CRM системой']
+            primary: ['интеграция защиты данных в корпоративные системы', 'подключение 152фз к бизнес системам', 'автоматизация compliance в компании'],
+            semantic: ['CRM интеграция приватность для бизнеса', 'ERP защита данных компаний', 'интеграция 152фз в бизнес-процессы'],
+            longTail: ['как интегрировать защиту персональных данных в корпоративные системы предприятий']
           }
         }}
       />
@@ -170,7 +171,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Интеграция с amoCRM для автоматизации процессов согласий 
-                          и обеспечения соответствия 152-ФЗ.
+                          и обеспечения соответствия 152фз.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">
@@ -291,7 +292,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Интеграция с мультиканальной платформой SendPulse 
-                          для соблюдения 152-ФЗ в различных каналах коммуникации.
+                          для соблюдения 152фз в различных каналах коммуникации.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">
@@ -411,7 +412,7 @@ export default function BusinessIntegrations() {
                       </CardHeader>
                       <CardContent>
                         <CardDescription className="text-base">
-                          Интеграция с Google Analytics 4 для соблюдения 152-ФЗ 
+                          Интеграция с Google Analytics 4 для соблюдения 152фз 
                           при использовании международных сервисов аналитики.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
@@ -451,7 +452,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Российская система сквозной аналитики с встроенной 
-                          поддержкой compliance требований 152-ФЗ.
+                          поддержкой compliance требований 152фз.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">

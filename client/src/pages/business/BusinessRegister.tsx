@@ -102,7 +102,7 @@ const availableServices = [
   { value: "atomization", label: "Атомаризация данных" },
   { value: "monitoring", label: "Мониторинг соответствия" },
   { value: "reports", label: "Автоотчеты для надзорных органов" },
-  { value: "consulting", label: "Консультации по 152-ФЗ" },
+  { value: "consulting", label: "Консультации по 152фз" },
   { value: "audit", label: "Аудит системы защиты ПДн" }
 ];
 
@@ -175,20 +175,20 @@ export default function BusinessRegister() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/WebPage">
       <BusinessSEO 
-        title="Регистрация компании ИНН — Подключение 152-ФЗ услуги | ResCrub Business"
-        description="Регистрация компании в ResCrub Business по ИНН/ОГРН. Подключение услуг автоматизации 152-ФЗ, назначение DPO, выбор сферы деятельности."
-        pageCategory="register"
+        title="Регистрация компании ИНН — Подключение 152фз услуги | ResCrub Business"
+        description="Регистрация компании в ResCrub Business по ИНН/ОГРН. Подключение услуг автоматизации 152фз, назначение DPO, выбор сферы деятельности."
+        pageCategory="auth"
         neuralSignals={{
-          primaryKeywords: ['регистрация компании ИНН', 'подключение 152-ФЗ услуги', 'создать бизнес аккаунт'],
+          primaryKeywords: ['регистрация предприятия в системе защиты данных', 'подключение корпоративных услуг 152фз', 'создать корпоративный аккаунт для компании'],
           searchIntent: 'transactional',
-          contentDepth: 'detailed',
+          contentDepth: 'comprehensive',
           expertiseLevel: 4,
           authoritySignals: ['валидация ИНН ОГРН', 'назначение DPO', 'корпоративная регистрация']
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['регистрация компании по ИНН ResCrub', 'подключение услуг 152-ФЗ ОГРН', 'создать корпоративный аккаунт защита данных'],
-            semantic: ['бизнес регистрация системы compliance', 'оформление доступа к автоматизации ПДн', 'корпоративная подписка на сервисы 152-ФЗ'],
+            primary: ['регистрация компании по ИНН ResCrub', 'подключение услуг 152фз ОГРН', 'создать корпоративный аккаунт защита данных'],
+            semantic: ['бизнес регистрация системы compliance', 'оформление доступа к автоматизации ПДн', 'корпоративная подписка на сервисы 152фз'],
             longTail: ['как зарегистрировать компанию в системе автоматизации соблюдения 152 фз по инн и огрн']
           }
         }}
@@ -222,7 +222,7 @@ export default function BusinessRegister() {
                       Создать аккаунт
                     </h1>
                     <p className="mt-2 text-muted-foreground">
-                      Начните автоматизировать соблюдение 152-ФЗ уже сегодня
+                      Начните автоматизировать соблюдение 152фз уже сегодня
                     </p>
                     <div className="mt-4">
                       <Badge variant="secondary" className="text-sm">

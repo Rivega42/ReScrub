@@ -25,11 +25,11 @@ export default function BusinessConsent() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Виджет согласий 152-ФЗ — ResCrub Business"
-        description="Готовый виджет для сбора согласий на обработку персональных данных согласно 152-ФЗ. Cookie consent, персонализация, API интеграция для российского бизнеса."
+        title="Корпоративный виджет согласий 152фз — ResCrub Business"
+        description="Виджет согласий для бизнеса: автоматизация сбора согласий на обработку персональных данных согласно 152фз. Корпоративный consent management, API интеграция для предприятий."
         productType="consent"
         productData={{
-          name: "Виджет согласий 152-ФЗ",
+          name: "Виджет согласий 152фз",
           description: "Готовое решение для автоматизации сбора согласий на обработку персональных данных",
           category: "Compliance Software",
           url: "/business/consent",
@@ -40,15 +40,16 @@ export default function BusinessConsent() {
           }
         }}
         neuralSignals={{
-          primaryKeywords: ['виджет согласий 152-ФЗ', 'cookie consent banner', 'согласие на обработку персональных данных'],
+          primaryKeywords: ['виджет согласий для бизнеса', 'корпоративный cookie consent', 'управление согласиями клиентов B2B'],
           searchIntent: 'transactional',
-          contentDepth: 'expert',
+          contentDepth: 'comprehensive',
           expertiseLevel: 9
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['виджет согласий для сайта', 'форма согласия 152-ФЗ', 'cookie consent российский'],
-            longTail: ['как добавить виджет согласий на сайт по 152 фз']
+            primary: ['виджет согласий для бизнеса', 'форма согласия 152фз для компаний', 'корпоративный cookie consent'],
+            semantic: ['управление согласиями предприятий', 'consent management для бизнеса', 'персонализированные согласия B2B'],
+            longTail: ['как внедрить виджет согласий в корпоративные системы']
           }
         }}
       />
@@ -67,19 +68,19 @@ export default function BusinessConsent() {
                     Готовое решение
                   </Badge>
                   <Badge variant="secondary">
-                    152-ФЗ Compliance
+                    152фз для бизнеса
                   </Badge>
                 </div>
                 
                 <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                  Виджет согласий 
-                  <span className="text-primary"> 152-ФЗ</span>
+                  Корпоративный виджет 
+                  <span className="text-primary"> согласий</span>
                 </h1>
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-                  Готовый виджет для автоматизации сбора согласий на обработку 
-                  персональных данных в соответствии с российским законодательством. 
-                  Простая интеграция, полная настройка, российская правовая база.
+                  Корпоративный виджет для автоматизации сбора согласий на обработку 
+                  персональных данных клиентов в соответствии с 152фз. 
+                  Простая интеграция в корпоративные системы, полная настройка под бизнес-процессы.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -167,10 +168,10 @@ export default function BusinessConsent() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Возможности виджета
+                Корпоративные возможности
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Все необходимые функции для полного соответствия 152-ФЗ
+                Все необходимые функции для корпоративного соответствия 152фз
               </p>
             </div>
             
@@ -181,7 +182,7 @@ export default function BusinessConsent() {
                     <div className="rounded-lg bg-primary/10 p-2">
                       <Shield className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle>152-ФЗ Compliance</CardTitle>
+                    <CardTitle>152фз Compliance</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>

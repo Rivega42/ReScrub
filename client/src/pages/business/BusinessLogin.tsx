@@ -82,18 +82,18 @@ export default function BusinessLogin() {
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/WebPage">
       <BusinessSEO 
         title="Вход корпоративный кабинет — Личный кабинет бизнес | ResCrub Business"
-        description="Войдите в корпоративный кабинет ResCrub Business для управления соблюдением 152-ФЗ. Безопасный доступ к личному кабинету бизнес-клиентов."
-        pageCategory="login"
+        description="Войдите в корпоративный кабинет ResCrub Business для управления соблюдением 152фз. Безопасный доступ к личному кабинету бизнес-клиентов."
+        pageCategory="auth"
         neuralSignals={{
-          primaryKeywords: ['вход корпоративный кабинет', 'личный кабинет бизнес', 'логин система 152-ФЗ'],
+          primaryKeywords: ['вход корпоративный кабинет', 'личный кабинет бизнес предприятий', 'авторизация система 152фз для компаний'],
           searchIntent: 'navigational',
-          contentDepth: 'basic',
+          contentDepth: 'beginner',
           expertiseLevel: 3,
           authoritySignals: ['безопасный вход', 'корпоративная система', 'защищенный доступ']
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['вход корпоративный кабинет ResCrub', 'личный кабинет бизнес 152-ФЗ', 'логин система управления данными'],
+            primary: ['вход корпоративный кабинет ResCrub', 'личный кабинет бизнес 152фз', 'логин система управления данными'],
             semantic: ['авторизация в системе compliance', 'доступ к панели управления', 'вход в бизнес-аккаунт'],
             longTail: ['как войти в корпоративный кабинет для управления персональными данными по 152 фз']
           }
@@ -282,7 +282,7 @@ export default function BusinessLogin() {
                           ResCrub Business Platform
                         </h2>
                         <p className="text-muted-foreground">
-                          Комплексное решение для автоматизации соблюдения 152-ФЗ
+                          Комплексное решение для автоматизации соблюдения 152фз
                         </p>
                       </div>
                       
@@ -302,7 +302,7 @@ export default function BusinessLogin() {
                           <div>
                             <div className="font-medium">Мониторинг compliance</div>
                             <div className="text-sm text-muted-foreground">
-                              Непрерывный контроль соблюдения требований 152-ФЗ
+                              Непрерывный контроль соблюдения требований 152фз
                             </div>
                           </div>
                         </div>

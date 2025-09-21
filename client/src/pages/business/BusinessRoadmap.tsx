@@ -35,15 +35,16 @@ export default function BusinessRoadmap() {
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
-          primaryKeywords: ['дорожная карта защита данных', 'развитие compliance платформы', 'будущее 152-ФЗ технологий'],
+          primaryKeywords: ['дорожная карта защита данных', 'развитие compliance платформы', 'будущее 152фз технологий'],
           searchIntent: 'informational',
           contentDepth: 'intermediate',
           expertiseLevel: 7
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['roadmap защита персональных данных', 'планы развития compliance', 'будущее 152-ФЗ автоматизации'],
-            longTail: ['дорожная карта развития технологий защиты персональных данных в россии']
+            primary: ['roadmap защиты данных для бизнеса', 'планы развития корпоративного compliance', 'будущее автоматизации 152фз для предприятий'],
+            semantic: ['стратегия развития business compliance', 'корпоративные планы защиты данных', 'roadmap enterprise security'],
+            longTail: ['дорожная карта развития корпоративных технологий защиты данных для российского бизнеса']
           }
         }}
       />
@@ -129,7 +130,7 @@ export default function BusinessRoadmap() {
                     </div>
                   </div>
                   <CardDescription className="mt-4">
-                    Полнофункциональный виджет с поддержкой 152-ФЗ в production. 
+                    Полнофункциональный виджет с поддержкой 152фз в production. 
                     Активно используется 500+ компаниями.
                   </CardDescription>
                 </CardContent>
@@ -197,7 +198,7 @@ export default function BusinessRoadmap() {
                     </div>
                   </div>
                   <CardDescription className="mt-4">
-                    Система непрерывного мониторинга нарушений 152-ФЗ. 
+                    Система непрерывного мониторинга нарушений 152фз. 
                     Запланирован релиз в Q2 2025.
                   </CardDescription>
                 </CardContent>
@@ -300,7 +301,7 @@ export default function BusinessRoadmap() {
                         </CardHeader>
                         <CardContent>
                           <CardDescription>
-                            Релиз полнофункциональной системы мониторинга нарушений 152-ФЗ 
+                            Релиз полнофункциональной системы мониторинга нарушений 152фз 
                             с real-time оповещениями и автоматическими отчетами.
                           </CardDescription>
                           <div className="mt-3 flex gap-2">

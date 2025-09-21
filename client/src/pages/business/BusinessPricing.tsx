@@ -28,17 +28,18 @@ export default function BusinessPricing() {
     <div className="min-h-screen bg-background">
       <BusinessPricingSEO 
         title="Тарифы ResCrub Business — Корпоративные планы защиты данных"
-        description="Гибкие тарифные планы ResCrub Business для автоматизации 152-ФЗ. От стартапов до enterprise: виджет согласий, атомаризация данных, техподдержка 24/7."
+        description="Гибкие тарифные планы ResCrub Business для автоматизации 152фз. От стартапов до enterprise: виджет согласий, атомаризация данных, техподдержка 24/7."
         neuralSignals={{
-          primaryKeywords: ['тарифы защита персональных данных', 'цены compliance автоматизация', 'стоимость 152-ФЗ решений'],
+          primaryKeywords: ['тарифы защита персональных данных', 'цены compliance автоматизация', 'стоимость 152фз решений'],
           searchIntent: 'commercial',
           contentDepth: 'comprehensive',
           expertiseLevel: 6
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['тарифы 152-ФЗ автоматизация', 'цены виджет согласий', 'стоимость корпоративной защиты данных'],
-            longTail: ['сколько стоит автоматизация соблюдения 152 фз для компании']
+            primary: ['тарифы корпоративной защиты данных', 'цены business compliance решений', 'стоимость автоматизации 152фз для предприятий'],
+            semantic: ['корпоративные планы защиты данных', 'enterprise тарифы 152фз', 'цены на DPO услуги для организаций'],
+            longTail: ['сколько стоит корпоративная автоматизация соблюдения 152фз для предприятий и компаний']
           }
         }}
       />
@@ -63,7 +64,7 @@ export default function BusinessPricing() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Выберите оптимальный план для автоматизации соблюдения 152-ФЗ в вашей компании. 
+                Выберите оптимальный план для автоматизации соблюдения 152фз в вашей компании. 
                 От стартапов до enterprise корпораций — у нас есть решение для каждого бизнеса.
               </p>
               
@@ -124,7 +125,7 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">152-ФЗ compliance</span>
+                          <span className="text-sm">152фз compliance</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <X className="h-4 w-4 text-muted-foreground" />
@@ -576,7 +577,7 @@ export default function BusinessPricing() {
                       </h3>
                       <p className="mt-2 text-muted-foreground">
                         Предотвращение штрафов Роскомнадзора до 1% от оборота 
-                        за нарушения 152-ФЗ.
+                        за нарушения 152фз.
                       </p>
                     </div>
                   </div>

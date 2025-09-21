@@ -29,18 +29,19 @@ export default function BusinessSupport() {
     <div className="min-h-screen bg-background">
       <BusinessSEO 
         title="Техническая поддержка — ResCrub Business"
-        description="Профессиональная техническая поддержка ResCrub Business 24/7. Помощь в настройке 152-ФЗ решений, консультации экспертов, документация и обучение."
+        description="Профессиональная техническая поддержка ResCrub Business 24/7. Помощь в настройке 152фз решений, консультации экспертов, документация и обучение."
         pageCategory="contact"
         neuralSignals={{
-          primaryKeywords: ['техническая поддержка 152-ФЗ', 'помощь настройка персональные данные', 'консультации юриста 152-ФЗ'],
+          primaryKeywords: ['техническая поддержка 152фз', 'помощь настройка персональные данные', 'консультации юриста 152фз'],
           searchIntent: 'informational',
           contentDepth: 'comprehensive',
           expertiseLevel: 8
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['техническая поддержка персональные данные', 'консультации по 152-ФЗ для бизнеса', 'помощь внедрение системы защиты данных'],
-            longTail: ['где получить помощь по внедрению 152 фз в компании']
+            primary: ['техническая поддержка для предприятий 152фз', 'консультации по 152фз для предприятий', 'помощь внедрение защиты данных в бизнес'],
+            semantic: ['корпоративная техподдержка', 'обучение сотрудников защите данных', 'DPO услуги для организаций'],
+            longTail: ['консультации по 152фз для предприятий и корпоративных клиентов']
           }
         }}
       />
@@ -58,7 +59,7 @@ export default function BusinessSupport() {
                   Поддержка 24/7
                 </Badge>
                 <Badge variant="secondary">
-                  Эксперты 152-ФЗ
+                  Эксперты 152фз
                 </Badge>
               </div>
               
@@ -69,7 +70,7 @@ export default function BusinessSupport() {
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
                 Профессиональная поддержка от экспертов по защите персональных данных. 
-                Помогаем решить любые вопросы по 152-ФЗ и настройке наших решений.
+                Помогаем решить любые вопросы по 152фз и настройке наших решений.
               </p>
               
               <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">
@@ -177,7 +178,7 @@ export default function BusinessSupport() {
                 Часто задаваемые вопросы
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Ответы на самые популярные вопросы о 152-ФЗ и наших решениях
+                Ответы на самые популярные вопросы о 152фз и наших решениях
               </p>
             </div>
 
@@ -207,11 +208,11 @@ export default function BusinessSupport() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-2">
-                      Соответствуют ли ваши решения требованиям 152-ФЗ?
+                      Соответствуют ли ваши решения требованиям 152фз?
                     </h3>
                     <p className="text-muted-foreground">
                       Да, все наши решения полностью соответствуют требованиям Федерального закона 
-                      №152-ФЗ "О персональных данных". Мы регулярно обновляем продукты в соответствии 
+                      №152фз "О персональных данных". Мы регулярно обновляем продукты в соответствии 
                       с изменениями в законодательстве и получили экспертные заключения от юристов.
                     </p>
                   </div>
@@ -247,7 +248,7 @@ export default function BusinessSupport() {
                     </h3>
                     <p className="text-muted-foreground">
                       Да, мы проводим онлайн-обучение для ваших сотрудников по работе с нашими 
-                      системами и требованиям 152-ФЗ. Также предоставляем подробную документацию, 
+                      системами и требованиям 152фз. Также предоставляем подробную документацию, 
                       видеоинструкции и проводим индивидуальные консультации.
                     </p>
                   </div>
@@ -335,7 +336,7 @@ export default function BusinessSupport() {
                 </div>
                 <p className="text-muted-foreground">
                   Обучающие статьи, видеоуроки и лучшие практики по защите 
-                  персональных данных и соблюдению 152-ФЗ.
+                  персональных данных и соблюдению 152фз.
                 </p>
                 <div className="flex items-center gap-2 mt-4 text-primary">
                   <span className="text-sm font-medium">Перейти к материалам</span>
@@ -354,7 +355,7 @@ export default function BusinessSupport() {
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
               Наши эксперты помогут выбрать оптимальное решение для вашего бизнеса 
-              и ответят на все вопросы по 152-ФЗ
+              и ответят на все вопросы по 152фз
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Button size="lg" className="gap-2" data-testid="button-support-consultation">

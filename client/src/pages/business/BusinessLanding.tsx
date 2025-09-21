@@ -26,21 +26,20 @@ export default function BusinessLanding() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessLandingSEO 
-        title="ResCrub Business — Корпоративная защита персональных данных"
-        description="Комплексные решения для автоматизации соблюдения 152-ФЗ в российских компаниях. Управление согласиями, атомаризация данных, мониторинг compliance."
-        pageCategory="landing"
+        title="ResCrub Business — Защита персональных данных для бизнеса"
+        description="Защита персональных данных для бизнеса: автоматизация 152фз, управление согласиями клиентов B2B, корпоративная безопасность данных для предприятий."
         neuralSignals={{
-          primaryKeywords: ['152-ФЗ согласие персональные данные', 'корпоративная защита данных', 'автоматизация compliance'],
+          primaryKeywords: ['защита персональных данных для бизнеса', '152фз что такое', 'соответствие 152фз для компаний'],
           searchIntent: 'commercial',
           contentDepth: 'comprehensive',
           expertiseLevel: 9
         }}
         russianSEO={{
-          yaTheme: 'бизнес и технологии',
+          yaTheme: 'корпоративные технологии',
           russianKeywords: {
-            primary: ['корпоративная защита персональных данных', 'соответствие 152-ФЗ для бизнеса', 'автоматизация согласий'],
-            semantic: ['enterprise compliance', 'российское законодательство о данных', 'корпоративная безопасность'],
-            longTail: ['как обеспечить соответствие 152 фз в компании автоматически']
+            primary: ['защита персональных данных для бизнеса', '152фз что такое', 'корпоративная безопасность данных'],
+            semantic: ['автоматизация compliance в компании', 'DPO услуги для организаций', 'управление согласиями клиентов B2B'],
+            longTail: ['внедрение защиты данных в бизнес процессы компании', 'консультации по 152фз для предприятий']
           }
         }}
       />
@@ -56,7 +55,7 @@ export default function BusinessLanding() {
                 <div className="flex items-center gap-2 mb-6">
                   <Badge variant="outline" className="flex items-center gap-1">
                     <Shield className="h-3 w-3" />
-                    152-ФЗ Compliance
+                    152фз Compliance
                   </Badge>
                   <Badge variant="secondary">
                     Enterprise Ready
@@ -69,9 +68,9 @@ export default function BusinessLanding() {
                 </h1>
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl" itemProp="description">
-                  Автоматизируйте соблюдение 152-ФЗ в вашей компании. 
-                  Управление согласиями, атомаризация данных и непрерывный 
-                  мониторинг compliance для российского бизнеса.
+                  Автоматизируйте соблюдение 152фз в вашей компании. 
+                  Управление согласиями клиентов, защита корпоративных данных и 
+                  непрерывный мониторинг compliance для российских предприятий.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -145,7 +144,7 @@ export default function BusinessLanding() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Комплексные решения для 152-ФЗ
+                Корпоративные решения для 152фз
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 Все инструменты для автоматизации compliance в одной платформе
@@ -168,7 +167,7 @@ export default function BusinessLanding() {
                 <CardContent>
                   <CardDescription className="text-base">
                     Готовый виджет для сбора согласий на обработку персональных данных 
-                    в соответствии с требованиями 152-ФЗ. Простая интеграция и настройка.
+                    в соответствии с требованиями 152фз. Простая интеграция и настройка.
                   </CardDescription>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -251,7 +250,7 @@ export default function BusinessLanding() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Непрерывный мониторинг соблюдения 152-ФЗ, контроль утечек данных 
+                    Непрерывный мониторинг соблюдения 152фз, контроль утечек данных 
                     и автоматические уведомления о нарушениях compliance.
                   </CardDescription>
                   <div className="mt-4 space-y-2">
@@ -302,11 +301,11 @@ export default function BusinessLanding() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">
-                      100% соответствие 152-ФЗ
+                      100% соответствие 152фз для бизнеса
                     </h3>
                     <p className="mt-2 text-muted-foreground">
-                      Решения разработаны с учетом всех требований российского 
-                      законодательства о персональных данных
+                      Корпоративные решения разработаны с учетом всех требований 
+                      152фз для предприятий и российского бизнеса
                     </p>
                   </div>
                 </div>

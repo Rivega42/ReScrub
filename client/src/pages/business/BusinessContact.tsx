@@ -68,7 +68,7 @@ const subjects = [
   { value: "pricing", label: "Коммерческое предложение" },
   { value: "implementation", label: "Вопросы внедрения" },
   { value: "support", label: "Техническая поддержка" },
-  { value: "compliance", label: "Консультация по 152-ФЗ" },
+  { value: "compliance", label: "Консультация по 152фз" },
   { value: "integration", label: "API и интеграция" },
   { value: "partnership", label: "Партнерство" },
   { value: "other", label: "Другое" }
@@ -129,26 +129,26 @@ export default function BusinessContact() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/ContactPage">
       <BusinessSEO 
-        title="Контакты и техподдержка — Персональные данные 152-ФЗ | ResCrub Business"
-        description="Техподдержка 24/7 для защиты персональных данных. Контакты разработчика ResCrub Business, консультации по 152-ФЗ, юридическая информация компании."
+        title="Контакты и техподдержка — Персональные данные 152фз | ResCrub Business"
+        description="Техподдержка 24/7 для защиты персональных данных. Контакты разработчика ResCrub Business, консультации по 152фз, юридическая информация компании."
         pageCategory="contact"
         neuralSignals={{
-          primaryKeywords: ['техподдержка персональные данные', 'контакты разработчика 152-ФЗ', 'консультации защита данных'],
+          primaryKeywords: ['техподдержка персональные данные', 'контакты разработчика 152фз', 'консультации защита данных'],
           searchIntent: 'transactional',
-          contentDepth: 'detailed',
+          contentDepth: 'comprehensive',
           expertiseLevel: 7,
           authoritySignals: ['поддержка 24/7', 'персональные консультации', 'юридическая информация']
         }}
         russianSEO={{
           russianKeywords: {
             primary: ['контакты техподдержки персональных данных', 'консультации по 152 фз разработчик', 'поддержка систем защиты данных'],
-            semantic: ['техническая поддержка compliance', 'консультации по автоматизации 152-ФЗ', 'контакты разработчика GDPR'],
+            semantic: ['техническая поддержка compliance', 'консультации по автоматизации 152фз', 'контакты разработчика GDPR'],
             longTail: ['круглосуточная техподдержка по вопросам защиты персональных данных российских компаний']
           }
         }}
         organizationSchema={{
           name: "ResCrub Business",
-          description: "Платформа автоматизации соблюдения 152-ФЗ",
+          description: "Платформа автоматизации соблюдения 152фз",
           contactPoints: [
             {
               telephone: "+7 (495) 123-45-67",
@@ -178,7 +178,7 @@ export default function BusinessContact() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Получите профессиональную консультацию по автоматизации соблюдения 152-ФЗ 
+                Получите профессиональную консультацию по автоматизации соблюдения 152фз 
                 от ведущих экспертов в области защиты персональных данных в России. 
                 Мы готовы обсудить ваш проект и подобрать оптимальное решение.
               </p>
@@ -364,7 +364,7 @@ export default function BusinessContact() {
                           <SelectValue placeholder="Выберите тему" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="consultation">Консультация по 152-ФЗ</SelectItem>
+                          <SelectItem value="consultation">Консультация по 152фз</SelectItem>
                           <SelectItem value="demo">Демонстрация решений</SelectItem>
                           <SelectItem value="pricing">Тарифы и стоимость</SelectItem>
                           <SelectItem value="integration">Техническая интеграция</SelectItem>
@@ -402,7 +402,7 @@ export default function BusinessContact() {
                         </Label>
                       </div>
                       
-                        <Button 
+                      <Button 
                           type="submit" 
                           className="w-full" 
                           size="lg" 
@@ -411,6 +411,7 @@ export default function BusinessContact() {
                         >
                           {isSubmitting ? "Отправка..." : "Отправить сообщение"}
                         </Button>
+                    </div>
                       </form>
                     </Form>
                   </CardContent>
@@ -488,7 +489,7 @@ export default function BusinessContact() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <HeadphonesIcon className="h-5 w-5" />
+                        <Headphones className="h-5 w-5" />
                         Время ответа
                       </CardTitle>
                     </CardHeader>
@@ -584,7 +585,7 @@ export default function BusinessContact() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      Мы гарантируем 100% соответствие 152-ФЗ, SLA 99.9% для Enterprise клиентов, 
+                      Мы гарантируем 100% соответствие 152фз, SLA 99.9% для Enterprise клиентов, 
                       возврат средств в течение 30 дней при неудовлетворенности результатом.
                     </div>
                   </CardContent>

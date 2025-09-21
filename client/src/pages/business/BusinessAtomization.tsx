@@ -49,8 +49,9 @@ export default function BusinessAtomization() {
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['атомаризация персональных данных', 'распределенное хранение данных россия', 'технология фрагментации данных'],
-            longTail: ['что такое атомаризация данных и как она защищает персональную информацию']
+            primary: ['атомаризация данных для бизнеса', 'распределенное хранение корпоративных данных', 'технология фрагментации данных для предприятий'],
+            semantic: ['микросервисы данных для компаний', 'enterprise data atomization', 'корпоративное блокчейн хранение'],
+            longTail: ['как внедрить атомаризацию данных в корпоративные системы компании']
           }
         }}
       />
@@ -403,7 +404,7 @@ export default function BusinessAtomization() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <span>152-ФЗ о персональных данных</span>
+                          <span>152фз о персональных данных</span>
                           <Badge variant="default">✓ Полное</Badge>
                         </div>
                         <div className="flex justify-between items-center">

@@ -33,15 +33,16 @@ export default function BusinessWhitepaper() {
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
-          primaryKeywords: ['техническая документация защита данных', 'архитектура атомаризации данных', 'API спецификация 152-ФЗ'],
+          primaryKeywords: ['техническая документация защита данных', 'архитектура атомаризации данных', 'API спецификация 152фз'],
           searchIntent: 'informational',
           contentDepth: 'expert',
           expertiseLevel: 10
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['техническая документация 152-ФЗ', 'архитектура защиты персональных данных', 'whitepaper атомаризация'],
-            longTail: ['техническая документация системы защиты персональных данных для разработчиков']
+            primary: ['техническая документация для корпоративных клиентов', 'архитектура защиты данных предприятий', 'whitepaper enterprise атомаризация'],
+            semantic: ['корпоративная техническая документация', 'enterprise архитектура безопасности', 'бизнес документация 152фз'],
+            longTail: ['техническая документация корпоративной системы защиты персональных данных для разработчиков предприятий']
           }
         }}
         botHints={{
@@ -84,7 +85,7 @@ export default function BusinessWhitepaper() {
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Техническая документация и архитектурный обзор платформы корпоративной 
                   защиты персональных данных. Подробное описание технологий атомаризации, 
-                  криптографических алгоритмов и методов обеспечения compliance с 152-ФЗ.
+                  криптографических алгоритмов и методов обеспечения compliance с 152фз.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -139,7 +140,7 @@ export default function BusinessWhitepaper() {
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="w-8 text-muted-foreground">7.</span>
-                      <span>Соответствие 152-ФЗ</span>
+                      <span>Соответствие 152фз</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="w-8 text-muted-foreground">8.</span>
@@ -420,7 +421,7 @@ export default function BusinessWhitepaper() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span>152-ФЗ о персональных данных</span>
+                    <span>152фз о персональных данных</span>
                     <Badge variant="default">✓ Полное соответствие</Badge>
                   </div>
                   <div className="flex justify-between items-center">

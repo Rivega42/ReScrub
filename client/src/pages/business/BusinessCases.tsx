@@ -21,7 +21,10 @@ import {
   Target,
   BarChart3,
   FileCheck,
-  Zap
+  Zap,
+  Smartphone,
+  Heart,
+  GraduationCap
 } from "lucide-react";
 import BusinessHeader from "@/components/BusinessHeader";
 import Footer from "@/components/Footer";
@@ -33,7 +36,7 @@ const industryCases = [
     id: "banking",
     icon: Landmark,
     industry: "Банки и финансы",
-    title: "Автоматизация 152-ФЗ в крупном банке",
+    title: "Автоматизация 152фз в крупном банке",
     description: "Внедрение системы управления согласиями для банка с 2M+ клиентов",
     challenges: [
       "Обработка согласий 2М+ клиентов",
@@ -92,7 +95,7 @@ const industryCases = [
     icon: Hospital,
     industry: "Медицина и фармацевтика",
     title: "Защита медицинских данных",
-    description: "Соответствие 152-ФЗ и медицинским стандартам",
+    description: "Соответствие 152фз и медицинским стандартам",
     challenges: [
       "Особые категории персональных данных",
       "Интеграция с МИС",
@@ -180,11 +183,11 @@ export default function BusinessCases() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessSEO 
-        title="Кейсы использования 152-ФЗ — Успешные внедрения | ResCrub Business"
-        description="Реальные кейсы автоматизации 152-ФЗ: банки, ритейл, медицина, финтех, государство. ROI расчеты, примеры экономии и результаты внедрения защиты персональных данных."
+        title="Кейсы использования 152фз — Успешные внедрения | ResCrub Business"
+        description="Реальные кейсы автоматизации 152фз: банки, ритейл, медицина, финтех, государство. ROI расчеты, примеры экономии и результаты внедрения защиты персональных данных."
         pageCategory="product"
         neuralSignals={{
-          primaryKeywords: ['кейсы использования 152-ФЗ', 'примеры внедрения защиты данных', 'ROI автоматизация персональные данные'],
+          primaryKeywords: ['кейсы использования 152фз', 'примеры внедрения защиты данных', 'ROI автоматизация персональные данные'],
           searchIntent: 'informational',
           contentDepth: 'comprehensive',
           expertiseLevel: 8,
@@ -192,8 +195,8 @@ export default function BusinessCases() {
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['кейсы 152-ФЗ внедрение', 'примеры автоматизации персональных данных', 'ROI защита данных российские компании'],
-            semantic: ['успешные проекты compliance', 'отраслевые решения защиты данных', 'экономия от автоматизации 152-ФЗ'],
+            primary: ['кейсы 152фз внедрение', 'примеры автоматизации персональных данных', 'ROI защита данных российские компании'],
+            semantic: ['успешные проекты compliance', 'отраслевые решения защиты данных', 'экономия от автоматизации 152фз'],
             longTail: ['реальные примеры внедрения 152 фз в российских банках и компаниях']
           }
         }}
@@ -215,11 +218,11 @@ export default function BusinessCases() {
               
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl" itemProp="name">
                 Кейсы использования 
-                <span className="text-primary"> 152-ФЗ</span>
+                <span className="text-primary"> 152фз</span>
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto" itemProp="description">
-                Реальные истории успешной автоматизации соблюдения 152-ФЗ 
+                Реальные истории успешной автоматизации соблюдения 152фз 
                 в российских компаниях. Детальные ROI расчеты, экономия времени 
                 и результаты внедрения для разных отраслей.
               </p>
@@ -581,14 +584,9 @@ export default function BusinessCases() {
             </div>
           </div>
         </section>
-      </main>
-      
-      <Footer />
-    </div>
-  );
-}
-            
-            <div className="mt-16">
+
+        {/* Additional Content */}
+        <div className="mt-16">
               <Tabs defaultValue="fintech" className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="fintech">Финтех</TabsTrigger>
@@ -831,7 +829,7 @@ export default function BusinessCases() {
                       <CardContent>
                         <CardDescription className="text-base mb-4">
                           Телемедицинская платформа обеспечила защиту медицинской тайны 
-                          с полным соблюдением 152-ФЗ и отраслевых стандартов.
+                          с полным соблюдением 152фз и отраслевых стандартов.
                         </CardDescription>
                         
                         <div className="space-y-3 mb-4">
@@ -1127,134 +1125,6 @@ export default function BusinessCases() {
                 </TabsContent>
               </Tabs>
             </div>
-          </div>
-        </section>
-        
-        {/* Client Testimonials */}
-        <section className="py-16 lg:py-24 bg-muted/30">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Отзывы клиентов
-              </h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Что говорят наши клиенты о работе с ResCrub Business
-              </p>
-            </div>
-            
-            <div className="mt-16 grid gap-8 lg:grid-cols-3">
-              <Card className="hover-elevate">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-1 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <div key={star} className="w-4 h-4 text-yellow-400">⭐</div>
-                    ))}
-                  </div>
-                  <blockquote className="text-base italic mb-4">
-                    "ResCrub Business позволил нам полностью автоматизировать compliance процессы. 
-                    Теперь юристы тратят время на стратегические задачи, а не на рутину."
-                  </blockquote>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-bold">АП</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">Алексей Петров</div>
-                      <div className="text-sm text-muted-foreground">Главный юрист, Банк "Технологии"</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-1 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <div key={star} className="w-4 h-4 text-yellow-400">⭐</div>
-                    ))}
-                  </div>
-                  <blockquote className="text-base italic mb-4">
-                    "Впечатляет скорость внедрения и качество технической поддержки. 
-                    За 2 недели мы получили полностью рабочее решение для всех наших нужд."
-                  </blockquote>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 font-bold">МИ</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">Мария Иванова</div>
-                      <div className="text-sm text-muted-foreground">CTO, МегаМаркет.рф</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-1 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <div key={star} className="w-4 h-4 text-yellow-400">⭐</div>
-                    ))}
-                  </div>
-                  <blockquote className="text-base italic mb-4">
-                    "Атомаризация данных - это будущее информационной безопасности. 
-                    ResCrub предоставил нам технологию, которой нет ни у кого в мире."
-                  </blockquote>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <span className="text-purple-600 font-bold">ДС</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">Дмитрий Сидоров</div>
-                      <div className="text-sm text-muted-foreground">CISO, МедТех Инновации</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 lg:py-24 bg-primary text-primary-foreground">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Станьте следующей историей успеха
-            </h2>
-            <p className="mt-4 text-lg opacity-90">
-              Присоединяйтесь к 500+ компаниям, которые доверили свой compliance ResCrub Business
-            </p>
-            
-            <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">
-              <Link href="/business/register">
-                <Button size="lg" variant="secondary" className="gap-2">
-                  Начать бесплатно
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/business/contact">
-                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
-                  Обсудить ваш проект
-                </Button>
-              </Link>
-            </div>
-            
-            <div className="mt-8 flex justify-center gap-8 text-sm opacity-75">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Бесплатная консультация
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Индивидуальный подход
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Гарантированный результат
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       
       <Footer />

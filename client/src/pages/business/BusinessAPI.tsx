@@ -30,20 +30,21 @@ export default function BusinessAPI() {
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
         title="API документация — ResCrub Business Platform"
-        description="Полная REST API документация ResCrub Business. OpenAPI 3.0 спецификация, SDK библиотеки, webhook интеграции для автоматизации 152-ФЗ compliance в ваших системах."
+        description="Полная REST API документация ResCrub Business. OpenAPI 3.0 спецификация, SDK библиотеки, webhook интеграции для автоматизации 152фз compliance в ваших системах."
         author="ResCrub API Team"
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
-          primaryKeywords: ['API документация 152-ФЗ', 'REST API защита персональных данных', 'SDK интеграция compliance'],
+          primaryKeywords: ['API документация 152фз', 'REST API защита персональных данных', 'SDK интеграция compliance'],
           searchIntent: 'informational',
           contentDepth: 'expert',
           expertiseLevel: 9
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['API интеграция 152-ФЗ', 'REST API виджет согласий', 'SDK атомаризация данных'],
-            longTail: ['как интегрировать API защиты персональных данных в систему разработчик']
+            primary: ['корпоративный API 152фз', 'REST API для бизнес систем', 'SDK интеграция для предприятий'],
+            semantic: ['интеграция защиты данных в бизнес', 'корпоративный API персональных данных', 'enterprise REST API'],
+            longTail: ['как интегрировать корпоративный API защиты персональных данных в бизнес системы']
           }
         }}
         botHints={{
@@ -86,7 +87,7 @@ export default function BusinessAPI() {
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Полная REST API документация для интеграции ResCrub Business в ваши системы. 
                   OpenAPI 3.0 спецификация, официальные SDK, webhook endpoints и примеры кода 
-                  для автоматизации соблюдения 152-ФЗ.
+                  для автоматизации соблюдения 152фз.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -475,7 +476,7 @@ export default function BusinessAPI() {
                           /api/v2/monitoring/compliance
                         </CardTitle>
                         <CardDescription>
-                          Получение статуса соблюдения 152-ФЗ
+                          Получение статуса соблюдения 152фз
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
