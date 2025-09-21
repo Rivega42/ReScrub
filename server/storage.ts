@@ -1684,11 +1684,16 @@ export class DatabaseStorage implements IStorage {
         .select({ count: sql<number>`count(*)` })
         .from(userAccounts);
       
+      const conditions = [];
       if (search) {
-        query = query.where(sql`${userAccounts.email} ILIKE ${`%${search}%`}`);
+        conditions.push(sql`${userAccounts.email} ILIKE ${`%${search}%`}`);
       }
       if (role && role !== 'all') {
-        query = query.where(eq(userAccounts.adminRole, role));
+        conditions.push(eq(userAccounts.adminRole, role));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
       
       const [result] = await query;
@@ -1819,11 +1824,16 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(userAccounts);
       
+      const conditions = [];
       if (options.search) {
-        query = query.where(sql`${userAccounts.email} ILIKE ${`%${options.search}%`}`);
+        conditions.push(sql`${userAccounts.email} ILIKE ${`%${options.search}%`}`);
       }
       if (options.role && options.role !== 'all') {
-        query = query.where(eq(userAccounts.adminRole, options.role));
+        conditions.push(eq(userAccounts.adminRole, options.role));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
       }
       
       const users = await query
@@ -1851,38 +1861,32 @@ export class DatabaseStorage implements IStorage {
     const { encryptSecret } = await import('./crypto');
     
     // Encrypt the secret value
-    const encryptedData = encryptSecret(secretData.value);
+    const encryptedData = encryptSecret(secretData.encryptedValue);
     
     const [secret] = await db
       .insert(platformSecrets)
       .values({
         ...secretData,
-        value: encryptedData.encrypted,
-        encryptionIv: encryptedData.iv,
-        encryptionTag: encryptedData.tag,
-        encryptionSalt: encryptedData.salt,
+        encryptedValue: encryptedData.encrypted,
       })
       .returning();
     
-    // Return with masked value
+    // Return with masked value  
     const { maskSecret } = await import('./crypto');
     return {
       ...secret,
-      value: maskSecret(secretData.value),
+      encryptedValue: maskSecret(secretData.encryptedValue),
     };
   }
 
-  async getPlatformSecrets(filters?: { service?: string; environment?: string; category?: string }): Promise<PlatformSecret[]> {
-    let query = db.select().from(platformSecrets).where(isNull(platformSecrets.deletedAt));
+  async getPlatformSecrets(filters?: { service?: string; environment?: string }): Promise<PlatformSecret[]> {
+    let query = db.select().from(platformSecrets);
     
     if (filters?.service) {
       query = query.where(eq(platformSecrets.service, filters.service));
     }
     if (filters?.environment) {
       query = query.where(eq(platformSecrets.environment, filters.environment));
-    }
-    if (filters?.category) {
-      query = query.where(eq(platformSecrets.category, filters.category));
     }
     
     const secrets = await query.orderBy(desc(platformSecrets.createdAt));
@@ -1891,7 +1895,7 @@ export class DatabaseStorage implements IStorage {
     const { maskSecret } = await import('./crypto');
     return secrets.map(secret => ({
       ...secret,
-      value: maskSecret(secret.value),
+      encryptedValue: maskSecret(secret.encryptedValue),
     }));
   }
 
@@ -1899,10 +1903,7 @@ export class DatabaseStorage implements IStorage {
     const [secret] = await db
       .select()
       .from(platformSecrets)
-      .where(and(
-        eq(platformSecrets.key, key),
-        isNull(platformSecrets.deletedAt)
-      ));
+      .where(eq(platformSecrets.key, key));
     
     if (!secret) return undefined;
     
@@ -1910,15 +1911,15 @@ export class DatabaseStorage implements IStorage {
     const { decryptSecret } = await import('./crypto');
     try {
       const decrypted = decryptSecret({
-        encrypted: secret.value,
-        iv: secret.encryptionIv || '',
-        tag: secret.encryptionTag || '',
-        salt: secret.encryptionSalt || '',
+        encrypted: secret.encryptedValue,
+        iv: '', // Encryption metadata not stored in schema
+        tag: '',
+        salt: '',
       });
       
       return {
         ...secret,
-        value: decrypted,
+        encryptedValue: decrypted,
       };
     } catch (error) {
       console.error('Failed to decrypt secret:', error);
@@ -1940,17 +1941,11 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(platformSecrets)
       .set({
-        value: encryptedData.encrypted,
-        encryptionIv: encryptedData.iv,
-        encryptionTag: encryptedData.tag,
-        encryptionSalt: encryptedData.salt,
-        lastUpdatedBy: adminId,
+        encryptedValue: encryptedData.encrypted,
+        updatedBy: adminId,
         updatedAt: new Date(),
       })
-      .where(and(
-        eq(platformSecrets.key, key),
-        isNull(platformSecrets.deletedAt)
-      ))
+      .where(eq(platformSecrets.key, key))
       .returning();
     
     // Log audit
@@ -1958,15 +1953,18 @@ export class DatabaseStorage implements IStorage {
       secretId: updated.id,
       adminId,
       action: 'update',
-      oldValue: maskSecret(existing.value),
-      newValue: maskSecret(value),
+      secretKey: key,
+      service: updated.service,
+      environment: updated.environment,
+      previousValueHash: maskSecret(existing.encryptedValue),
+      newValueHash: maskSecret(value),
       ipAddress: null, // Will be set in route handler
       userAgent: null, // Will be set in route handler
     });
     
     return {
       ...updated,
-      value: maskSecret(value),
+      encryptedValue: maskSecret(value),
     };
   }
 
@@ -1974,35 +1972,30 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getPlatformSecretByKey(key);
     if (!existing) return false;
     
-    // Soft delete
-    const [deleted] = await db
-      .update(platformSecrets)
-      .set({
-        deletedAt: new Date(),
-        deletedBy: adminId,
-      })
-      .where(and(
-        eq(platformSecrets.key, key),
-        isNull(platformSecrets.deletedAt)
-      ))
-      .returning();
-    
-    if (!deleted) return false;
-    
-    // Log audit
+    // Log audit before deletion
     const { maskSecret } = await import('./crypto');
     await this.logSecretAudit({
-      secretId: deleted.id,
+      secretId: existing.id,
       adminId,
       action: 'delete',
-      oldValue: maskSecret(existing.value),
-      newValue: null,
+      secretKey: key,
+      service: existing.service,
+      environment: existing.environment,
+      previousValueHash: maskSecret(existing.encryptedValue),
+      newValueHash: null,
+      reason,
       metadata: { reason },
       ipAddress: null, // Will be set in route handler
       userAgent: null, // Will be set in route handler
     });
     
-    return true;
+    // Hard delete since no soft delete fields in schema
+    const [deleted] = await db
+      .delete(platformSecrets)
+      .where(eq(platformSecrets.key, key))
+      .returning();
+    
+    return !!deleted;
   }
 
   async validateSecret(key: string, service: string): Promise<boolean> {
@@ -2014,16 +2007,16 @@ export class DatabaseStorage implements IStorage {
       switch (service) {
         case 'sendgrid':
           // Validate SendGrid API key format
-          return secret.value.startsWith('SG.');
+          return secret.encryptedValue.startsWith('SG.');
         case 'openai':
           // Validate OpenAI API key format
-          return secret.value.startsWith('sk-');
+          return secret.encryptedValue.startsWith('sk-');
         case 'robokassa':
           // Basic check for Robokassa credentials
-          return secret.value.length > 0;
+          return secret.encryptedValue.length > 0;
         default:
           // Generic validation - just check it exists
-          return secret.value.length > 0;
+          return secret.encryptedValue.length > 0;
       }
     } catch (error) {
       console.error('Secret validation error:', error);
@@ -2160,7 +2153,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(adminActions.adminId, filters.adminId));
     }
     if (filters?.action) {
-      conditions.push(eq(adminActions.action, filters.action));
+      conditions.push(eq(adminActions.actionType, filters.action));
     }
     if (filters?.targetType) {
       conditions.push(eq(adminActions.targetType, filters.targetType));
@@ -2175,7 +2168,7 @@ export class DatabaseStorage implements IStorage {
       const searchTerm = `%${filters.search.trim()}%`;
       conditions.push(
         sql`(
-          ${adminActions.action} ILIKE ${searchTerm} OR
+          ${adminActions.actionType} ILIKE ${searchTerm} OR
           ${adminActions.targetType} ILIKE ${searchTerm} OR
           ${adminActions.targetId} ILIKE ${searchTerm} OR
           ${adminActions.metadata}::text ILIKE ${searchTerm}
@@ -2248,7 +2241,7 @@ export class DatabaseStorage implements IStorage {
       const row = [
         log.id,
         log.adminId,
-        log.action,
+        log.actionType,
         log.targetType || '',
         log.targetId || '',
         log.ipAddress,
@@ -2318,7 +2311,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           sql`${adminActions.createdAt} > ${twentyFourHoursAgo}`,
-          sql`${adminActions.action} IN ('unauthorized_access_attempt', 'failed_login', 'permission_denied', 'suspicious_activity')`
+          sql`${adminActions.actionType} IN ('unauthorized_access_attempt', 'failed_login', 'permission_denied', 'suspicious_activity')`
         )
       )
       .orderBy(desc(adminActions.createdAt))
@@ -2330,7 +2323,7 @@ export class DatabaseStorage implements IStorage {
       .from(adminActions)
       .where(
         and(
-          eq(adminActions.action, 'failed_login'),
+          eq(adminActions.actionType, 'failed_login'),
           sql`${adminActions.createdAt} > ${twentyFourHoursAgo}`
         )
       );
@@ -2342,7 +2335,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           sql`${adminActions.createdAt} > ${sevenDaysAgo}`,
-          sql`${adminActions.action} IN ('grant_permission', 'revoke_permission', 'update_admin_role')`
+          sql`${adminActions.actionType} IN ('grant_permission', 'revoke_permission', 'update_admin_role')`
         )
       )
       .orderBy(desc(adminActions.createdAt))
@@ -2382,7 +2375,7 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)::int` })
       .from(adminActions)
       .where(
-        sql`${adminActions.action} IN ('delete_user', 'grant_permission', 'revoke_permission', 'update_admin_role', 'delete_data', 'export_data')`
+        sql`${adminActions.actionType} IN ('delete_user', 'grant_permission', 'revoke_permission', 'update_admin_role', 'delete_data', 'export_data')`
       );
     
     // Calculate security score (0-100)
@@ -2406,7 +2399,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           sql`${adminActions.createdAt} > ${twentyFourHoursAgo}`,
-          sql`${adminActions.action} IN ('view_audit_logs', 'view_security_dashboard')`
+          sql`${adminActions.actionType} IN ('view_audit_logs', 'view_security_dashboard')`
         )
       );
     
@@ -2794,6 +2787,286 @@ export class DatabaseStorage implements IStorage {
     }
     
     return imported;
+  }
+
+  async searchUsers(options: {
+    text?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    subscriptionStatus?: string;
+    verificationStatus?: string;
+    adminRole?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    limit: number;
+    offset: number;
+  }): Promise<{ users: (UserAccount & { profile?: UserProfile; subscription?: Subscription | null })[], total: number }> {
+    try {
+      let whereConditions = [];
+      
+      // Text search (email, name, phone)
+      if (options.text) {
+        const searchText = `%${options.text}%`;
+        whereConditions.push(
+          sql`${userAccounts.email} ILIKE ${searchText} OR 
+              ${userProfiles.firstName} ILIKE ${searchText} OR 
+              ${userProfiles.lastName} ILIKE ${searchText} OR 
+              ${userProfiles.phone} ILIKE ${searchText}`
+        );
+      }
+      
+      // Date range filter
+      if (options.dateFrom) {
+        whereConditions.push(sql`${userAccounts.createdAt} >= ${options.dateFrom}`);
+      }
+      if (options.dateTo) {
+        whereConditions.push(sql`${userAccounts.createdAt} <= ${options.dateTo}`);
+      }
+      
+      // Verification status filter
+      if (options.verificationStatus === 'verified') {
+        whereConditions.push(eq(userAccounts.emailVerified, true));
+      } else if (options.verificationStatus === 'unverified') {
+        whereConditions.push(eq(userAccounts.emailVerified, false));
+      }
+      
+      // Admin role filter
+      if (options.adminRole && options.adminRole !== 'all') {
+        whereConditions.push(eq(userAccounts.adminRole, options.adminRole));
+      }
+      
+      // Build the query
+      const baseQuery = db
+        .select({
+          account: userAccounts,
+          profile: userProfiles,
+          subscription: subscriptions,
+        })
+        .from(userAccounts)
+        .leftJoin(userProfiles, eq(userAccounts.id, userProfiles.userId))
+        .leftJoin(subscriptions, and(
+          eq(userAccounts.id, subscriptions.userId),
+          eq(subscriptions.status, 'active')
+        ));
+      
+      // Apply where conditions
+      const filteredQuery = whereConditions.length > 0
+        ? baseQuery.where(and(...whereConditions))
+        : baseQuery;
+      
+      // Count total results
+      const countQuery = db
+        .select({ count: sql<number>`count(*)` })
+        .from(userAccounts)
+        .leftJoin(userProfiles, eq(userAccounts.id, userProfiles.userId));
+      
+      const countResult = whereConditions.length > 0
+        ? await countQuery.where(and(...whereConditions))
+        : await countQuery;
+      
+      const total = countResult[0]?.count || 0;
+      
+      // Apply sorting
+      const sortBy = options.sortBy || 'createdAt';
+      const sortDirection = options.sortOrder || 'desc';
+      
+      let sortedQuery;
+      const finalQuery = filteredQuery;
+      
+      switch (sortBy) {
+        case 'email':
+          sortedQuery = sortDirection === 'asc'
+            ? finalQuery.orderBy(userAccounts.email)
+            : finalQuery.orderBy(desc(userAccounts.email));
+          break;
+        case 'name':
+          sortedQuery = sortDirection === 'asc'
+            ? finalQuery.orderBy(userProfiles.firstName)
+            : finalQuery.orderBy(desc(userProfiles.firstName));
+          break;
+        case 'createdAt':
+        default:
+          sortedQuery = sortDirection === 'asc'
+            ? finalQuery.orderBy(userAccounts.createdAt)
+            : finalQuery.orderBy(desc(userAccounts.createdAt));
+          break;
+      }
+      
+      // Apply pagination
+      const results = await sortedQuery
+        .limit(options.limit)
+        .offset(options.offset);
+      
+      // Format results
+      const users = results.map(row => ({
+        ...row.account,
+        passwordHash: '[HIDDEN]',
+        profile: row.profile || undefined,
+        subscription: row.subscription || null,
+      }));
+      
+      return { users, total };
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return { users: [], total: 0 };
+    }
+  }
+  
+  async getUserWithDetails(userId: string): Promise<{
+    account: UserAccount;
+    profile?: UserProfile;
+    subscription?: Subscription | null;
+    payments?: Payment[];
+    activities?: any[];
+    notes?: any[];
+  } | undefined> {
+    try {
+      const account = await this.getUserAccountById(userId);
+      if (!account) return undefined;
+      
+      const profile = await this.getUserProfile(userId);
+      const subscription = await this.getUserSubscription(userId);
+      const payments = await this.getUserPayments(userId);
+      
+      // Hide password hash
+      account.passwordHash = '[HIDDEN]';
+      
+      return {
+        account,
+        profile,
+        subscription,
+        payments,
+        activities: [], // TODO: Implement activity history
+        notes: [], // TODO: Implement user notes
+      };
+    } catch (error) {
+      console.error('Error getting user details:', error);
+      return undefined;
+    }
+  }
+  
+  async banUser(userId: string, reason: string, bannedBy: string): Promise<UserAccount | undefined> {
+    try {
+      // Add banned status to user account (we'll use adminRole field to indicate banned status)
+      const [updated] = await db
+        .update(userAccounts)
+        .set({
+          adminRole: 'banned',
+        })
+        .where(eq(userAccounts.id, userId))
+        .returning();
+      
+      // Log the ban action
+      await this.logAdminAction({
+        adminId: bannedBy,
+        actionType: 'ban_user',
+        targetType: 'user',
+        targetId: userId,
+        metadata: { reason },
+        ipAddress: null,
+        userAgent: null,
+        sessionId: null,
+      });
+      
+      if (updated) {
+        updated.passwordHash = '[HIDDEN]';
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error banning user:', error);
+      return undefined;
+    }
+  }
+  
+  async unbanUser(userId: string, unbannedBy: string): Promise<UserAccount | undefined> {
+    try {
+      const [updated] = await db
+        .update(userAccounts)
+        .set({
+          adminRole: 'user',
+        })
+        .where(eq(userAccounts.id, userId))
+        .returning();
+      
+      // Log the unban action
+      await this.logAdminAction({
+        adminId: unbannedBy,
+        actionType: 'unban_user',
+        targetType: 'user',
+        targetId: userId,
+        ipAddress: null,
+        userAgent: null,
+        sessionId: null,
+      });
+      
+      if (updated) {
+        updated.passwordHash = '[HIDDEN]';
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error unbanning user:', error);
+      return undefined;
+    }
+  }
+  
+  async addUserNote(userId: string, note: string, addedBy: string): Promise<any> {
+    // TODO: Implement user notes table
+    const noteData = {
+      id: `note_${Date.now()}`,
+      userId,
+      note,
+      addedBy,
+      createdAt: new Date(),
+    };
+    
+    // Log the action
+    await this.logAdminAction({
+      adminId: addedBy,
+      actionType: 'add_user_note',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { note },
+      ipAddress: null,
+      userAgent: null,
+      sessionId: null,
+    });
+    
+    return noteData;
+  }
+  
+  async getUserActivityHistory(userId: string, limit: number = 100): Promise<any[]> {
+    try {
+      // Get various activities
+      const activities = [];
+      
+      // Get login history (from lastLoginAt)
+      const account = await this.getUserAccountById(userId);
+      if (account?.lastLoginAt) {
+        activities.push({
+          type: 'login',
+          timestamp: account.lastLoginAt,
+          details: 'Вход в систему',
+        });
+      }
+      
+      // Get deletion requests
+      const deletions = await this.getUserDeletionRequests(userId);
+      for (const deletion of deletions) {
+        activities.push({
+          type: 'deletion_request',
+          timestamp: deletion.createdAt,
+          details: `Запрос на удаление данных - ${deletion.status}`,
+        });
+      }
+      
+      // Sort by timestamp and limit
+      return activities
+        .sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0))
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting user activity history:', error);
+      return [];
+    }
   }
 }
 
