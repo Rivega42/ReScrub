@@ -26,6 +26,7 @@ import AdminUsers from "@/pages/AdminUsers";
 import AdminDataBrokers from "@/pages/AdminDataBrokers";
 import AdminEmailTemplates from "@/pages/AdminEmailTemplates";
 import AdminSecurityLogs from "@/pages/AdminSecurityLogs";
+import AdminSystemMonitoring from "@/pages/AdminSystemMonitoring";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Requests from "@/pages/Requests";
@@ -91,6 +92,11 @@ function Router() {
       <Route path="/admin/security">
         <AuthGuard fallback={<Login />}>
           <AdminSecurityLogs />
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/monitoring">
+        <AuthGuard fallback={<Login />}>
+          <AdminSystemMonitoring />
         </AuthGuard>
       </Route>
       <Route path="/admin-setup" component={AdminSetup} />

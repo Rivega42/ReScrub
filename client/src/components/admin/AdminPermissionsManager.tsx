@@ -138,9 +138,7 @@ export default function AdminPermissionsManager() {
   const { data: admins, isLoading: isLoadingAdmins } = useQuery<AdminUser[]>({
     queryKey: ['/api/admin/users'],
     queryFn: async () => {
-      const response = await apiRequest('/api/admin/users?role=admin,moderator,superadmin', {
-        method: 'GET'
-      });
+      const response = await apiRequest('GET', '/api/admin/users?role=admin,moderator,superadmin');
       
       if (!response.ok) {
         throw new Error('Failed to fetch admin users');
@@ -156,9 +154,7 @@ export default function AdminPermissionsManager() {
     queryKey: ['/api/admin/permissions', selectedAdmin?.id],
     queryFn: async () => {
       const params = selectedAdmin?.id ? `?adminId=${selectedAdmin.id}` : '';
-      const response = await apiRequest(`/api/admin/permissions${params}`, {
-        method: 'GET'
-      });
+      const response = await apiRequest('GET', `/api/admin/permissions${params}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch permissions');
@@ -175,9 +171,7 @@ export default function AdminPermissionsManager() {
     queryFn: async () => {
       if (!selectedAdmin) return [];
       
-      const response = await apiRequest(`/api/admin/permissions/${selectedAdmin.id}/history`, {
-        method: 'GET'
-      });
+      const response = await apiRequest('GET', `/api/admin/permissions/${selectedAdmin.id}/history`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch permission history');
@@ -192,13 +186,7 @@ export default function AdminPermissionsManager() {
   // Grant permission mutation
   const grantMutation = useMutation({
     mutationFn: async (data: { adminId: string; permissions: string[]; expiresAt?: Date }) => {
-      const response = await apiRequest('/api/admin/permissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+      const response = await apiRequest('POST', '/api/admin/permissions', data);
       
       if (!response.ok) {
         throw new Error('Failed to grant permission');
@@ -228,9 +216,7 @@ export default function AdminPermissionsManager() {
   // Revoke permission mutation
   const revokeMutation = useMutation({
     mutationFn: async (permissionId: string) => {
-      const response = await apiRequest(`/api/admin/permissions/${permissionId}`, {
-        method: 'DELETE'
-      });
+      const response = await apiRequest('DELETE', `/api/admin/permissions/${permissionId}`);
       
       if (!response.ok) {
         throw new Error('Failed to revoke permission');
@@ -260,17 +246,11 @@ export default function AdminPermissionsManager() {
   const bulkGrantMutation = useMutation({
     mutationFn: async (data: { adminIds: string[]; permissions: string[]; expiresAt?: Date }) => {
       const promises = data.adminIds.map(adminId =>
-        apiRequest('/api/admin/permissions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        apiRequest('POST', '/api/admin/permissions', {
             adminId,
             permissions: data.permissions,
             expiresAt: data.expiresAt
           })
-        })
       );
       
       const responses = await Promise.all(promises);
@@ -514,7 +494,7 @@ export default function AdminPermissionsManager() {
                               <Badge variant="destructive">Отозвано</Badge>
                             )}
                             {isPermissionExpired(permission.expiresAt) && (
-                              <Badge variant="warning">Истекло</Badge>
+                              <Badge variant="destructive">Истекло</Badge>
                             )}
                           </div>
                           {permission.resource && (

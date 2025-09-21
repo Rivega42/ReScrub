@@ -81,7 +81,7 @@ async function requireSuperAdmin(req: any, res: any, next: any) {
       // Log unauthorized access attempt
       await storage.logAdminAction({
         adminId: req.session.userId,
-        action: 'unauthorized_access_attempt',
+        actionType: 'unauthorized_access_attempt',
         targetType: 'secrets',
         metadata: {
           requestPath: req.path,
@@ -2357,7 +2357,7 @@ ${allPages.map(page => `  <url>
       // Log search action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'search_users',
+        actionType: 'search_users',
         targetType: 'users',
         metadata: searchOptions,
         sessionId: req.sessionID,
@@ -2444,7 +2444,7 @@ ${allPages.map(page => `  <url>
       // Log update action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'update_user',
+        actionType: 'update_user',
         targetType: 'user',
         targetId: userId,
         changes: updates,
@@ -2534,7 +2534,7 @@ ${allPages.map(page => `  <url>
       // Log subscription action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: `subscription_${action}`,
+        actionType: `subscription_${action}`,
         targetType: 'subscription',
         targetId: userId,
         metadata: { action, planId, months, reason },
@@ -2637,7 +2637,7 @@ ${allPages.map(page => `  <url>
       // Log action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'reset_user_password',
+        actionType: 'reset_user_password',
         targetType: 'user',
         targetId: userId,
         sessionId: req.sessionID,
@@ -2699,7 +2699,7 @@ ${allPages.map(page => `  <url>
       // Log action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'send_notification',
+        actionType: 'send_notification',
         targetType: 'user',
         targetId: userId,
         metadata: { title, message, type },
@@ -2798,7 +2798,7 @@ ${allPages.map(page => `  <url>
       // Log export action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'export_users',
+        actionType: 'export_users',
         targetType: 'users',
         metadata: { count: result.users.length },
         sessionId: req.sessionID,
@@ -2891,7 +2891,7 @@ ${allPages.map(page => `  <url>
       // Log the view action
       await storage.logAdminAction({
         adminId: req.session.userId!,
-        action: 'view_audit_logs',
+        actionType: 'view_audit_logs',
         targetType: 'audit_logs',
         metadata: { filters },
         sessionId: req.sessionID,
@@ -2918,7 +2918,7 @@ ${allPages.map(page => `  <url>
       // Log the export action
       await storage.logAdminAction({
         adminId: req.session.userId!,
-        action: 'export_audit_logs',
+        actionType: 'export_audit_logs',
         targetType: 'audit_logs',
         metadata: { dateRange },
         sessionId: req.sessionID,
@@ -3021,7 +3021,7 @@ ${allPages.map(page => `  <url>
       // Log the view action
       await storage.logAdminAction({
         adminId: req.session.userId!,
-        action: 'view_security_dashboard',
+        actionType: 'view_security_dashboard',
         targetType: 'security_stats',
         metadata: {},
         sessionId: req.sessionID,
@@ -3111,7 +3111,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'create_data_broker',
+        actionType: 'create_data_broker',
         targetType: 'data_broker',
         targetId: newBroker.id,
         metadata: { name: newBroker.name },
@@ -3153,7 +3153,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'update_data_broker',
+        actionType: 'update_data_broker',
         targetType: 'data_broker',
         targetId: id,
         metadata: { changes: Object.keys(updates) },
@@ -3194,7 +3194,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'delete_data_broker',
+        actionType: 'delete_data_broker',
         targetType: 'data_broker',
         targetId: id,
         metadata: { name: broker.name },
@@ -3259,7 +3259,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'import_data_brokers',
+        actionType: 'import_data_brokers',
         targetType: 'data_broker',
         metadata: { imported, failed, total: brokers.length },
         sessionId: req.sessionID,
@@ -3333,7 +3333,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'export_data_brokers',
+        actionType: 'export_data_brokers',
         targetType: 'data_broker',
         metadata: { count: brokers.length },
         sessionId: req.sessionID,
@@ -3366,7 +3366,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'verify_data_broker',
+        actionType: 'verify_data_broker',
         targetType: 'data_broker',
         targetId: id,
         metadata: { verifiedAt: new Date().toISOString() },
@@ -3452,7 +3452,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'create_email_template',
+        actionType: 'create_email_template',
         targetType: 'email_template',
         targetId: template.id,
         metadata: { name: template.name },
@@ -3501,7 +3501,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'update_email_template',
+        actionType: 'update_email_template',
         targetType: 'email_template',
         targetId: id,
         metadata: { changes: Object.keys(updates) },
@@ -3543,7 +3543,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'delete_email_template',
+        actionType: 'delete_email_template',
         targetType: 'email_template',
         targetId: id,
         metadata: { name: template.name },
@@ -3585,7 +3585,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'clone_email_template',
+        actionType: 'clone_email_template',
         targetType: 'email_template',
         targetId: id,
         metadata: { 
@@ -3630,7 +3630,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'test_email_template',
+        actionType: 'test_email_template',
         targetType: 'email_template',
         targetId: id,
         metadata: { testEmail: email },
@@ -3660,7 +3660,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'export_email_templates',
+        actionType: 'export_email_templates',
         targetType: 'email_template',
         metadata: { count: templates.length },
         sessionId: req.sessionID,
@@ -3718,7 +3718,7 @@ ${allPages.map(page => `  <url>
       // Log admin action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'import_email_templates',
+        actionType: 'import_email_templates',
         targetType: 'email_template',
         metadata: { 
           imported: imported.length,
@@ -3791,7 +3791,7 @@ ${allPages.map(page => `  <url>
       // Log access
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'list_secrets',
+        actionType: 'list_secrets',
         targetType: 'secrets',
         metadata: { filters: { category, service, environment } },
         sessionId: req.sessionID,
@@ -3838,7 +3838,7 @@ ${allPages.map(page => `  <url>
       const { maskSecret } = await import('./crypto');
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'view_secret',
+        actionType: 'view_secret',
         targetType: 'secrets',
         targetId: secret.id,
         metadata: { 
@@ -3901,7 +3901,7 @@ ${allPages.map(page => `  <url>
         // Log action
         await storage.logAdminAction({
           adminId: req.adminUser.id,
-          action: 'update_secret',
+          actionType: 'update_secret',
           targetType: 'secrets',
           targetId: updatedSecret?.id,
           changes: { key },
@@ -3931,7 +3931,7 @@ ${allPages.map(page => `  <url>
         // Log action
         await storage.logAdminAction({
           adminId: req.adminUser.id,
-          action: 'create_secret',
+          actionType: 'create_secret',
           targetType: 'secrets',
           targetId: newSecret.id,
           changes: { key },
@@ -3992,7 +3992,7 @@ ${allPages.map(page => `  <url>
       // Log action
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'delete_secret',
+        actionType: 'delete_secret',
         targetType: 'secrets',
         metadata: { key, reason },
         sessionId: req.sessionID,
@@ -4021,7 +4021,7 @@ ${allPages.map(page => `  <url>
       // Log access
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'view_audit_log',
+        actionType: 'view_audit_log',
         targetType: 'secrets_audit',
         metadata: { filters: { secretId, adminId, limit } },
         sessionId: req.sessionID,
@@ -4066,7 +4066,7 @@ ${allPages.map(page => `  <url>
       // Log validation attempt
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'validate_secret',
+        actionType: 'validate_secret',
         targetType: 'secrets',
         metadata: { key, service, isValid },
         sessionId: req.sessionID,
@@ -4341,7 +4341,7 @@ ${allPages.map(page => `  <url>
       // Log the resolution
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'resolve_alert',
+        actionType: 'resolve_alert',
         targetType: 'system_alert',
         targetId: id,
         metadata: { alertId: id },
@@ -4364,7 +4364,7 @@ ${allPages.map(page => `  <url>
       
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'acknowledge_alert',
+        actionType: 'acknowledge_alert',
         targetType: 'system_alert',
         targetId: id,
         metadata: { alertId: id },
@@ -4387,7 +4387,7 @@ ${allPages.map(page => `  <url>
       
       await storage.logAdminAction({
         adminId: req.adminUser.id,
-        action: 'delete_alert',
+        actionType: 'delete_alert',
         targetType: 'system_alert',
         targetId: id,
         metadata: { alertId: id },

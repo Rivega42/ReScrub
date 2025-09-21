@@ -118,31 +118,24 @@ export default function AdminSecurityLogs() {
     limit: 20
   });
   
-  // Query for audit logs
+  // Build query URL with parameters
+  const buildQueryUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    if (filters.adminId) params.append('adminId', filters.adminId);
+    if (filters.action) params.append('action', filters.action);
+    if (filters.targetType) params.append('targetType', filters.targetType);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom.toISOString());
+    if (filters.dateTo) params.append('dateTo', filters.dateTo.toISOString());
+    params.append('page', filters.page.toString());
+    params.append('limit', filters.limit.toString());
+    
+    return `/api/admin/audit-logs?${params.toString()}`;
+  }, [filters]);
+  
+  // Query for audit logs - using default fetcher from queryClient
   const { data, isLoading, error, refetch } = useQuery<AuditLogsResponse>({
-    queryKey: ['/api/admin/audit-logs', filters],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters.adminId) params.append('adminId', filters.adminId);
-      if (filters.action) params.append('action', filters.action);
-      if (filters.targetType) params.append('targetType', filters.targetType);
-      if (filters.search) params.append('search', filters.search);
-      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom.toISOString());
-      if (filters.dateTo) params.append('dateTo', filters.dateTo.toISOString());
-      params.append('page', filters.page.toString());
-      params.append('limit', filters.limit.toString());
-      
-      const response = await apiRequest(`/api/admin/audit-logs?${params.toString()}`, {
-        method: 'GET'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch audit logs');
-      }
-      
-      const result = await response.json();
-      return result.data;
-    }
+    queryKey: [buildQueryUrl()],
   });
   
   // Export mutation
@@ -152,9 +145,10 @@ export default function AdminSecurityLogs() {
       if (filters.dateFrom) params.append('from', filters.dateFrom.toISOString());
       if (filters.dateTo) params.append('to', filters.dateTo.toISOString());
       
-      const response = await apiRequest(`/api/admin/audit-logs/export?${params.toString()}`, {
-        method: 'GET'
-      });
+      const response = await apiRequest(
+        'GET',
+        `/api/admin/audit-logs/export?${params.toString()}`
+      );
       
       if (!response.ok) {
         throw new Error('Failed to export audit logs');
