@@ -29,6 +29,7 @@ import { handleOAuthStart, handleOAuthCallback } from "./oauthHandler";
 import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent, sendEmail, createEmailVerificationTemplate } from "./email";
 import { robokassaClient } from "./robokassa";
 import { SchedulerInstance } from "./scheduler-instance";
+import { BlogGeneratorService } from "./blog-generator";
 import fs from 'fs';
 import path from 'path';
 
@@ -4074,6 +4075,264 @@ ${allPages.map(page => `  <url>
       res.status(500).json({ 
         success: false, 
         message: 'Ошибка валидации секрета' 
+      });
+    }
+  });
+
+  // ====================
+  // ADMIN BLOG MANAGEMENT API ENDPOINTS
+  // ====================
+  
+  // POST /api/admin/blog/generate - Admin blog article generation
+  app.post("/api/admin/blog/generate", isAdmin, async (req: any, res) => {
+    console.log(`🚀 [ADMIN BLOG] Starting admin blog generation request at ${new Date().toISOString()}`);
+    console.log(`👤 [ADMIN BLOG] Admin user: ${req.adminUser.email} (ID: ${req.adminUser.id})`);
+    
+    try {
+      const { topic, category, method = 'sectional' } = req.body;
+      
+      console.log(`📝 [ADMIN BLOG] Request parameters:`, {
+        topic: topic || 'AUTO-SELECTED',
+        category: category || 'AUTO-SELECTED', 
+        method,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'blog_generate',
+        targetType: 'blog_article',
+        metadata: { topic, category, method },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      // Create blog generator service
+      console.log(`🔧 [ADMIN BLOG] Initializing BlogGeneratorService...`);
+      const blogGenerator = new BlogGeneratorService(storage);
+      
+      let generatedArticle;
+      const startTime = Date.now();
+      
+      try {
+        console.log(`⚡ [ADMIN BLOG] Starting article generation with method: ${method}`);
+        
+        if (method === 'legacy') {
+          console.log(`🔄 [ADMIN BLOG] Using LEGACY generation method...`);
+          generatedArticle = await blogGenerator.generateBlogArticleLegacy(topic, category);
+        } else {
+          console.log(`🔄 [ADMIN BLOG] Using SECTIONAL generation method (recommended)...`);
+          generatedArticle = await blogGenerator.generateBlogArticle(topic, category);
+        }
+        
+        const generationTime = Date.now() - startTime;
+        console.log(`✅ [ADMIN BLOG] Article generation completed in ${generationTime}ms`);
+        console.log(`📊 [ADMIN BLOG] Generated article stats:`, {
+          title: generatedArticle.title,
+          slug: generatedArticle.slug,
+          category: generatedArticle.category,
+          tags: generatedArticle.tags,
+          wordCount: generatedArticle.content.split(/\s+/).length,
+          readingTime: generatedArticle.readingTime,
+          featured: generatedArticle.featured
+        });
+        
+      } catch (generationError: any) {
+        console.error(`❌ [ADMIN BLOG] CRITICAL: Article generation failed!`);
+        console.error(`🚨 [ADMIN BLOG] Generation error:`, generationError);
+        
+        // Log the generation failure
+        await storage.logAdminAction({
+          adminId: req.adminUser.id,
+          actionType: 'blog_generate_failed',
+          targetType: 'blog_article',
+          metadata: { 
+            topic, 
+            category, 
+            method,
+            error: generationError.message,
+            generationTimeMs: Date.now() - startTime
+          },
+          sessionId: req.sessionID,
+          ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        
+        return res.status(500).json({
+          success: false,
+          error: 'GENERATION_FAILED',
+          message: `Ошибка генерации статьи: ${generationError.message}`,
+          details: {
+            topic,
+            category, 
+            method,
+            generationTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+      
+      // Now try to save the article to database
+      console.log(`💾 [ADMIN BLOG] Attempting to save article to database...`);
+      const saveStartTime = Date.now();
+      
+      try {
+        const savedArticle = await storage.createBlogArticle({
+          title: generatedArticle.title,
+          slug: generatedArticle.slug,
+          content: generatedArticle.content,
+          excerpt: generatedArticle.excerpt,
+          category: generatedArticle.category,
+          tags: generatedArticle.tags,
+          featured: generatedArticle.featured,
+          seoDescription: generatedArticle.metaDescription,
+          seoTitle: generatedArticle.seoTitle,
+          readingTime: generatedArticle.readingTime
+        });
+        
+        const saveTime = Date.now() - saveStartTime;
+        console.log(`✅ [ADMIN BLOG] Article successfully saved to database in ${saveTime}ms`);
+        
+        // 🔍 КРИТИЧНАЯ ПРОВЕРКА: Проверяем что SEO поля сохранились правильно
+        console.log(`🔍 [SEO INTEGRITY CHECK] Verifying SEO fields saved correctly:`, {
+          originalMetaDescription: generatedArticle.metaDescription,
+          savedSeoDescription: savedArticle.seoDescription,
+          originalSeoTitle: generatedArticle.seoTitle,
+          savedSeoTitle: savedArticle.seoTitle,
+          metaDescriptionPresent: !!savedArticle.seoDescription,
+          metaDescriptionLength: savedArticle.seoDescription?.length || 0
+        });
+        
+        // Проверяем целостность SEO данных
+        if (!savedArticle.seoDescription && generatedArticle.metaDescription) {
+          console.error(`🚨 [SEO INTEGRITY ERROR] metaDescription was generated but seoDescription is empty!`);
+          console.error(`Generated: "${generatedArticle.metaDescription}"`);
+          console.error(`Saved: "${savedArticle.seoDescription}"`);
+        } else if (savedArticle.seoDescription) {
+          console.log(`✅ [SEO INTEGRITY SUCCESS] seoDescription saved correctly: "${savedArticle.seoDescription}"`);
+        }
+        
+        console.log(`🎉 [ADMIN BLOG] SUCCESS! Article created:`, {
+          id: savedArticle.id,
+          title: savedArticle.title,
+          slug: savedArticle.slug,
+          seoDescription: savedArticle.seoDescription,
+          published: savedArticle.published,
+          createdAt: savedArticle.createdAt
+        });
+        
+        // Log successful creation
+        await storage.logAdminAction({
+          adminId: req.adminUser.id,
+          actionType: 'blog_create_success',
+          targetType: 'blog_article',
+          metadata: { 
+            articleId: savedArticle.id,
+            title: savedArticle.title,
+            slug: savedArticle.slug,
+            topic,
+            category,
+            method,
+            generationTimeMs: Date.now() - startTime,
+            saveTimeMs: saveTime
+          },
+          sessionId: req.sessionID,
+          ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        
+        const totalTime = Date.now() - startTime;
+        
+        res.json({
+          success: true,
+          message: 'Статья успешно сгенерирована и сохранена',
+          article: {
+            id: savedArticle.id,
+            title: savedArticle.title,
+            slug: savedArticle.slug,
+            category: savedArticle.category,
+            tags: savedArticle.tags,
+            wordCount: generatedArticle.content.split(/\s+/).length,
+            readingTime: savedArticle.readingTime,
+            featured: savedArticle.featured,
+            published: savedArticle.published,
+            createdAt: savedArticle.createdAt
+          },
+          performance: {
+            totalTimeMs: totalTime,
+            generationTimeMs: Date.now() - startTime - saveTime,
+            saveTimeMs: saveTime
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (saveError: any) {
+        console.error(`❌ [ADMIN BLOG] CRITICAL: Database save failed!`);
+        console.error(`💾 [ADMIN BLOG] Save error:`, saveError);
+        
+        // Log the save failure
+        await storage.logAdminAction({
+          adminId: req.adminUser.id,
+          actionType: 'blog_save_failed',
+          targetType: 'blog_article',
+          metadata: { 
+            title: generatedArticle.title,
+            topic, 
+            category, 
+            method,
+            error: saveError.message,
+            totalTimeMs: Date.now() - startTime
+          },
+          sessionId: req.sessionID,
+          ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+        
+        return res.status(500).json({
+          success: false,
+          error: 'SAVE_FAILED',
+          message: `Статья сгенерирована но не сохранена в БД: ${saveError.message}`,
+          article: generatedArticle, // Return the generated article anyway
+          details: {
+            topic,
+            category,
+            method,
+            totalTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ [ADMIN BLOG] CRITICAL: Unexpected error in admin blog generation!`);
+      console.error(`🚨 [ADMIN BLOG] Full error:`, error);
+      
+      // Log the unexpected error  
+      try {
+        await storage.logAdminAction({
+          adminId: req.adminUser.id,
+          actionType: 'blog_generate_error',
+          targetType: 'blog_article',
+          metadata: { 
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+          },
+          sessionId: req.sessionID,
+          ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown'
+        });
+      } catch (logError) {
+        console.error(`❌ [ADMIN BLOG] Failed to log error:`, logError);
+      }
+      
+      res.status(500).json({
+        success: false,
+        error: 'UNEXPECTED_ERROR',
+        message: `Неожиданная ошибка: ${error.message}`,
+        timestamp: new Date().toISOString()
       });
     }
   });
