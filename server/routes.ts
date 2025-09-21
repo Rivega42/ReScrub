@@ -3063,17 +3063,14 @@ ${allPages.map(page => `  <url>
           case 'inactive':
             filteredBrokers = brokers.filter(b => !b.isActive);
             break;
-          case 'automated':
-            filteredBrokers = brokers.filter(b => b.automatedRemoval);
+          case 'easy':
+            filteredBrokers = brokers.filter(b => b.difficultyLevel === 'easy');
             break;
-          case 'verified':
-            filteredBrokers = brokers.filter(b => b.lastVerifiedAt);
+          case 'medium':
+            filteredBrokers = brokers.filter(b => b.difficultyLevel === 'medium');
             break;
-          case 'unverified':
-            filteredBrokers = brokers.filter(b => !b.lastVerifiedAt);
-            break;
-          case 'with_warnings':
-            filteredBrokers = brokers.filter(b => b.warnings);
+          case 'hard':
+            filteredBrokers = brokers.filter(b => b.difficultyLevel === 'hard');
             break;
         }
       }
@@ -3300,10 +3297,6 @@ ${allPages.map(page => `  <url>
         'Сложность',
         'Время ответа',
         'Активен',
-        'Автоматизация',
-        'Процент успеха',
-        'Регистрационный номер',
-        'Последняя проверка',
         'Создан'
       ];
       
@@ -3318,10 +3311,6 @@ ${allPages.map(page => `  <url>
         broker.difficultyLevel,
         broker.responseTime || '',
         broker.isActive ? 'Да' : 'Нет',
-        broker.automatedRemoval ? 'Да' : 'Нет',
-        broker.successRate !== undefined ? `${broker.successRate}%` : '',
-        broker.regulatorNumber || '',
-        broker.lastVerifiedAt ? new Date(broker.lastVerifiedAt).toLocaleDateString('ru-RU') : '',
         broker.createdAt ? new Date(broker.createdAt).toLocaleDateString('ru-RU') : ''
       ]);
       
@@ -3843,7 +3832,7 @@ ${allPages.map(page => `  <url>
         targetId: secret.id,
         metadata: { 
           key,
-          maskedValue: maskSecret(secret.value)
+          maskedValue: maskSecret(secret.encryptedValue)
         },
         sessionId: req.sessionID,
         ipAddress: req.adminIp,
@@ -3855,8 +3844,6 @@ ${allPages.map(page => `  <url>
         secretId: secret.id,
         adminId: req.adminUser.id,
         action: 'view',
-        oldValue: null,
-        newValue: null,
         ipAddress: req.adminIp,
         userAgent: req.adminUserAgent
       });
@@ -3865,7 +3852,7 @@ ${allPages.map(page => `  <url>
         success: true, 
         secret: {
           ...secret,
-          value: secret.value, // Return decrypted value
+          encryptedValue: secret.encryptedValue, // Return decrypted value
           decrypted: true
         }
       });
@@ -3941,13 +3928,10 @@ ${allPages.map(page => `  <url>
         });
         
         // Audit log
-        const { maskSecret } = await import('./crypto');
         await storage.logSecretAudit({
           secretId: newSecret.id,
           adminId: req.adminUser.id,
           action: 'create',
-          oldValue: null,
-          newValue: maskSecret(value),
           ipAddress: req.adminIp,
           userAgent: req.adminUserAgent
         });
@@ -4110,18 +4094,15 @@ ${allPages.map(page => `  <url>
           type: 'database',
           status: dbTime < 1000 ? 'healthy' : dbTime < 3000 ? 'degraded' : 'down',
           lastCheck: new Date(),
-          responseTime: dbTime,
+          responseTimeMs: dbTime,
           uptime: lastDbCheck?.uptime || 99.9,
-          trend: dbTime < (lastDbCheck?.responseTime || 0) ? 'up' : 'down'
+          trend: dbTime < (lastDbCheck?.responseTimeMs || 0) ? 'up' : 'down'
         });
         
         await storage.createSystemHealthCheck({
           serviceName: 'database',
-          serviceCategory: 'core',
           status: dbTime < 1000 ? 'healthy' : dbTime < 3000 ? 'degraded' : 'down',
-          responseTimeMs: dbTime,
-          uptime: lastDbCheck?.uptime || 99.9,
-          details: { connectionPool: 'active', queryTime: dbTime }
+          responseTimeMs: dbTime
         });
       } catch (error: any) {
         services.push({
@@ -4129,7 +4110,7 @@ ${allPages.map(page => `  <url>
           type: 'database',
           status: 'down',
           lastCheck: new Date(),
-          responseTime: 0,
+          responseTimeMs: 0,
           uptime: 0,
           error: error.message,
           trend: 'down'
@@ -4149,18 +4130,15 @@ ${allPages.map(page => `  <url>
           type: 'email',
           status: isConnected ? 'healthy' : 'down',
           lastCheck: new Date(),
-          responseTime: emailTime,
+          responseTimeMs: emailTime,
           uptime: lastEmailCheck?.uptime || 99.5,
-          trend: emailTime < (lastEmailCheck?.responseTime || 0) ? 'up' : 'down'
+          trend: emailTime < (lastEmailCheck?.responseTimeMs || 0) ? 'up' : 'down'
         });
         
         await storage.createSystemHealthCheck({
           serviceName: 'email',
-          serviceCategory: 'external',
           status: isConnected ? 'healthy' : 'down',
-          responseTimeMs: emailTime,
-          uptime: lastEmailCheck?.uptime || 99.5,
-          details: { provider: 'mailganer', smtp: 'connected' }
+          responseTimeMs: emailTime
         });
       } catch (error: any) {
         services.push({
@@ -4168,7 +4146,7 @@ ${allPages.map(page => `  <url>
           type: 'email',
           status: 'down',
           lastCheck: new Date(),
-          responseTime: 0,
+          responseTimeMs: 0,
           uptime: 0,
           error: error.message,
           trend: 'down'
@@ -4188,7 +4166,7 @@ ${allPages.map(page => `  <url>
           type: 'openai',
           status: hasApiKey ? 'healthy' : 'degraded',
           lastCheck: new Date(),
-          responseTime: openaiTime,
+          responseTimeMs: openaiTime,
           uptime: lastAICheck?.uptime || 99.0,
           trend: 'stable'
         });
@@ -4198,7 +4176,7 @@ ${allPages.map(page => `  <url>
           type: 'openai',
           status: 'down',
           lastCheck: new Date(),
-          responseTime: 0,
+          responseTimeMs: 0,
           uptime: 0,
           error: error.message,
           trend: 'down'
@@ -4218,9 +4196,9 @@ ${allPages.map(page => `  <url>
           type: 'storage',
           status: storageTime < 500 ? 'healthy' : storageTime < 2000 ? 'degraded' : 'down',
           lastCheck: new Date(),
-          responseTime: storageTime,
+          responseTimeMs: storageTime,
           uptime: lastStorageCheck?.uptime || 99.95,
-          trend: storageTime < (lastStorageCheck?.responseTime || 0) ? 'up' : 'down'
+          trend: storageTime < (lastStorageCheck?.responseTimeMs || 0) ? 'up' : 'down'
         });
       } catch (error: any) {
         services.push({
@@ -4228,7 +4206,7 @@ ${allPages.map(page => `  <url>
           type: 'storage',
           status: 'down',
           lastCheck: new Date(),
-          responseTime: 0,
+          responseTimeMs: 0,
           uptime: 0,
           error: error.message,
           trend: 'down'
@@ -4243,9 +4221,9 @@ ${allPages.map(page => `  <url>
         type: 'webserver',
         status: 'healthy',
         lastCheck: new Date(),
-        responseTime: webserverTime,
+        responseTimeMs: webserverTime,
         uptime: lastWebCheck?.uptime || 99.99,
-        trend: webserverTime < (lastWebCheck?.responseTime || 0) ? 'up' : 'down'
+        trend: webserverTime < (lastWebCheck?.responseTimeMs || 0) ? 'up' : 'down'
       });
 
       res.json({ success: true, services });

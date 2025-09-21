@@ -286,8 +286,8 @@ export interface IStorage {
   createPlatformSecret(secretData: InsertPlatformSecret): Promise<PlatformSecret>;
   getPlatformSecrets(filters?: { service?: string; environment?: string }): Promise<PlatformSecret[]>;
   getPlatformSecretByKey(key: string): Promise<PlatformSecret | undefined>;
-  updatePlatformSecret(id: string, updates: Partial<PlatformSecret>): Promise<PlatformSecret | undefined>;
-  deletePlatformSecret(id: string): Promise<boolean>;
+  updatePlatformSecret(key: string, value: string, adminId: string): Promise<PlatformSecret | undefined>;
+  deletePlatformSecret(key: string, adminId: string, reason: string): Promise<boolean>;
   logSecretAudit(auditData: InsertSecretsAuditLog): Promise<SecretsAuditLog>;
   getSecretsAuditLog(filters?: { secretId?: string; adminId?: string; limit?: number }): Promise<SecretsAuditLog[]>;
   
@@ -4814,19 +4814,13 @@ export class MemStorage implements IStorage {
     const secret: PlatformSecret = {
       id: `secret_${this.idCounter++}`,
       key: secretData.key,
-      value: encryptedData.encrypted,
-      encryptionIv: encryptedData.iv,
-      encryptionTag: encryptedData.tag,
-      encryptionSalt: encryptedData.salt,
-      category: secretData.category || null,
+      encryptedValue: encryptedData.encrypted,
       service: secretData.service || null,
       environment: secretData.environment || 'production',
       description: secretData.description || null,
       metadata: secretData.metadata || {},
       createdBy: secretData.createdBy || null,
       lastUpdatedBy: null,
-      deletedAt: null,
-      deletedBy: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -4837,12 +4831,12 @@ export class MemStorage implements IStorage {
     const { maskSecret } = await import('./crypto');
     return {
       ...secret,
-      value: maskSecret(secretData.value),
+      encryptedValue: maskSecret(secretData.value),
     };
   }
 
-  async getPlatformSecrets(filters?: { service?: string; environment?: string; category?: string }): Promise<PlatformSecret[]> {
-    let secrets = this.platformSecretsData.filter(s => !s.deletedAt);
+  async getPlatformSecrets(filters?: { service?: string; environment?: string }): Promise<PlatformSecret[]> {
+    let secrets = this.platformSecretsData;
     
     if (filters?.service) {
       secrets = secrets.filter(s => s.service === filters.service);
@@ -4850,35 +4844,32 @@ export class MemStorage implements IStorage {
     if (filters?.environment) {
       secrets = secrets.filter(s => s.environment === filters.environment);
     }
-    if (filters?.category) {
-      secrets = secrets.filter(s => s.category === filters.category);
-    }
     
     // Mask all secret values
     const { maskSecret } = await import('./crypto');
     return secrets.map(secret => ({
       ...secret,
-      value: maskSecret(secret.value),
+      encryptedValue: maskSecret(secret.encryptedValue),
     }));
   }
 
   async getPlatformSecretByKey(key: string): Promise<PlatformSecret | undefined> {
-    const secret = this.platformSecretsData.find(s => s.key === key && !s.deletedAt);
+    const secret = this.platformSecretsData.find(s => s.key === key);
     if (!secret) return undefined;
     
     // Decrypt the secret value
     const { decryptSecret } = await import('./crypto');
     try {
       const decrypted = decryptSecret({
-        encrypted: secret.value,
-        iv: secret.encryptionIv || '',
-        tag: secret.encryptionTag || '',
-        salt: secret.encryptionSalt || '',
+        encrypted: secret.encryptedValue,
+        iv: '',
+        tag: '',
+        salt: '',
       });
       
       return {
         ...secret,
-        value: decrypted,
+        encryptedValue: decrypted,
       };
     } catch (error) {
       console.error('Failed to decrypt secret:', error);
@@ -4890,7 +4881,7 @@ export class MemStorage implements IStorage {
     const { encryptSecret, maskSecret } = await import('./crypto');
     
     // Get existing secret
-    const secretIndex = this.platformSecretsData.findIndex(s => s.key === key && !s.deletedAt);
+    const secretIndex = this.platformSecretsData.findIndex(s => s.key === key);
     if (secretIndex === -1) return undefined;
     
     const existing = this.platformSecretsData[secretIndex];
@@ -4901,10 +4892,7 @@ export class MemStorage implements IStorage {
     // Update secret
     this.platformSecretsData[secretIndex] = {
       ...existing,
-      value: encryptedData.encrypted,
-      encryptionIv: encryptedData.iv,
-      encryptionTag: encryptedData.tag,
-      encryptionSalt: encryptedData.salt,
+      encryptedValue: encryptedData.encrypted,
       lastUpdatedBy: adminId,
       updatedAt: new Date(),
     };
@@ -4914,30 +4902,24 @@ export class MemStorage implements IStorage {
       secretId: existing.id,
       adminId,
       action: 'update',
-      oldValue: maskSecret(existing.value),
-      newValue: maskSecret(value),
       ipAddress: null,
       userAgent: null,
     });
     
     return {
       ...this.platformSecretsData[secretIndex],
-      value: maskSecret(value),
+      encryptedValue: maskSecret(value),
     };
   }
 
   async deletePlatformSecret(key: string, adminId: string, reason: string): Promise<boolean> {
-    const secretIndex = this.platformSecretsData.findIndex(s => s.key === key && !s.deletedAt);
+    const secretIndex = this.platformSecretsData.findIndex(s => s.key === key);
     if (secretIndex === -1) return false;
     
     const existing = this.platformSecretsData[secretIndex];
     
-    // Soft delete
-    this.platformSecretsData[secretIndex] = {
-      ...existing,
-      deletedAt: new Date(),
-      deletedBy: adminId,
-    };
+    // Remove secret
+    this.platformSecretsData.splice(secretIndex, 1);
     
     // Log audit
     const { maskSecret } = await import('./crypto');
@@ -4945,8 +4927,6 @@ export class MemStorage implements IStorage {
       secretId: existing.id,
       adminId,
       action: 'delete',
-      oldValue: maskSecret(existing.value),
-      newValue: null,
       metadata: { reason },
       ipAddress: null,
       userAgent: null,
@@ -4963,13 +4943,13 @@ export class MemStorage implements IStorage {
       // Add service-specific validation logic here
       switch (service) {
         case 'sendgrid':
-          return secret.value.startsWith('SG.');
+          return secret.encryptedValue.startsWith('SG.');
         case 'openai':
-          return secret.value.startsWith('sk-');
+          return secret.encryptedValue.startsWith('sk-');
         case 'robokassa':
-          return secret.value.length > 0;
+          return secret.encryptedValue.length > 0;
         default:
-          return secret.value.length > 0;
+          return secret.encryptedValue.length > 0;
       }
     } catch (error) {
       console.error('Secret validation error:', error);
@@ -4983,8 +4963,6 @@ export class MemStorage implements IStorage {
       secretId: auditData.secretId,
       adminId: auditData.adminId,
       action: auditData.action,
-      oldValue: auditData.oldValue || null,
-      newValue: auditData.newValue || null,
       metadata: auditData.metadata || {},
       ipAddress: auditData.ipAddress || null,
       userAgent: auditData.userAgent || null,
@@ -5627,6 +5605,245 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     return this.emailServiceStatusData[index];
+  }
+
+  // Missing methods from IStorage interface
+
+  async getAuditLogs(filters?: {
+    adminId?: string;
+    action?: string;
+    targetType?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminAction[]> {
+    let actions = [...this.adminActionsData];
+    
+    if (filters?.adminId) {
+      actions = actions.filter(a => a.adminId === filters.adminId);
+    }
+    if (filters?.action) {
+      actions = actions.filter(a => a.action === filters.action);
+    }
+    if (filters?.targetType) {
+      actions = actions.filter(a => a.targetType === filters.targetType);
+    }
+    if (filters?.dateFrom) {
+      actions = actions.filter(a => a.createdAt && a.createdAt >= filters.dateFrom!);
+    }
+    if (filters?.dateTo) {
+      actions = actions.filter(a => a.createdAt && a.createdAt <= filters.dateTo!);
+    }
+    
+    // Sort by date descending
+    actions.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    const limit = filters?.limit || 100;
+    const offset = filters?.offset || 0;
+    return actions.slice(offset, offset + limit);
+  }
+
+  async getAuditLogById(id: string): Promise<AdminAction | null> {
+    const action = this.adminActionsData.find(a => a.id === id);
+    return action || null;
+  }
+
+  async exportAuditLogs(dateRange?: { from: Date; to: Date }): Promise<string> {
+    let actions = [...this.adminActionsData];
+    
+    if (dateRange) {
+      actions = actions.filter(a => 
+        a.createdAt && 
+        a.createdAt >= dateRange.from && 
+        a.createdAt <= dateRange.to
+      );
+    }
+    
+    // Convert to CSV format
+    const headers = ['ID', 'Admin ID', 'Action', 'Target Type', 'Target ID', 'Created At'];
+    const rows = actions.map(action => [
+      action.id,
+      action.adminId,
+      action.action,
+      action.targetType || '',
+      action.targetId || '',
+      action.createdAt?.toISOString() || ''
+    ]);
+    
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+    
+    return csvContent;
+  }
+
+  async grantPermission(permission: InsertAdminPermission): Promise<AdminPermission> {
+    return this.createAdminPermission(permission);
+  }
+
+  async revokePermission(permissionId: string): Promise<boolean> {
+    return this.revokeAdminPermission(permissionId);
+  }
+
+  async getPermissionHistory(adminId: string): Promise<AdminPermission[]> {
+    return this.adminPermissionsData
+      .filter(p => p.adminId === adminId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getSecurityStats(): Promise<{
+    totalAuditLogs: number;
+    recentFailedLogins: number;
+    activePermissions: number;
+    secretsCount: number;
+    healthChecksPassing: number;
+    totalHealthChecks: number;
+  }> {
+    const totalAuditLogs = this.adminActionsData.length;
+    const recentFailedLogins = 0; // Stub - not tracking failed logins in memory
+    const activePermissions = this.adminPermissionsData.filter(p => p.isActive).length;
+    const secretsCount = this.platformSecretsData.length;
+    const totalHealthChecks = this.systemHealthChecksData.length;
+    const healthChecksPassing = this.systemHealthChecksData.filter(h => h.status === 'healthy').length;
+
+    return {
+      totalAuditLogs,
+      recentFailedLogins,
+      activePermissions,
+      secretsCount,
+      healthChecksPassing,
+      totalHealthChecks,
+    };
+  }
+
+  async searchUsers(options: {
+    text?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    subscriptionStatus?: string;
+    verificationStatus?: string;
+    adminRole?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    limit: number;
+    offset: number;
+  }): Promise<{ users: (UserAccount & { profile?: UserProfile; subscription?: Subscription | null })[], total: number }> {
+    let users = [...this.userAccountsData];
+    
+    // Apply filters
+    if (options.text) {
+      const searchText = options.text.toLowerCase();
+      users = users.filter(user => 
+        user.email.toLowerCase().includes(searchText)
+      );
+    }
+    
+    if (options.dateFrom) {
+      users = users.filter(user => user.createdAt && user.createdAt >= options.dateFrom!);
+    }
+    
+    if (options.dateTo) {
+      users = users.filter(user => user.createdAt && user.createdAt <= options.dateTo!);
+    }
+    
+    if (options.verificationStatus === 'verified') {
+      users = users.filter(user => user.emailVerified === true);
+    } else if (options.verificationStatus === 'unverified') {
+      users = users.filter(user => user.emailVerified === false);
+    }
+    
+    // Add profile and subscription data
+    const usersWithDetails = users.map(user => ({
+      ...user,
+      profile: this.userProfilesData.find(p => p.userId === user.id),
+      subscription: this.subscriptionsData.find(s => s.userId === user.id && s.status === 'active') || null,
+    }));
+    
+    // Sort
+    const sortOrder = options.sortOrder || 'desc';
+    usersWithDetails.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() || 0;
+      const bTime = b.createdAt?.getTime() || 0;
+      return sortOrder === 'desc' ? bTime - aTime : aTime - bTime;
+    });
+    
+    const total = usersWithDetails.length;
+    const paginatedUsers = usersWithDetails.slice(options.offset, options.offset + options.limit);
+    
+    return { users: paginatedUsers, total };
+  }
+
+  async getUserWithDetails(userId: string): Promise<{
+    account: UserAccount;
+    profile?: UserProfile;
+    subscription?: Subscription | null;
+    payments?: Payment[];
+    activities?: any[];
+    notes?: any[];
+  } | undefined> {
+    const account = this.userAccountsData.find(user => user.id === userId);
+    if (!account) return undefined;
+    
+    const profile = this.userProfilesData.find(p => p.userId === userId);
+    const subscription = this.subscriptionsData.find(s => s.userId === userId && s.status === 'active') || null;
+    const payments = this.paymentsData.filter(p => p.userId === userId);
+    const activities = await this.getUserActivityHistory(userId, 50);
+    const notes: any[] = []; // Stub - no user notes table in memory
+    
+    return {
+      account,
+      profile,
+      subscription,
+      payments,
+      activities,
+      notes,
+    };
+  }
+
+  async banUser(userId: string, reason: string, bannedBy: string): Promise<UserAccount | undefined> {
+    const account = await this.updateUserAccount(userId, { 
+      isBanned: true,
+      bannedAt: new Date(),
+      banReason: reason
+    });
+    
+    if (account) {
+      await this.logAdminAction({
+        adminId: bannedBy,
+        action: 'ban_user',
+        targetType: 'user',
+        targetId: userId,
+        metadata: { reason },
+        ipAddress: null,
+        userAgent: null,
+        sessionId: null,
+      });
+    }
+    
+    return account;
+  }
+
+  async unbanUser(userId: string, unbannedBy: string): Promise<UserAccount | undefined> {
+    const account = await this.updateUserAccount(userId, { 
+      isBanned: false,
+      bannedAt: null,
+      banReason: null
+    });
+    
+    if (account) {
+      await this.logAdminAction({
+        adminId: unbannedBy,
+        action: 'unban_user',
+        targetType: 'user',
+        targetId: userId,
+        ipAddress: null,
+        userAgent: null,
+        sessionId: null,
+      });
+    }
+    
+    return account;
   }
 }
 
