@@ -3,8 +3,8 @@ import { IStorage } from "./storage";
 import { BlogArticle, BlogGenerationSettings } from "../shared/schema";
 import { z } from "zod";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const MODEL = process.env.OPENAI_MODEL || "gpt-5";
+// Using GPT-4o as the most reliable and available OpenAI model for content generation
+const MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 const MAX_TOKENS = parseInt(process.env.OPENAI_MAX_TOKENS || "4000");
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;

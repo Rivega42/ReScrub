@@ -105,6 +105,12 @@ The platform uses Mailganer.ru (SamOtpravil) as the email service provider for c
 
 ## Recent Changes
 
+- **2025-09-21**: ✅ **FIXED: Blog Generation System - Critical OpenAI Model Issue**
+  - **CRITICAL FIX**: Changed OpenAI model from unavailable "gpt-5" to working "gpt-4o" 
+  - **TESTED & WORKING**: Blog generator now successfully creates articles automatically
+  - **PRODUCTION READY**: Generated 2 test articles: "Cookies и персональные данные" & "Новые изменения в 152-ФЗ"
+  - **API STATUS**: OpenAI API calls now succeed on first attempt (was failing 100% before)
+  - **SCHEDULING**: Automatic daily generation at 08:00 Moscow time fully operational
 - **2025-09-20**: ✅ **COMPLETED: Complete Admin Panel System**
   - **ARCHITECT REVIEW: PASS** - Система полностью готова к production! 🎉
   - **Безопасность**: Исправлены критические уязвимости, dev-only эндпоинты защищены
