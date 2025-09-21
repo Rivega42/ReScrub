@@ -88,14 +88,11 @@ export default function AdminUsers() {
   const { data: searchData, isLoading: isSearching, refetch } = useQuery<SearchResponse>({
     queryKey: ["/api/admin/users/search", searchFilters, currentPage, realtimeSearch],
     queryFn: async () => {
-      const response = await apiRequest("/api/admin/users/search", {
-        method: "POST",
-        body: JSON.stringify({
-          ...searchFilters,
-          text: realtimeSearch || searchFilters.text,
-          limit: pageSize,
-          offset: currentPage * pageSize,
-        }),
+      const response = await apiRequest("POST", "/api/admin/users/search", {
+        ...searchFilters,
+        text: realtimeSearch || searchFilters.text,
+        limit: pageSize,
+        offset: currentPage * pageSize,
       });
       return response.json();
     },
@@ -114,7 +111,7 @@ export default function AdminUsers() {
   const { data: activityData, isLoading: isLoadingActivity } = useQuery<{ activities: ActivityItem[] }>({
     queryKey: ["/api/admin/users", activityDialog?.id, "activity"],
     queryFn: async () => {
-      const response = await apiRequest(`/api/admin/users/${activityDialog?.id}/activity`);
+      const response = await apiRequest('GET', `/api/admin/users/${activityDialog?.id}/activity`);
       return response.json();
     },
     enabled: !!activityDialog,
@@ -123,10 +120,7 @@ export default function AdminUsers() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
-      const response = await apiRequest(`/api/admin/users/${userId}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('PATCH', `/api/admin/users/${userId}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -142,10 +136,7 @@ export default function AdminUsers() {
   // Subscription mutation
   const subscriptionMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
-      const response = await apiRequest(`/api/admin/users/${userId}/subscription`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', `/api/admin/users/${userId}/subscription`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -161,10 +152,7 @@ export default function AdminUsers() {
   // Ban/unban mutation
   const banMutation = useMutation({
     mutationFn: async ({ userId, ban, reason }: { userId: string; ban: boolean; reason?: string }) => {
-      const response = await apiRequest(`/api/admin/users/${userId}/ban`, {
-        method: "POST",
-        body: JSON.stringify({ ban, reason }),
-      });
+      const response = await apiRequest('POST', `/api/admin/users/${userId}/ban`, { ban, reason });
       return response.json();
     },
     onSuccess: (_, variables) => {
@@ -183,9 +171,7 @@ export default function AdminUsers() {
   // Reset password mutation
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await apiRequest(`/api/admin/users/${userId}/reset-password`, {
-        method: "POST",
-      });
+      const response = await apiRequest('POST', `/api/admin/users/${userId}/reset-password`);
       return response.json();
     },
     onSuccess: () => {
@@ -200,10 +186,7 @@ export default function AdminUsers() {
   // Send notification mutation
   const notificationMutation = useMutation({
     mutationFn: async ({ userId, title, message, type }: { userId: string; title: string; message: string; type: string }) => {
-      const response = await apiRequest(`/api/admin/users/${userId}/notify`, {
-        method: "POST",
-        body: JSON.stringify({ title, message, type }),
-      });
+      const response = await apiRequest('POST', `/api/admin/users/${userId}/notify`, { title, message, type });
       return response.json();
     },
     onSuccess: () => {
@@ -218,10 +201,7 @@ export default function AdminUsers() {
   // Add note mutation
   const noteMutation = useMutation({
     mutationFn: async ({ userId, note }: { userId: string; note: string }) => {
-      const response = await apiRequest(`/api/admin/users/${userId}/notes`, {
-        method: "POST",
-        body: JSON.stringify({ note }),
-      });
+      const response = await apiRequest('POST', `/api/admin/users/${userId}/notes`, { note });
       return response.json();
     },
     onSuccess: () => {
@@ -236,10 +216,7 @@ export default function AdminUsers() {
   // Export to CSV
   const handleExport = async () => {
     try {
-      const response = await apiRequest("/api/admin/users/export", {
-        method: "POST",
-        body: JSON.stringify(searchFilters),
-      });
+      const response = await apiRequest('POST', '/api/admin/users/export', searchFilters);
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
