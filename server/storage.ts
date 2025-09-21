@@ -988,7 +988,13 @@ export class DatabaseStorage implements IStorage {
 
   // Demo account seeding for development
   async seedDemoAccount(): Promise<void> {
-    console.log('🌱 Seeding demo account...');
+    // SECURITY GUARD: Prevent demo account creation in production
+    if (process.env.NODE_ENV !== 'development') {
+      console.log('🔒 SECURITY: Demo account seeding blocked in production environment');
+      return;
+    }
+    
+    console.log('🌱 Seeding demo account (development only)...');
     
     const demoEmail = 'demo@rescrub.ru';
     const demoPassword = 'demo123';

@@ -112,51 +112,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
   await setupAuth(app);
 
-  // Seed demo account for all environments
-  try {
-    await storage.seedDemoAccount();
-    await storage.seedAchievements();
-    
-    // Ensure TEST123 referral code exists for demo/testing
+  // SECURITY FIX: Seed demo account ONLY in development environment
+  // CRITICAL: This must NOT run in production to prevent security vulnerabilities
+  if (process.env.NODE_ENV === 'development') {
     try {
-      const demoAccount = await storage.getUserAccountByEmail('demo@rescrub.ru');
-      if (demoAccount) {
-        const existingCode = await storage.getReferralCodeByCode('TEST123');
-        if (!existingCode) {
-          // Create test referral code with fixed TEST123 code
-          const referralCode = {
-            id: `ref_code_${Date.now()}`,
-            userId: demoAccount.id,
-            code: 'TEST123',
-            isActive: true,
-            maxUses: 100,
-            currentUses: 0,
-            createdAt: new Date()
-          };
-          
-          // Save to storage - add via internal method that handles both implementations
-          if ((storage as any).referralCodesData) {
-            (storage as any).referralCodesData.push(referralCode);
-          } else {
-            // Database mode: create referral code in PostgreSQL
-            console.log('Database mode: creating TEST123 code in PostgreSQL');
-            // Create referral code directly in database since we need specific TEST123 code
-            await db.insert(referralCodes).values({
+      console.log('🔧 Development environment detected - seeding demo data...');
+      await storage.seedDemoAccount();
+      await storage.seedAchievements();
+      
+      // Ensure TEST123 referral code exists for demo/testing in development only
+      try {
+        const demoAccount = await storage.getUserAccountByEmail('demo@rescrub.ru');
+        if (demoAccount) {
+          const existingCode = await storage.getReferralCodeByCode('TEST123');
+          if (!existingCode) {
+            // Create test referral code with fixed TEST123 code
+            const referralCode = {
+              id: `ref_code_${Date.now()}`,
               userId: demoAccount.id,
               code: 'TEST123',
               isActive: true,
               maxUses: 100,
-              currentUses: 0
-            });
+              currentUses: 0,
+              createdAt: new Date()
+            };
+            
+            // Save to storage - add via internal method that handles both implementations
+            if ((storage as any).referralCodesData) {
+              (storage as any).referralCodesData.push(referralCode);
+            } else {
+              // Database mode: create referral code in PostgreSQL
+              console.log('Database mode: creating TEST123 code in PostgreSQL');
+              // Create referral code directly in database since we need specific TEST123 code
+              await db.insert(referralCodes).values({
+                userId: demoAccount.id,
+                code: 'TEST123',
+                isActive: true,
+                maxUses: 100,
+                currentUses: 0
+              });
+            }
+            console.log('✅ Created demo referral code TEST123 for testing');
           }
-          console.log('✅ Created demo referral code TEST123 for testing');
         }
+      } catch (refError: any) {
+        console.log('Note: Could not create test referral code:', refError.message);
       }
-    } catch (refError: any) {
-      console.log('Note: Could not create test referral code:', refError.message);
+    } catch (error) {
+      console.error('Failed to seed demo account:', error);
     }
-  } catch (error) {
-    console.error('Failed to seed demo account:', error);
+  } else {
+    console.log('🔒 Production environment detected - skipping demo data seeding for security');
   }
 
   // Server-side rendering for invite pages with proper SEO
