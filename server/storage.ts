@@ -303,6 +303,36 @@ export interface IStorage {
   getAdminActions(filters?: { adminId?: string; targetType?: string; limit?: number; offset?: number }): Promise<AdminAction[]>;
   getAdminActionsBySession(sessionId: string): Promise<AdminAction[]>;
   
+  // Audit logs operations (enhanced)
+  getAuditLogs(filters?: {
+    adminId?: string;
+    action?: string;
+    targetType?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ logs: AdminAction[]; total: number; page: number; totalPages: number }>;
+  getAuditLogById(id: string): Promise<AdminAction | null>;
+  exportAuditLogs(dateRange?: { from: Date; to: Date }): Promise<string>; // Returns CSV string
+  
+  // Admin permissions operations (enhanced)
+  grantPermission(permission: InsertAdminPermission): Promise<AdminPermission>;
+  revokePermission(permissionId: string): Promise<boolean>;
+  getPermissionHistory(adminId: string): Promise<AdminPermission[]>;
+  
+  // Security statistics
+  getSecurityStats(): Promise<{
+    recentSuspiciousActivities: AdminAction[];
+    failedLoginAttempts: number;
+    permissionChanges: AdminAction[];
+    mostActiveAdmins: { adminId: string; email: string; actionCount: number }[];
+    securityScore: number;
+    totalActions: number;
+    criticalActions: number;
+  }>;
+  
   // System health monitoring
   createSystemHealthCheck(checkData: InsertSystemHealthCheck): Promise<SystemHealthCheck>;
   getSystemHealthChecks(filters?: { serviceName?: string; status?: string }): Promise<SystemHealthCheck[]>;
@@ -2101,6 +2131,294 @@ export class DatabaseStorage implements IStorage {
       .from(adminActions)
       .where(eq(adminActions.sessionId, sessionId))
       .orderBy(desc(adminActions.createdAt));
+  }
+
+  // Enhanced audit logs methods
+  async getAuditLogs(filters?: {
+    adminId?: string;
+    action?: string;
+    targetType?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ logs: AdminAction[]; total: number; page: number; totalPages: number }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 50;
+    const offset = (page - 1) * limit;
+    
+    let conditions = [];
+    
+    if (filters?.adminId) {
+      conditions.push(eq(adminActions.adminId, filters.adminId));
+    }
+    if (filters?.action) {
+      conditions.push(eq(adminActions.action, filters.action));
+    }
+    if (filters?.targetType) {
+      conditions.push(eq(adminActions.targetType, filters.targetType));
+    }
+    if (filters?.dateFrom) {
+      conditions.push(sql`${adminActions.createdAt} >= ${filters.dateFrom}`);
+    }
+    if (filters?.dateTo) {
+      conditions.push(sql`${adminActions.createdAt} <= ${filters.dateTo}`);
+    }
+    if (filters?.search && filters.search.trim()) {
+      const searchTerm = `%${filters.search.trim()}%`;
+      conditions.push(
+        sql`(
+          ${adminActions.action} ILIKE ${searchTerm} OR
+          ${adminActions.targetType} ILIKE ${searchTerm} OR
+          ${adminActions.targetId} ILIKE ${searchTerm} OR
+          ${adminActions.metadata}::text ILIKE ${searchTerm}
+        )`
+      );
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const [logs, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(adminActions)
+        .where(whereClause)
+        .orderBy(desc(adminActions.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(adminActions)
+        .where(whereClause)
+    ]);
+    
+    const total = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      logs,
+      total,
+      page,
+      totalPages
+    };
+  }
+
+  async getAuditLogById(id: string): Promise<AdminAction | null> {
+    const result = await db
+      .select()
+      .from(adminActions)
+      .where(eq(adminActions.id, id))
+      .limit(1);
+    
+    return result[0] || null;
+  }
+
+  async exportAuditLogs(dateRange?: { from: Date; to: Date }): Promise<string> {
+    let conditions = [];
+    
+    if (dateRange) {
+      conditions.push(
+        and(
+          sql`${adminActions.createdAt} >= ${dateRange.from}`,
+          sql`${adminActions.createdAt} <= ${dateRange.to}`
+        )
+      );
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const logs = await db
+      .select()
+      .from(adminActions)
+      .where(whereClause)
+      .orderBy(desc(adminActions.createdAt));
+    
+    // Convert to CSV format
+    const headers = ['ID', 'Admin ID', 'Action', 'Target Type', 'Target ID', 'IP Address', 'User Agent', 'Session ID', 'Created At', 'Metadata'];
+    const csvRows = [headers.join(',')];
+    
+    for (const log of logs) {
+      const row = [
+        log.id,
+        log.adminId,
+        log.action,
+        log.targetType || '',
+        log.targetId || '',
+        log.ipAddress,
+        log.userAgent.replace(/,/g, ';'), // Replace commas in user agent
+        log.sessionId || '',
+        log.createdAt.toISOString(),
+        JSON.stringify(log.metadata || {}).replace(/,/g, ';') // Replace commas in JSON
+      ];
+      csvRows.push(row.map(field => `"${field}"`).join(','));
+    }
+    
+    return csvRows.join('\n');
+  }
+
+  async grantPermission(permission: InsertAdminPermission): Promise<AdminPermission> {
+    const [newPermission] = await db
+      .insert(adminPermissions)
+      .values(permission)
+      .returning();
+    
+    // Log the permission grant
+    await this.logAdminAction({
+      adminId: permission.grantedBy,
+      action: 'grant_permission',
+      targetType: 'admin_permission',
+      targetId: permission.adminId,
+      metadata: {
+        permission: permission.permission,
+        expiresAt: permission.expiresAt,
+        grantedTo: permission.adminId
+      },
+      sessionId: '',
+      ipAddress: 'system',
+      userAgent: 'system'
+    });
+    
+    return newPermission;
+  }
+
+  async getPermissionHistory(adminId: string): Promise<AdminPermission[]> {
+    return db
+      .select()
+      .from(adminPermissions)
+      .where(eq(adminPermissions.adminId, adminId))
+      .orderBy(desc(adminPermissions.createdAt));
+  }
+
+  async getSecurityStats(): Promise<{
+    recentSuspiciousActivities: AdminAction[];
+    failedLoginAttempts: number;
+    permissionChanges: AdminAction[];
+    mostActiveAdmins: { adminId: string; email: string; actionCount: number }[];
+    securityScore: number;
+    totalActions: number;
+    criticalActions: number;
+  }> {
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    // Get recent suspicious activities
+    const suspiciousActions = await db
+      .select()
+      .from(adminActions)
+      .where(
+        and(
+          sql`${adminActions.createdAt} > ${twentyFourHoursAgo}`,
+          sql`${adminActions.action} IN ('unauthorized_access_attempt', 'failed_login', 'permission_denied', 'suspicious_activity')`
+        )
+      )
+      .orderBy(desc(adminActions.createdAt))
+      .limit(10);
+    
+    // Count failed login attempts in last 24 hours
+    const [failedLoginResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(adminActions)
+      .where(
+        and(
+          eq(adminActions.action, 'failed_login'),
+          sql`${adminActions.createdAt} > ${twentyFourHoursAgo}`
+        )
+      );
+    
+    // Get recent permission changes
+    const permissionChanges = await db
+      .select()
+      .from(adminActions)
+      .where(
+        and(
+          sql`${adminActions.createdAt} > ${sevenDaysAgo}`,
+          sql`${adminActions.action} IN ('grant_permission', 'revoke_permission', 'update_admin_role')`
+        )
+      )
+      .orderBy(desc(adminActions.createdAt))
+      .limit(20);
+    
+    // Get most active admins in last 7 days
+    const activeAdminsResult = await db
+      .select({
+        adminId: adminActions.adminId,
+        actionCount: sql<number>`count(*)::int`
+      })
+      .from(adminActions)
+      .where(sql`${adminActions.createdAt} > ${sevenDaysAgo}`)
+      .groupBy(adminActions.adminId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5);
+    
+    // Get admin emails for most active admins
+    const mostActiveAdmins = await Promise.all(
+      activeAdminsResult.map(async (admin) => {
+        const user = await this.getUserAccountById(admin.adminId);
+        return {
+          adminId: admin.adminId,
+          email: user?.email || 'Unknown',
+          actionCount: admin.actionCount
+        };
+      })
+    );
+    
+    // Get total actions count
+    const [totalActionsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(adminActions);
+    
+    // Get critical actions count
+    const [criticalActionsResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(adminActions)
+      .where(
+        sql`${adminActions.action} IN ('delete_user', 'grant_permission', 'revoke_permission', 'update_admin_role', 'delete_data', 'export_data')`
+      );
+    
+    // Calculate security score (0-100)
+    // Higher score is better
+    let securityScore = 100;
+    
+    // Deduct for failed login attempts
+    if (failedLoginResult.count > 0) {
+      securityScore -= Math.min(20, failedLoginResult.count * 2);
+    }
+    
+    // Deduct for suspicious activities
+    if (suspiciousActions.length > 0) {
+      securityScore -= Math.min(30, suspiciousActions.length * 3);
+    }
+    
+    // Bonus for regular monitoring (if there are recent view actions)
+    const [monitoringResult] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(adminActions)
+      .where(
+        and(
+          sql`${adminActions.createdAt} > ${twentyFourHoursAgo}`,
+          sql`${adminActions.action} IN ('view_audit_logs', 'view_security_dashboard')`
+        )
+      );
+    
+    if (monitoringResult.count > 0) {
+      securityScore = Math.min(100, securityScore + 10);
+    }
+    
+    securityScore = Math.max(0, securityScore);
+    
+    return {
+      recentSuspiciousActivities: suspiciousActions,
+      failedLoginAttempts: failedLoginResult.count || 0,
+      permissionChanges,
+      mostActiveAdmins,
+      securityScore,
+      totalActions: totalActionsResult.count || 0,
+      criticalActions: criticalActionsResult.count || 0
+    };
   }
 
   // System health check placeholder methods

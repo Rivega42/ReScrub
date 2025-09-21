@@ -2871,6 +2871,173 @@ ${allPages.map(page => `  <url>
   });
 
   // ========================================
+  // SECURITY AUDIT LOGS API ROUTES
+  // ========================================
+
+  // GET /api/admin/audit-logs - Get filtered audit logs
+  app.get("/api/admin/audit-logs", isAdmin, async (req: any, res) => {
+    try {
+      const filters = {
+        adminId: req.query.adminId as string | undefined,
+        action: req.query.action as string | undefined,
+        targetType: req.query.targetType as string | undefined,
+        dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
+        dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,
+        search: req.query.search as string | undefined,
+        page: parseInt(req.query.page as string) || 1,
+        limit: parseInt(req.query.limit as string) || 50
+      };
+
+      // Log the view action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        action: 'view_audit_logs',
+        targetType: 'audit_logs',
+        metadata: { filters },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const result = await storage.getAuditLogs(filters);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Failed to fetch audit logs:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при получении журнала аудита' });
+    }
+  });
+
+  // GET /api/admin/audit-logs/export - Export audit logs as CSV
+  app.get("/api/admin/audit-logs/export", isAdmin, async (req: any, res) => {
+    try {
+      const dateRange = {
+        from: req.query.from ? new Date(req.query.from as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        to: req.query.to ? new Date(req.query.to as string) : new Date()
+      };
+
+      // Log the export action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        action: 'export_audit_logs',
+        targetType: 'audit_logs',
+        metadata: { dateRange },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const csv = await storage.exportAuditLogs(dateRange);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="audit_logs_${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Failed to export audit logs:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при экспорте журнала аудита' });
+    }
+  });
+
+  // GET /api/admin/audit-logs/:id - Get specific audit log details
+  app.get("/api/admin/audit-logs/:id", isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const log = await storage.getAuditLogById(id);
+      
+      if (!log) {
+        return res.status(404).json({ success: false, message: 'Запись не найдена' });
+      }
+
+      res.json({ success: true, data: log });
+    } catch (error) {
+      console.error('Failed to fetch audit log:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при получении записи аудита' });
+    }
+  });
+
+  // GET /api/admin/permissions - List all admin permissions
+  app.get("/api/admin/permissions", isAdmin, async (req: any, res) => {
+    try {
+      const adminId = req.query.adminId as string | undefined;
+      const permissions = await storage.getAdminPermissions(adminId!);
+      
+      res.json({ success: true, data: permissions });
+    } catch (error) {
+      console.error('Failed to fetch permissions:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при получении разрешений' });
+    }
+  });
+
+  // POST /api/admin/permissions - Grant new permission
+  app.post("/api/admin/permissions", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const permissionData = {
+        ...req.body,
+        grantedBy: req.session.userId!,
+        createdAt: new Date()
+      };
+
+      const permission = await storage.grantPermission(permissionData);
+      
+      res.json({ success: true, data: permission });
+    } catch (error) {
+      console.error('Failed to grant permission:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при выдаче разрешения' });
+    }
+  });
+
+  // DELETE /api/admin/permissions/:id - Revoke permission
+  app.delete("/api/admin/permissions/:id", requireSuperAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.revokePermission(id);
+      
+      if (!success) {
+        return res.status(404).json({ success: false, message: 'Разрешение не найдено' });
+      }
+
+      res.json({ success: true, message: 'Разрешение успешно отозвано' });
+    } catch (error) {
+      console.error('Failed to revoke permission:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при отзыве разрешения' });
+    }
+  });
+
+  // GET /api/admin/permissions/:adminId/history - Get permission history
+  app.get("/api/admin/permissions/:adminId/history", isAdmin, async (req: any, res) => {
+    try {
+      const { adminId } = req.params;
+      const history = await storage.getPermissionHistory(adminId);
+      
+      res.json({ success: true, data: history });
+    } catch (error) {
+      console.error('Failed to fetch permission history:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при получении истории разрешений' });
+    }
+  });
+
+  // GET /api/admin/security/stats - Get security statistics
+  app.get("/api/admin/security/stats", isAdmin, async (req: any, res) => {
+    try {
+      // Log the view action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        action: 'view_security_dashboard',
+        targetType: 'security_stats',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const stats = await storage.getSecurityStats();
+      res.json({ success: true, data: stats });
+    } catch (error) {
+      console.error('Failed to fetch security stats:', error);
+      res.status(500).json({ success: false, message: 'Ошибка при получении статистики безопасности' });
+    }
+  });
+
+  // ========================================
   // DATA BROKERS MANAGEMENT API ROUTES
   // ========================================
 
