@@ -540,7 +540,7 @@ export interface JsonLdWebPage {
 
 export const SEO_CONSTANTS = {
   SITE_NAME: 'ResCrub',
-  SITE_TAGLINE: 'Защита персональных данных согласно 152-ФЗ',
+  SITE_TAGLINE: 'Защита персональных данных для бизнеса согласно 152фз',
   SITE_DESCRIPTION: 'ResCrub — российская платформа защиты персональных данных. Автоматическое удаление личной информации из баз данных брокеров в соответствии с 152-ФЗ.',
   BASE_URL: 'https://rescrub.ru',
   LOCALE: 'ru_RU',
@@ -556,8 +556,8 @@ export const SEO_CONSTANTS = {
   
   // Core Russian keywords for data protection
   CORE_KEYWORDS: [
-    '152-ФЗ',
-    'защита персональных данных',
+    '152фз что такое',
+    'защита персональных данных для бизнеса',
     'удаление персональных данных',
     'приватность',
     'GDPR России',
