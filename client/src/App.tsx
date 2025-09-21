@@ -38,6 +38,22 @@ import Notifications from "@/pages/Notifications";
 import Monitoring from "@/pages/Monitoring";
 import Subscription from "@/pages/Subscription";
 import InvitePage from "@/pages/InvitePage";
+
+// Business platform imports
+import BusinessLanding from "@/pages/business/BusinessLanding";
+import BusinessConsent from "@/pages/business/BusinessConsent";
+import BusinessAtomization from "@/pages/business/BusinessAtomization";
+import BusinessWhitepaper from "@/pages/business/BusinessWhitepaper";
+import BusinessRoadmap from "@/pages/business/BusinessRoadmap";
+import BusinessPricing from "@/pages/business/BusinessPricing";
+import BusinessAPI from "@/pages/business/BusinessAPI";
+import BusinessIntegrations from "@/pages/business/BusinessIntegrations";
+import BusinessCases from "@/pages/business/BusinessCases";
+import BusinessContact from "@/pages/business/BusinessContact";
+import BusinessLogin from "@/pages/business/BusinessLogin";
+import BusinessRegister from "@/pages/business/BusinessRegister";
+import BusinessMonitoring from "@/pages/business/BusinessMonitoring";
+import BusinessSupport from "@/pages/business/BusinessSupport";
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -68,6 +84,22 @@ function Router() {
       <Route path="/whitepaper" component={Whitepaper} />
       <Route path="/reports" component={Reports} />
       <Route path="/status" component={Status} />
+      
+      {/* Business platform routes */}
+      <Route path="/business/whitepaper" component={BusinessWhitepaper} />
+      <Route path="/business/atomization" component={BusinessAtomization} />
+      <Route path="/business/consent" component={BusinessConsent} />
+      <Route path="/business/monitoring" component={BusinessMonitoring} />
+      <Route path="/business/support" component={BusinessSupport} />
+      <Route path="/business/roadmap" component={BusinessRoadmap} />
+      <Route path="/business/pricing" component={BusinessPricing} />
+      <Route path="/business/api" component={BusinessAPI} />
+      <Route path="/business/integrations" component={BusinessIntegrations} />
+      <Route path="/business/cases" component={BusinessCases} />
+      <Route path="/business/contact" component={BusinessContact} />
+      <Route path="/business/login" component={BusinessLogin} />
+      <Route path="/business/register" component={BusinessRegister} />
+      <Route path="/business" component={BusinessLanding} />
       
       {/* Protected Admin routes */}
       <Route path="/admin">

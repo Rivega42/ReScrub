@@ -545,6 +545,7 @@ export const SEO_CONSTANTS = {
   BASE_URL: 'https://rescrub.ru',
   LOCALE: 'ru_RU',
   TWITTER_HANDLE: '@rescrub_ru',
+  YANDEX_VERIFICATION: typeof process !== 'undefined' && process.env?.YANDEX_VERIFICATION_TOKEN || '',
   
   // Image dimensions for social media
   OG_IMAGE: {
@@ -1278,6 +1279,7 @@ export function buildMetaTags(meta: PageMeta, path: string, baseUrl: string = SE
     // SEO and crawler directives
     { name: 'robots', content: robotsContent },
     { name: 'googlebot', content: robotsContent },
+    { name: 'yandex-verification', content: SEO_CONSTANTS.YANDEX_VERIFICATION },
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { name: 'theme-color', content: '#2563eb' }
   ];
