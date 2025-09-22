@@ -10,17 +10,17 @@ export default function Hero() {
           {/* Cal.com style simple badge */}
           <div className="mb-6 sm:mb-8 inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
             <Shield className="mr-2 h-4 w-4" />
-            Соответствует 152фз
+            Соответствует 152ФЗ
           </div>
           
           {/* Mobile-optimized headline */}
           <h1 className="text-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-foreground">
-            Защита персональных данных для бизнеса по 152фз
+            Защита ваших персональных данных по 152ФЗ
           </h1>
           
           {/* Mobile-optimized subtitle */}
           <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-            ResCrub Business Platform предоставляет комплексные решения для защиты персональных данных компаний и соответствия требованиям 152фз.
+            ResCrub автоматически удаляет ваши персональные данные из интернета и помогает управлять личной информацией в соответствии с требованиями 152ФЗ.
           </p>
           
           {/* Mobile-friendly CTA buttons */}
