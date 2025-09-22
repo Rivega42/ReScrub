@@ -1,7 +1,25 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Moon, 
+  Sun, 
+  Menu, 
+  X, 
+  Building2, 
+  Users, 
+  ChevronDown,
+  ExternalLink
+} from "lucide-react";
 import { useState, useEffect } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
 
 function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -28,6 +46,83 @@ function ThemeToggle() {
     >
       {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </Button>
+  );
+}
+
+function PlatformSwitcher() {
+  const [location] = useLocation();
+  const isBusiness = location.startsWith('/business') || 
+    (typeof window !== 'undefined' && window.location.hostname.startsWith('business.'));
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2 hover-elevate"
+          data-testid="button-platform-switcher"
+        >
+          {isBusiness ? (
+            <>
+              <Building2 className="h-4 w-4" />
+              Business
+            </>
+          ) : (
+            <>
+              <Users className="h-4 w-4" />
+              Classic
+            </>
+          )}
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Выберите платформу</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem asChild>
+          <Link href="/" className="flex items-center gap-2 w-full" data-testid="link-platform-classic">
+            <Users className="h-4 w-4" />
+            <div className="flex flex-col">
+              <span className="font-medium">ResCrub Classic</span>
+              <span className="text-xs text-muted-foreground">
+                Для частных лиц
+              </span>
+            </div>
+            {!isBusiness && <Badge variant="secondary" className="ml-auto text-xs">Текущая</Badge>}
+          </Link>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem asChild>
+          <Link href="/business" className="flex items-center gap-2 w-full" data-testid="link-platform-business">
+            <Building2 className="h-4 w-4" />
+            <div className="flex flex-col">
+              <span className="font-medium">ResCrub Business</span>
+              <span className="text-xs text-muted-foreground">
+                Для компаний и организаций
+              </span>
+            </div>
+            {isBusiness && <Badge variant="secondary" className="ml-auto text-xs">Текущая</Badge>}
+          </Link>
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
+        
+        <DropdownMenuItem asChild>
+          <a 
+            href="https://rescrub.ru" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 w-full"
+            data-testid="link-main-site"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Главный сайт
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -83,6 +178,7 @@ export default function Header() {
 
           {/* Desktop Actions - minimal like Cal.com */}
           <div className="hidden md:flex items-center space-x-2">
+            <PlatformSwitcher />
             <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost" size="sm" data-testid="button-login">
@@ -93,6 +189,7 @@ export default function Header() {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-2">
+            <PlatformSwitcher />
             <ThemeToggle />
             <Button
               variant="ghost"
