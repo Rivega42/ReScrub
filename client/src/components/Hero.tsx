@@ -15,7 +15,7 @@ export default function Hero() {
           
           {/* Mobile-optimized headline */}
           <h1 className="text-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-foreground">
-            Защита ваших персональных данных по 152ФЗ
+            Если ваши данные нельзя найти, вам нельзя навредить
           </h1>
           
           {/* Mobile-optimized subtitle */}
