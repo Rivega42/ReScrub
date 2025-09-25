@@ -44,6 +44,8 @@ export interface EmailData {
   daysRemaining?: number;
   // Email verification fields
   verificationUrl?: string;
+  // Token for email templates
+  token?: string;
 }
 
 export interface SendEmailParams {
@@ -85,7 +87,9 @@ export function renderTemplate(template: EmailTemplate, data: EmailData): EmailT
     renewalUrl: data.renewalUrl || '',
     daysRemaining: data.daysRemaining || 0,
     // Email verification template data
-    verificationUrl: data.verificationUrl || ''
+    verificationUrl: data.verificationUrl || '',
+    // Token template data
+    token: data.token || ''
   };
 
   try {
@@ -142,16 +146,17 @@ class MailganerSMTPClient {
     messageHtml?: string;
     emailFrom?: string;
     nameFrom?: string;
+    replyTo?: string;
     xTrackId?: string;
     customHeaders?: Record<string, string>;
   }): Promise<{ messageId: string; accepted: string[]; rejected: string[] }> {
-    const fromEmail = params.emailFrom ? 
-      `${params.nameFrom || 'ResCrub'} <${params.emailFrom}>` : 
-      DEFAULT_SENDER;
+    // Always use DEFAULT_SENDER for From to fix SPF/DMARC issues
+    const fromEmail = DEFAULT_SENDER;
 
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromEmail,
       to: params.emailTo,
+      replyTo: params.replyTo, // Set Reply-To to preserve contact information
       subject: params.subject,
       text: params.messageText,
       html: params.messageHtml || params.messageText,
@@ -262,14 +267,13 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     const timestamp = Math.floor(Date.now() / 1000);
     const trackingId = `rescrub-${timestamp}-${deletionRequestId || 'standalone'}`;
 
-    // Определяем правильный email отправителя
-    const senderEmail = data.senderEmail.includes('@') ? data.senderEmail : `${data.senderEmail}@${SENDER_DOMAIN}`;
+    // Определяем правильный email для Reply-To
+    const replyToEmail = data.senderEmail.includes('@') ? data.senderEmail : `${data.senderEmail}@${SENDER_DOMAIN}`;
 
     // Send email via Mailganer.ru SMTP
     const response = await mailganerClient.sendEmail({
       emailTo: to,
-      emailFrom: senderEmail,
-      nameFrom: data.senderName,
+      replyTo: replyToEmail, // Set Reply-To for sender contact
       subject: renderedTemplate.subject,
       messageText: renderedTemplate.text, // Plain text version
       messageHtml: renderedTemplate.html, // HTML version
@@ -279,7 +283,8 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
         'X-Deletion-Request-ID': deletionRequestId || '',
         'X-Notification-ID': notificationId || '',
         'X-Category': category,
-        'X-Broker-Name': data.brokerName || ''
+        'X-Broker-Name': data.brokerName || '',
+        'X-Sender-Email': replyToEmail // Track original sender
       }
     });
 
