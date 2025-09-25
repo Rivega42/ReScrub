@@ -17,13 +17,16 @@ import {
   TrendingUp,
   ExternalLink,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  Lightbulb
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO, BlogSEO } from '@/components/SEO';
 import ReactMarkdown from 'react-markdown';
 import { useMemo } from 'react';
+import TableOfContents from '@/components/TableOfContents';
+import KeyInsights, { generateInsightsFromContent } from '@/components/KeyInsights';
 import {
   EnhancedBlogArticle,
   createEnhancedBlogArticle,
@@ -128,6 +131,12 @@ export default function BlogArticle() {
   // Get related articles
   const relatedArticles = internalLinks.slice(0, 4);
   
+  // Generate key insights from article content
+  const keyInsights = useMemo(() => {
+    if (!article) return [];
+    return generateInsightsFromContent(article.content, article.category);
+  }, [article]);
+  
   // Generate Russian SEO signals
   const russianSEO = useMemo(() => {
     if (!article) return null;
@@ -211,29 +220,49 @@ export default function BlogArticle() {
   }
 
   // Enhanced JSON-LD structured data
-  const jsonLd = buildEnhancedArticleJsonLd(enhancedArticle);
+  const jsonLd = enhancedArticle ? buildEnhancedArticleJsonLd(enhancedArticle, `/blog/${article.slug}`) : null;
   
   // Enhanced breadcrumb JSON-LD
-  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
-    { name: 'Главная', url: 'https://rescrub.com' },
-    { name: 'Блог', url: 'https://rescrub.com/blog' },
-    { name: article.title, url: `https://rescrub.com/blog/${article.slug}` }
-  ]);
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Главная",
+        "item": "https://rescrub.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Блог",
+        "item": "https://rescrub.com/blog"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": article.title,
+        "item": `https://rescrub.com/blog/${article.slug}`
+      }
+    ]
+  };
 
   return (
     <>
-      <BlogSEO 
-        article={enhancedArticle}
-        russianSEO={russianSEO}
-        botHints={botHints}
-        breadcrumbJsonLd={breadcrumbJsonLd}
+      <SEO 
+        title={article.title}
+        description={article.description || enhancedArticle.description}
         canonical={`/blog/${article.slug}`}
+        type="article"
+        publishedTime={article.publishedAt}
+        modifiedTime={article.publishedAt}
       />
       
       <div className="min-h-screen bg-background">
         <Header />
         
-        <article className="container mx-auto px-4 py-8" data-testid="article-content">
+        <article className="container mx-auto px-4 py-8 max-w-7xl" data-testid="article-content">
           {/* Navigation */}
           <nav className="mb-8" data-testid="article-navigation">
             <Link href="/blog">
@@ -245,7 +274,7 @@ export default function BlogArticle() {
           </nav>
 
           {/* Article Header */}
-          <header className="mb-8" data-testid="article-header">
+          <header className="mb-12" data-testid="article-header">
             <div className="flex items-center gap-2 mb-4">
               <Badge variant="secondary" data-testid="badge-article-category">{article.category}</Badge>
               {article.featured && (
@@ -253,11 +282,11 @@ export default function BlogArticle() {
               )}
             </div>
             
-            <h1 className="text-4xl font-bold mb-4 leading-tight" data-testid="text-article-title">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent" data-testid="text-article-title">
               {article.title}
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-6 leading-relaxed" data-testid="text-article-description">
+            <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed max-w-4xl" data-testid="text-article-description">
               {article.description}
             </p>
             
@@ -301,10 +330,31 @@ export default function BlogArticle() {
             </div>
           </header>
           
-          <Separator className="mb-8" />
+          <Separator className="mb-12" />
 
-          {/* Article Content */}
-          <div className="max-w-none" data-testid="article-markdown-content">
+          {/* Key Insights */}
+          <div className="mb-12">
+            <KeyInsights 
+              insights={keyInsights}
+              readingTime={article.readingTime}
+              category={article.category}
+            />
+          </div>
+
+          {/* Main Content Area with Sidebar Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
+            {/* Table of Contents Sidebar */}
+            <div className="lg:col-span-1 order-2 lg:order-1">
+              <TableOfContents 
+                content={article.content}
+                readingTime={article.readingTime}
+                className="lg:sticky lg:top-24"
+              />
+            </div>
+
+            {/* Article Content */}
+            <div className="lg:col-span-3 order-1 lg:order-2" data-testid="article-markdown-content">
+              <div className="prose prose-lg max-w-none prose-headings:scroll-mt-24 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-li:leading-relaxed prose-blockquote:border-l-primary prose-blockquote:bg-muted/20 prose-blockquote:not-italic prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-muted prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
             <ReactMarkdown
               components={{
                 h1: ({ children, ...props }) => {
@@ -444,7 +494,9 @@ export default function BlogArticle() {
               }}
             >
               {article.content}
-            </ReactMarkdown>
+                </ReactMarkdown>
+              </div>
+            </div>
           </div>
 
           {/* Related Articles */}
@@ -465,19 +517,19 @@ export default function BlogArticle() {
                         </Badge>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <TrendingUp className="h-3 w-3 mr-1" />
-                          <span>{relatedArticle.views?.toLocaleString() || 0}</span>
+                          <span>Связанная статья</span>
                         </div>
                       </div>
                       <h3 className="font-semibold mb-2 line-clamp-2" data-testid={`text-related-title-${relatedArticle.slug}`}>
                         {relatedArticle.title}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2" data-testid={`text-related-description-${relatedArticle.slug}`}>
-                        {relatedArticle.description}
+                        {relatedArticle.linkAnchor || 'Связанная статья по теме'}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="h-3 w-3 mr-1" />
-                          <span>{relatedArticle.readingTime} мин</span>
+                          <span>Чтение</span>
                         </div>
                         <Link href={`/blog/${relatedArticle.slug}`}>
                           <Button variant="ghost" size="sm" className="group" data-testid={`button-read-related-${relatedArticle.slug}`}>

@@ -91,6 +91,11 @@
   --font-display: 'Cal Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   
+  /* Blog Typography - Incogni style */
+  --heading-line-height: 1.2;
+  --body-line-height: 1.7;
+  --large-text-line-height: 1.5;
+  
   /* Spacing and sizing */
   --radius: 0.375rem;                      /* Smaller radius like Cal.com */
   --spacing: 0.25rem;
@@ -119,6 +124,11 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
+
+  /* Blog Typography - Dark mode adjustments */
+  --heading-line-height: 1.2;
+  --body-line-height: 1.7;
+  --large-text-line-height: 1.5;
 
   /* Dark mode colors */
   --background: 0 0% 9%;                   /* Dark background #171717 */
