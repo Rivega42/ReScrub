@@ -134,6 +134,11 @@ export interface IStorage {
   createDeletionRequest(requestData: InsertDeletionRequest): Promise<DeletionRequest>;
   getUserDeletionRequests(userId: string): Promise<DeletionRequest[]>;
   updateDeletionRequest(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
+
+  // Operator action tokens operations
+  createOperatorActionToken(tokenData: InsertOperatorActionToken): Promise<OperatorActionToken>;
+  getOperatorActionTokenByToken(token: string): Promise<OperatorActionToken | undefined>;
+  markOperatorActionTokenAsUsed(token: string, usedByIp: string, userAgent: string): Promise<OperatorActionToken | undefined>;
   
   // Notifications
   createNotification(notificationData: InsertNotification): Promise<Notification>;
@@ -626,6 +631,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(deletionRequests.id, id))
       .returning();
     return request;
+  }
+
+  // Operator action tokens operations
+  async createOperatorActionToken(tokenData: InsertOperatorActionToken): Promise<OperatorActionToken> {
+    const [token] = await db
+      .insert(operatorActionTokens)
+      .values(tokenData)
+      .returning();
+    return token;
+  }
+
+  async getOperatorActionTokenByToken(token: string): Promise<OperatorActionToken | undefined> {
+    const [tokenRecord] = await db
+      .select()
+      .from(operatorActionTokens)
+      .where(eq(operatorActionTokens.token, token));
+    return tokenRecord;
+  }
+
+  async markOperatorActionTokenAsUsed(token: string, usedByIp: string, userAgent: string): Promise<OperatorActionToken | undefined> {
+    const [tokenRecord] = await db
+      .update(operatorActionTokens)
+      .set({ 
+        usedAt: new Date(),
+        usedByIp,
+        userAgent
+      })
+      .where(eq(operatorActionTokens.token, token))
+      .returning();
+    return tokenRecord;
   }
 
   // Notifications
@@ -6129,6 +6164,19 @@ export class MemStorage implements IStorage {
     }
     
     return account;
+  }
+
+  // Operator action token operations (stub implementations for MemStorage)
+  async createOperatorActionToken(tokenData: InsertOperatorActionToken): Promise<OperatorActionToken> {
+    throw new Error('Operator action tokens are not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getOperatorActionTokenByToken(token: string): Promise<OperatorActionToken | undefined> {
+    throw new Error('Operator action tokens are not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async markOperatorActionTokenAsUsed(token: string, usedByIp: string, userAgent: string): Promise<OperatorActionToken | undefined> {
+    throw new Error('Operator action tokens are not supported in MemStorage. Use DatabaseStorage for production.');
   }
 }
 

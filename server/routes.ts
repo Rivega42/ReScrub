@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { referralCodes } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { sql } from "drizzle-orm";
 import { 
   insertSupportTicketSchema, 
   insertUserAccountSchema, 
@@ -36,6 +37,8 @@ import { BlogGeneratorService } from "./blog-generator";
 import { isValidCategory, SLUG_TO_CATEGORY } from "../shared/categories";
 import fs from 'fs';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
+import { generateConfirmationToken, verifyConfirmationToken } from './auth/tokens';
 
 // Extend Express session types
 declare module 'express-session' {
@@ -73,6 +76,17 @@ async function isAdmin(req: any, res: any, next: any) {
     res.status(500).json({ success: false, message: "Ошибка сервера" });
   }
 }
+
+// Rate limiter for operator confirmation endpoints
+const operatorConfirmLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: {
+    error: 'Слишком много попыток подтверждения. Попробуйте позже.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Super admin authentication middleware (for sensitive operations)
 async function requireSuperAdmin(req: any, res: any, next: any) {
@@ -2611,7 +2625,11 @@ ${allPages.map(page => `  <url>
             newEndDate.setMonth(newEndDate.getMonth() + (months || 1));
             result = await storage.updateSubscription(subForFree.id, {
               currentPeriodEnd: newEndDate,
-              metadata: { ...subForFree.metadata, freeMonthsAdded: months, reason }
+              metadata: { 
+                ...(subForFree.metadata && typeof subForFree.metadata === 'object' ? subForFree.metadata : {}), 
+                freeMonthsAdded: months, 
+                reason 
+              }
             });
           }
           break;
@@ -2703,9 +2721,9 @@ ${allPages.map(page => `  <url>
 
       // Send email (if email service is configured)
       try {
-        await sendEmail({
-          to: account.email,
+        const passwordResetTemplate: EmailTemplate = {
           subject: 'Сброс пароля - ReScrub',
+          text: `Сброс пароля\n\nАдминистратор инициировал сброс вашего пароля.\n\nИспользуйте эту ссылку для установки нового пароля:\n${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}\n\nСсылка действительна в течение 1 часа.`,
           html: `
             <h2>Сброс пароля</h2>
             <p>Администратор инициировал сброс вашего пароля.</p>
@@ -2715,6 +2733,16 @@ ${allPages.map(page => `  <url>
             </a>
             <p>Ссылка действительна в течение 1 часа.</p>
           `
+        };
+        await sendEmail({
+          to: account.email,
+          template: passwordResetTemplate,
+          data: {
+            senderName: 'ResCrub Admin',
+            senderEmail: 'admin@rescrub.ru'
+          },
+          userId: account.id,
+          category: 'password_reset'
         });
       } catch (emailError) {
         console.error('Error sending reset email:', emailError);
@@ -2767,10 +2795,20 @@ ${allPages.map(page => `  <url>
         const account = await storage.getUserAccountById(userId);
         if (account) {
           try {
+            const notificationTemplate: EmailTemplate = {
+              subject: title,
+              text: `${title}\n\n${message}`,
+              html: `<h2>${title}</h2><p>${message}</p>`
+            };
             await sendEmail({
               to: account.email,
-              subject: title,
-              html: `<h2>${title}</h2><p>${message}</p>`
+              template: notificationTemplate,
+              data: {
+                senderName: 'ResCrub Admin',
+                senderEmail: 'admin@rescrub.ru'
+              },
+              userId: account.id,
+              category: 'admin_notification'
             });
             await storage.updateNotification(notification.id, {
               sent: true,
@@ -2930,6 +2968,13 @@ ${allPages.map(page => `  <url>
           adminRole: 'superadmin'
         });
 
+        if (!updatedUser) {
+          return res.status(500).json({
+            success: false,
+            message: 'Не удалось обновить пользователя'
+          });
+        }
+
         // SECURITY: Return only safe fields to prevent data leakage
         res.json({
           success: true,
@@ -3075,7 +3120,7 @@ ${allPages.map(page => `  <url>
   app.delete("/api/admin/permissions/:id", requireSuperAdmin, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const success = await storage.revokePermission(id);
+      const success = await storage.revokeAdminPermission(id);
       
       if (!success) {
         return res.status(404).json({ success: false, message: 'Разрешение не найдено' });
@@ -3434,8 +3479,7 @@ ${allPages.map(page => `  <url>
       const { id } = req.params;
       
       const updatedBroker = await storage.updateDataBroker(id, {
-        lastVerifiedAt: new Date(),
-        verifiedBy: req.adminUser.id
+        updatedAt: new Date()
       });
       
       // Log admin action
@@ -4417,7 +4461,7 @@ ${allPages.map(page => `  <url>
           title: savedArticle.title,
           slug: savedArticle.slug,
           seoDescription: savedArticle.seoDescription,
-          published: savedArticle.published,
+          publishedAt: savedArticle.publishedAt,
           createdAt: savedArticle.createdAt
         });
         
@@ -4455,7 +4499,7 @@ ${allPages.map(page => `  <url>
             wordCount: generatedArticle.content.split(/\s+/).length,
             readingTime: savedArticle.readingTime,
             featured: savedArticle.featured,
-            published: savedArticle.published,
+            publishedAt: savedArticle.publishedAt,
             createdAt: savedArticle.createdAt
           },
           performance: {
@@ -5247,6 +5291,340 @@ ${allPages.map(page => `  <url>
     } catch (error) {
       console.error('Manual health check error:', error);
       res.status(500).json({ success: false, message: 'Ошибка проверки сервиса' });
+    }
+  });
+
+  // ========================================
+  // OPERATOR CONFIRMATION ENDPOINTS
+  // ========================================
+
+  // GET /operator/confirm - Shows confirmation page (protects against bot prefetch)
+  app.get('/operator/confirm', operatorConfirmLimiter, async (req: any, res) => {
+    try {
+      // Add security headers
+      res.setHeader('X-Robots-Tag', 'noindex');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Ошибка подтверждения - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h1>Ошибка подтверждения</h1>
+            <p class="error">Отсутствует токен подтверждения.</p>
+            <p>Пожалуйста, воспользуйтесь ссылкой из электронного письма.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      // Verify token validity
+      const decodedToken = verifyConfirmationToken(token);
+      if (!decodedToken) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Недействительный токен - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h1>Недействительный токен</h1>
+            <p class="error">Токен подтверждения недействителен или истёк.</p>
+            <p>Срок действия токена: 30 дней с момента отправки запроса.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      // Check if token already used
+      const tokenRecord = await storage.getOperatorActionTokenByToken(token);
+      if (!tokenRecord) {
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Токен не найден - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h1>Токен не найден</h1>
+            <p class="error">Указанный токен не существует в системе.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      if (tokenRecord.usedAt) {
+        return res.status(410).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Токен уже использован - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .warning { color: #856404; background: #fff3cd; padding: 15px; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <h1>Токен уже использован</h1>
+            <div class="warning">
+              <p>Данный токен подтверждения уже был использован ${tokenRecord.usedAt.toLocaleString('ru-RU')}.</p>
+              <p>Каждый токен можно использовать только один раз.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
+      // Show confirmation page
+      const deletionRequest = await storage.updateDeletionRequest(decodedToken.deletionRequestId, {});
+      
+      res.send(`
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="robots" content="noindex,nofollow">
+          <title>Подтверждение удаления данных - ReScruB</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+            .form-container { background: #f8f9fa; padding: 30px; border-radius: 10px; border: 1px solid #e9ecef; }
+            .btn { background: #28a745; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 20px; }
+            .btn:hover { background: #218838; }
+            .info { background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 20px; color: #0c5460; }
+            h1 { color: #495057; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="form-container">
+            <h1>Подтверждение удаления персональных данных</h1>
+            <div class="info">
+              <p><strong>Запрос ID:</strong> ${decodedToken.deletionRequestId}</p>
+              <p><strong>Тип операции:</strong> Подтверждение удаления данных</p>
+            </div>
+            <p>Нажимая кнопку ниже, Вы подтверждаете, что персональные данные субъекта были удалены из всех ваших информационных систем в соответствии с требованиями ФЗ-152 "О персональных данных".</p>
+            <form method="POST" action="/operator/confirm">
+              <input type="hidden" name="token" value="${token}">
+              <button type="submit" class="btn">✓ ПОДТВЕРДИТЬ УДАЛЕНИЕ ДАННЫХ</button>
+            </form>
+          </div>
+        </body>
+        </html>
+      `);
+      
+    } catch (error) {
+      console.error('GET operator/confirm error:', error);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="robots" content="noindex,nofollow">
+          <title>Ошибка сервера - ReScruB</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+            .error { color: #dc3545; }
+          </style>
+        </head>
+        <body>
+          <h1>Ошибка сервера</h1>
+          <p class="error">Произошла ошибка при обработке запроса. Попробуйте позже.</p>
+        </body>
+        </html>
+      `);
+    }
+  });
+
+  // POST /operator/confirm - Process confirmation (one-time use)
+  app.post('/operator/confirm', operatorConfirmLimiter, express.urlencoded({ extended: true }), async (req: any, res) => {
+    try {
+      // Add security headers
+      res.setHeader('X-Robots-Tag', 'noindex');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      
+      const { token } = req.body;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Ошибка - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h1>Ошибка подтверждения</h1>
+            <p class="error">Отсутствует токен подтверждения.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      // Verify token
+      const decodedToken = verifyConfirmationToken(token);
+      if (!decodedToken) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Недействительный токен - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h1>Недействительный токен</h1>
+            <p class="error">Токен подтверждения недействителен или истёк.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      // Check if token exists and not used
+      const tokenRecord = await storage.getOperatorActionTokenByToken(token);
+      if (!tokenRecord) {
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Токен не найден - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .error { color: #dc3545; }
+            </style>
+          </head>
+          <body>
+            <h1>Токен не найден</h1>
+            <p class="error">Указанный токен не существует в системе.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      if (tokenRecord.usedAt) {
+        return res.status(410).send(`
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="robots" content="noindex,nofollow">
+            <title>Токен уже использован - ReScruB</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+              .warning { color: #856404; background: #fff3cd; padding: 15px; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <h1>Токен уже использован</h1>
+            <div class="warning">
+              <p>Данный токен подтверждения уже был использован.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
+      // Mark token as used and update deletion request status
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      
+      await storage.markOperatorActionTokenAsUsed(token, clientIp, userAgent);
+      await storage.updateDeletionRequest(decodedToken.deletionRequestId, {
+        status: 'operator_confirmed'
+      });
+
+      // Success page
+      res.send(`
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Подтверждение принято - ReScruB</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+            .success { color: #155724; background: #d4edda; padding: 20px; border-radius: 5px; border: 1px solid #c3e6cb; }
+            .info { color: #0c5460; background: #d1ecf1; padding: 15px; border-radius: 5px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="success">
+            <h1>✓ Подтверждение принято</h1>
+            <p>Спасибо! Ваше подтверждение об удалении персональных данных получено и обработано.</p>
+          </div>
+          <div class="info">
+            <p><strong>Дата подтверждения:</strong> ${new Date().toLocaleString('ru-RU')}</p>
+            <p><strong>Запрос ID:</strong> ${decodedToken.deletionRequestId}</p>
+            <p>Информация сохранена в системе учёта для соблюдения требований ФЗ-152.</p>
+          </div>
+        </body>
+        </html>
+      `);
+      
+    } catch (error) {
+      console.error('POST operator/confirm error:', error);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="robots" content="noindex,nofollow">
+          <title>Ошибка сервера - ReScruB</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+            .error { color: #dc3545; }
+          </style>
+        </head>
+        <body>
+          <h1>Ошибка сервера</h1>
+          <p class="error">Произошла ошибка при обработке подтверждения. Попробуйте позже.</p>
+        </body>
+        </html>
+      `);
     }
   });
 

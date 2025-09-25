@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { generateConfirmationToken } from './auth/tokens';
 import crypto from 'crypto';
 import Handlebars from 'handlebars';
 import nodemailer from 'nodemailer';
@@ -409,11 +410,42 @@ export async function sendBulkDeletionRequests(
   const results = [];
 
   for (const broker of brokerEmails) {
+    // Generate HMAC token for operator confirmation if deletionRequestId exists
+    let token: string | undefined;
+    if (broker.deletionRequestId) {
+      try {
+        // Token expires in 30 days
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        
+        // Generate HMAC token
+        token = generateConfirmationToken(
+          broker.deletionRequestId,
+          'confirm_deletion',
+          expiresAt
+        );
+        
+        // Save token to database
+        await storage.createOperatorActionToken({
+          deletionRequestId: broker.deletionRequestId,
+          token,
+          type: 'confirm_deletion',
+          expiresAt
+        });
+        
+        console.log(`✅ Generated confirmation token for deletion request ${broker.deletionRequestId}`);
+      } catch (tokenError) {
+        console.error('Failed to generate confirmation token:', tokenError);
+        // Continue without token - email will be sent without confirmation button
+      }
+    }
+
     const emailData: EmailData = {
       ...userData,
       brokerName: broker.brokerName,
       brokerUrl: broker.brokerUrl,
-      recipientCompany: broker.brokerName
+      recipientCompany: broker.brokerName,
+      token // Add token to email data
     };
 
     const result = await sendEmail({
