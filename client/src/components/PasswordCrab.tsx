@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.png';
+import crabImage from '@assets/generated_images/Red_pixel_crab_sweeping_documents_b0d5ab08.webp';
 
 interface PasswordCrabProps {
   isPasswordFocused: boolean;
@@ -98,6 +98,10 @@ export function PasswordCrab({ isPasswordFocused, passwordLength, passwordStreng
             <img 
               src={crabImage} 
               alt="Красный краб следит за безопасностью пароля" 
+              width={64}
+              height={64}
+              loading="lazy"
+              decoding="async"
               className={`w-16 h-16 object-contain transition-all duration-300 ${getCrabColor()}`}
             />
             

@@ -14,7 +14,7 @@ import { z } from "zod";
 import { useAuth } from '@/lib/authContext';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
-import heroShieldImage from '@assets/generated_images/ResCrub_hero_shield_illustration_17021890.png';
+import heroShieldImage from '@assets/generated_images/ResCrub_hero_shield_illustration_17021890.webp';
 
 type FormMode = 'login' | 'register' | 'recovery' | 'check-email';
 
@@ -308,6 +308,10 @@ export default function Login() {
           <img 
             src={heroShieldImage} 
             alt="Защита персональных данных" 
+            width={1408}
+            height={768}
+            fetchPriority="high"
+            decoding="async"
             className="w-full max-w-lg h-auto object-contain filter drop-shadow-lg opacity-80"
           />
         </div>
