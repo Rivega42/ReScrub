@@ -29,6 +29,13 @@ import {
   emailServiceStatus,
   emailTemplates,
   emailTemplateVersions,
+  // САЗПД modules tables - temporarily disabled
+  // campaigns,
+  // decisionRules,
+  // evidenceEvents,
+  // evidenceDailySeals,
+  // legalNorms,
+  // operatorProfiles,
   type User,
   type UpsertUser,
   type InsertSupportTicket,
@@ -87,6 +94,19 @@ import {
   type InsertEmailTemplate,
   type EmailTemplateVersion,
   type InsertEmailTemplateVersion,
+  // САЗПД modules types - temporarily disabled
+  // type Campaign,
+  // type InsertCampaign,
+  // type DecisionRule,
+  // type InsertDecisionRule,
+  // type EvidenceEvent,
+  // type InsertEvidenceEvent,
+  // type EvidenceDailySeal,
+  // type InsertEvidenceDailySeal,
+  // type LegalNorm,
+  // type InsertLegalNorm,
+  // type OperatorProfile,
+  // type InsertOperatorProfile,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, like, isNull, ne } from "drizzle-orm";
@@ -418,6 +438,58 @@ export interface IStorage {
   // Enhanced Query Methods for automation
   getDeletionRequestsRequiringFollowUp(): Promise<DeletionRequest[]>;
   getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]>;
+
+  // ========================================
+  // САЗПД MODULES METHODS - TEMPORARILY DISABLED
+  // ========================================
+  /* TEMPORARILY DISABLED - САЗПД methods causing compilation issues
+  // Campaign operations
+  createCampaign(campaignData: InsertCampaign): Promise<Campaign>;
+  getCampaignById(id: string): Promise<Campaign | undefined>;
+  getUserCampaigns(userId: string): Promise<Campaign[]>;
+  getAllCampaigns(filters?: { status?: string; targetType?: string; priority?: string }): Promise<Campaign[]>;
+  updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign | undefined>;
+  deleteCampaign(id: string): Promise<boolean>;
+  updateCampaignMetrics(id: string, metrics: { requested?: number; succeeded?: number; failed?: number }): Promise<Campaign | undefined>;
+
+  // Decision rules operations
+  createDecisionRule(ruleData: InsertDecisionRule): Promise<DecisionRule>;
+  getDecisionRuleById(id: string): Promise<DecisionRule | undefined>;
+  getDecisionRulesByState(state: string): Promise<DecisionRule[]>;
+  getActiveDecisionRules(): Promise<DecisionRule[]>;
+  updateDecisionRule(id: string, updates: Partial<DecisionRule>): Promise<DecisionRule | undefined>;
+  deactivateDecisionRule(id: string): Promise<DecisionRule | undefined>;
+
+  // Evidence events operations
+  createEvidenceEvent(eventData: InsertEvidenceEvent): Promise<EvidenceEvent>;
+  getEvidenceEventById(id: string): Promise<EvidenceEvent | undefined>;
+  getEvidenceEventsByCampaign(campaignId: string): Promise<EvidenceEvent[]>;
+  getEvidenceEventsByRequest(requestId: string): Promise<EvidenceEvent[]>;
+  getEvidenceEventsByType(type: string, campaignId?: string): Promise<EvidenceEvent[]>;
+  getEvidenceEventsForSeal(date: Date): Promise<EvidenceEvent[]>;
+
+  // Evidence daily seals operations
+  createEvidenceDailySeal(sealData: InsertEvidenceDailySeal): Promise<EvidenceDailySeal>;
+  getEvidenceDailySealById(id: string): Promise<EvidenceDailySeal | undefined>;
+  getEvidenceDailySealByDate(date: Date): Promise<EvidenceDailySeal | undefined>;
+  getEvidenceDailySeals(filters?: { fromDate?: Date; toDate?: Date }): Promise<EvidenceDailySeal[]>;
+
+  // Legal norms operations
+  createLegalNorm(normData: InsertLegalNorm): Promise<LegalNorm>;
+  getLegalNormById(id: string): Promise<LegalNorm | undefined>;
+  getLegalNormByCode(code: string): Promise<LegalNorm | undefined>;
+  getActiveLegalNorms(): Promise<LegalNorm[]>;
+  updateLegalNorm(id: string, updates: Partial<LegalNorm>): Promise<LegalNorm | undefined>;
+  deactivateLegalNorm(id: string): Promise<LegalNorm | undefined>;
+
+  // Operator profiles operations
+  createOperatorProfile(profileData: InsertOperatorProfile): Promise<OperatorProfile>;
+  getOperatorProfileById(id: string): Promise<OperatorProfile | undefined>;
+  getOperatorProfileByName(operatorName: string): Promise<OperatorProfile | undefined>;
+  getAllOperatorProfiles(): Promise<OperatorProfile[]>;
+  updateOperatorProfile(id: string, updates: Partial<OperatorProfile>): Promise<OperatorProfile | undefined>;
+  deleteOperatorProfile(id: string): Promise<boolean>;
+  */
 }
 
 export class DatabaseStorage implements IStorage {
@@ -684,36 +756,7 @@ export class DatabaseStorage implements IStorage {
       // Улучшенная логика: ищем запросы БЕЗ значимых ответов операторов
       // Игнорируем auto-replies, bounces и неклассифицированные сообщения
       query = db
-        .select({
-          id: deletionRequests.id,
-          userId: deletionRequests.userId,
-          scanId: deletionRequests.scanId,
-          brokerName: deletionRequests.brokerName,
-          requestType: deletionRequests.requestType,
-          status: deletionRequests.status,
-          requestMethod: deletionRequests.requestMethod,
-          requestDetails: deletionRequests.requestDetails,
-          sentAt: deletionRequests.sentAt,
-          responseReceived: deletionRequests.responseReceived,
-          responseDetails: deletionRequests.responseDetails,
-          completedAt: deletionRequests.completedAt,
-          followUpRequired: deletionRequests.followUpRequired,
-          followUpDate: deletionRequests.followUpDate,
-          trackingId: deletionRequests.trackingId,
-          operatorEmail: deletionRequests.operatorEmail,
-          firstSentAt: deletionRequests.firstSentAt,
-          followUpSentAt: deletionRequests.followUpSentAt,
-          responseDeadlineAt: deletionRequests.responseDeadlineAt,
-          followUpDueAt: deletionRequests.followUpDueAt,
-          escalateDueAt: deletionRequests.escalateDueAt,
-          buttonConfirmedAt: deletionRequests.buttonConfirmedAt,
-          lastInboundAt: deletionRequests.lastInboundAt,
-          escalationSentAt: deletionRequests.escalationSentAt,
-          initialMessageId: deletionRequests.initialMessageId,
-          followUpMessageId: deletionRequests.followUpMessageId,
-          createdAt: deletionRequests.createdAt,
-          updatedAt: deletionRequests.updatedAt,
-        })
+        .select()
         .from(deletionRequests)
         .leftJoin(
           inboundEmails, 
@@ -1939,7 +1982,7 @@ export class DatabaseStorage implements IStorage {
   async getUsersCount(search?: string, role?: string): Promise<number> {
     try {
       let query = db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(userAccounts);
       
       const conditions = [];
@@ -1965,7 +2008,7 @@ export class DatabaseStorage implements IStorage {
   async getVerifiedUsersCount(): Promise<number> {
     try {
       const [result] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(userAccounts)
         .where(eq(userAccounts.emailVerified, true));
       return result?.count || 0;
@@ -1978,7 +2021,7 @@ export class DatabaseStorage implements IStorage {
   async getAdminsCount(): Promise<number> {
     try {
       const [result] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(userAccounts)
         .where(eq(userAccounts.isAdmin, true));
       return result?.count || 0;
@@ -1994,7 +2037,7 @@ export class DatabaseStorage implements IStorage {
       dateFrom.setDate(dateFrom.getDate() - days);
       
       const [result] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(userAccounts)
         .where(sql`${userAccounts.createdAt} >= ${dateFrom}`);
       return result?.count || 0;
@@ -2007,7 +2050,7 @@ export class DatabaseStorage implements IStorage {
   async getBlogArticlesCount(status?: string, search?: string): Promise<number> {
     try {
       let query = db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(blogArticles);
       
       const conditions = [];
@@ -2033,7 +2076,7 @@ export class DatabaseStorage implements IStorage {
   async getPublishedBlogArticlesCount(): Promise<number> {
     try {
       const [result] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(blogArticles)
         .where(eq(blogArticles.status, 'published'));
       return result?.count || 0;
@@ -2339,7 +2382,7 @@ export class DatabaseStorage implements IStorage {
   async revokeAdminPermission(id: string): Promise<boolean> {
     const [revoked] = await db
       .update(adminPermissions)
-      .set({ isActive: false, updatedAt: new Date() })
+      .set({ isActive: false })
       .where(eq(adminPermissions.id, id))
       .returning();
     return !!revoked;
@@ -2348,10 +2391,19 @@ export class DatabaseStorage implements IStorage {
   async updateAdminPermission(id: string, updates: Partial<AdminPermission>): Promise<AdminPermission | undefined> {
     const [updated] = await db
       .update(adminPermissions)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updates })
       .where(eq(adminPermissions.id, id))
       .returning();
     return updated;
+  }
+
+  async revokePermission(permissionId: string): Promise<boolean> {
+    const [revoked] = await db
+      .update(adminPermissions)
+      .set({ isActive: false })
+      .where(eq(adminPermissions.id, permissionId))
+      .returning();
+    return !!revoked;
   }
 
   // Admin actions logging placeholder methods
@@ -2503,9 +2555,9 @@ export class DatabaseStorage implements IStorage {
         log.targetType || '',
         log.targetId || '',
         log.ipAddress,
-        log.userAgent.replace(/,/g, ';'), // Replace commas in user agent
+        (log.userAgent || '').replace(/,/g, ';'), // Replace commas in user agent
         log.sessionId || '',
-        log.createdAt.toISOString(),
+        (log.createdAt || new Date()).toISOString(),
         JSON.stringify(log.metadata || {}).replace(/,/g, ';') // Replace commas in JSON
       ];
       csvRows.push(row.map(field => `"${field}"`).join(','));
@@ -2522,7 +2574,7 @@ export class DatabaseStorage implements IStorage {
     
     // Log the permission grant
     await this.logAdminAction({
-      adminId: permission.grantedBy,
+      adminId: permission.grantedBy || 'system',
       action: 'grant_permission',
       targetType: 'admin_permission',
       targetId: permission.adminId,
@@ -2724,7 +2776,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(systemHealthChecks)
       .where(eq(systemHealthChecks.serviceName, serviceName))
-      .orderBy(desc(systemHealthChecks.checkedAt))
+      .orderBy(desc(systemHealthChecks.lastCheckAt))
       .limit(1);
     return health;
   }
@@ -2734,7 +2786,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(systemHealthChecks)
       .where(eq(systemHealthChecks.serviceName, serviceName))
-      .orderBy(desc(systemHealthChecks.checkedAt))
+      .orderBy(desc(systemHealthChecks.lastCheckAt))
       .limit(limit);
   }
 
@@ -2785,7 +2837,7 @@ export class DatabaseStorage implements IStorage {
     const [status] = await db
       .select()
       .from(emailServiceStatus)
-      .where(eq(emailServiceStatus.serviceName, serviceName));
+      .where(eq(emailServiceStatus.provider, serviceName));
     return status;
   }
 
@@ -2793,7 +2845,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(emailServiceStatus)
-      .orderBy(desc(emailServiceStatus.lastSuccessAt));
+      .orderBy(desc(emailServiceStatus.deliveredAt));
   }
   
   async getEmailDeliveryStats(startDate: Date, endDate: Date): Promise<{
@@ -2870,7 +2922,7 @@ export class DatabaseStorage implements IStorage {
       .from(emailTemplateVersions)
       .where(and(
         eq(emailTemplateVersions.templateId, templateId),
-        eq(emailTemplateVersions.isActive, true)
+        eq(emailTemplateVersions.isPublished, true)
       ));
     return version;
   }
@@ -2879,7 +2931,7 @@ export class DatabaseStorage implements IStorage {
     // Deactivate all other versions
     await db
       .update(emailTemplateVersions)
-      .set({ isActive: false })
+      .set({ isPublished: false })
       .where(eq(emailTemplateVersions.templateId, 
         sql`(SELECT template_id FROM ${emailTemplateVersions} WHERE id = ${id})`
       ));
@@ -2888,10 +2940,9 @@ export class DatabaseStorage implements IStorage {
     const [published] = await db
       .update(emailTemplateVersions)
       .set({ 
-        isActive: true,
+        isPublished: true,
         publishedAt: new Date(),
-        publishedBy,
-        updatedAt: new Date()
+        publishedBy
       })
       .where(eq(emailTemplateVersions.id, id))
       .returning();
@@ -3114,7 +3165,7 @@ export class DatabaseStorage implements IStorage {
       
       // Count total results
       const countQuery = db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)`.as('count') })
         .from(userAccounts)
         .leftJoin(userProfiles, eq(userAccounts.id, userProfiles.userId));
       
@@ -3492,6 +3543,331 @@ export class DatabaseStorage implements IStorage {
       )
       .orderBy(deletionRequests.escalateDueAt);
   }
+
+  // ========================================
+  // САЗПД MODULES IMPLEMENTATIONS - TEMPORARILY DISABLED
+  // ========================================
+  /* TEMPORARILY DISABLED - САЗПД implementations causing compilation issues
+  
+  // Campaign operations
+  async createCampaign(campaignData: InsertCampaign): Promise<Campaign> {
+    const [campaign] = await db
+      .insert(campaigns)
+      .values(campaignData)
+      .returning();
+    return campaign;
+  }
+
+  async getCampaignById(id: string): Promise<Campaign | undefined> {
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id));
+    return campaign;
+  }
+
+  async getUserCampaigns(userId: string): Promise<Campaign[]> {
+    return await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.userId, userId))
+      .orderBy(desc(campaigns.createdAt));
+  }
+
+  async getAllCampaigns(filters?: { status?: string; targetType?: string; priority?: string }): Promise<Campaign[]> {
+    let query = db.select().from(campaigns);
+    
+    if (filters?.status) {
+      query = query.where(eq(campaigns.status, filters.status));
+    }
+    if (filters?.targetType) {
+      query = query.where(eq(campaigns.targetType, filters.targetType));
+    }
+    if (filters?.priority) {
+      query = query.where(eq(campaigns.priority, filters.priority));
+    }
+    
+    return await query.orderBy(desc(campaigns.createdAt));
+  }
+
+  async updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign | undefined> {
+    const [campaign] = await db
+      .update(campaigns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(campaigns.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async deleteCampaign(id: string): Promise<boolean> {
+    const result = await db
+      .delete(campaigns)
+      .where(eq(campaigns.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateCampaignMetrics(id: string, metrics: { requested?: number; succeeded?: number; failed?: number }): Promise<Campaign | undefined> {
+    const [campaign] = await db
+      .update(campaigns)
+      .set({ 
+        metrics: sql`jsonb_set(jsonb_set(jsonb_set(${campaigns.metrics}, '{requested}', '${metrics.requested || 0}'), '{succeeded}', '${metrics.succeeded || 0}'), '{failed}', '${metrics.failed || 0}')`,
+        updatedAt: new Date() 
+      })
+      .where(eq(campaigns.id, id))
+      .returning();
+    return campaign;
+  }
+
+  // Decision rules operations
+  async createDecisionRule(ruleData: InsertDecisionRule): Promise<DecisionRule> {
+    const [rule] = await db
+      .insert(decisionRules)
+      .values(ruleData)
+      .returning();
+    return rule;
+  }
+
+  async getDecisionRuleById(id: string): Promise<DecisionRule | undefined> {
+    const [rule] = await db
+      .select()
+      .from(decisionRules)
+      .where(eq(decisionRules.id, id));
+    return rule;
+  }
+
+  async getDecisionRulesByState(state: string): Promise<DecisionRule[]> {
+    return await db
+      .select()
+      .from(decisionRules)
+      .where(and(eq(decisionRules.state, state), eq(decisionRules.isActive, true)))
+      .orderBy(decisionRules.createdAt);
+  }
+
+  async getActiveDecisionRules(): Promise<DecisionRule[]> {
+    return await db
+      .select()
+      .from(decisionRules)
+      .where(eq(decisionRules.isActive, true))
+      .orderBy(decisionRules.state, decisionRules.createdAt);
+  }
+
+  async updateDecisionRule(id: string, updates: Partial<DecisionRule>): Promise<DecisionRule | undefined> {
+    const [rule] = await db
+      .update(decisionRules)
+      .set(updates)
+      .where(eq(decisionRules.id, id))
+      .returning();
+    return rule;
+  }
+
+  async deactivateDecisionRule(id: string): Promise<DecisionRule | undefined> {
+    const [rule] = await db
+      .update(decisionRules)
+      .set({ isActive: false })
+      .where(eq(decisionRules.id, id))
+      .returning();
+    return rule;
+  }
+
+  // Evidence events operations
+  async createEvidenceEvent(eventData: InsertEvidenceEvent): Promise<EvidenceEvent> {
+    const [event] = await db
+      .insert(evidenceEvents)
+      .values(eventData)
+      .returning();
+    return event;
+  }
+
+  async getEvidenceEventById(id: string): Promise<EvidenceEvent | undefined> {
+    const [event] = await db
+      .select()
+      .from(evidenceEvents)
+      .where(eq(evidenceEvents.id, id));
+    return event;
+  }
+
+  async getEvidenceEventsByCampaign(campaignId: string): Promise<EvidenceEvent[]> {
+    return await db
+      .select()
+      .from(evidenceEvents)
+      .where(eq(evidenceEvents.campaignId, campaignId))
+      .orderBy(evidenceEvents.createdAt);
+  }
+
+  async getEvidenceEventsByRequest(requestId: string): Promise<EvidenceEvent[]> {
+    return await db
+      .select()
+      .from(evidenceEvents)
+      .where(eq(evidenceEvents.requestId, requestId))
+      .orderBy(evidenceEvents.createdAt);
+  }
+
+  async getEvidenceEventsByType(type: string, campaignId?: string): Promise<EvidenceEvent[]> {
+    let query = db.select().from(evidenceEvents).where(eq(evidenceEvents.type, type));
+    
+    if (campaignId) {
+      query = query.where(eq(evidenceEvents.campaignId, campaignId));
+    }
+    
+    return await query.orderBy(evidenceEvents.createdAt);
+  }
+
+  async getEvidenceEventsForSeal(date: Date): Promise<EvidenceEvent[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return await db
+      .select()
+      .from(evidenceEvents)
+      .where(
+        and(
+          sql`${evidenceEvents.createdAt} >= ${startOfDay}`,
+          sql`${evidenceEvents.createdAt} <= ${endOfDay}`
+        )
+      )
+      .orderBy(evidenceEvents.createdAt);
+  }
+
+  // Evidence daily seals operations
+  async createEvidenceDailySeal(sealData: InsertEvidenceDailySeal): Promise<EvidenceDailySeal> {
+    const [seal] = await db
+      .insert(evidenceDailySeals)
+      .values(sealData)
+      .returning();
+    return seal;
+  }
+
+  async getEvidenceDailySealById(id: string): Promise<EvidenceDailySeal | undefined> {
+    const [seal] = await db
+      .select()
+      .from(evidenceDailySeals)
+      .where(eq(evidenceDailySeals.id, id));
+    return seal;
+  }
+
+  async getEvidenceDailySealByDate(date: Date): Promise<EvidenceDailySeal | undefined> {
+    const [seal] = await db
+      .select()
+      .from(evidenceDailySeals)
+      .where(eq(evidenceDailySeals.date, date));
+    return seal;
+  }
+
+  async getEvidenceDailySeals(filters?: { fromDate?: Date; toDate?: Date }): Promise<EvidenceDailySeal[]> {
+    let query = db.select().from(evidenceDailySeals);
+    
+    if (filters?.fromDate) {
+      query = query.where(sql`${evidenceDailySeals.date} >= ${filters.fromDate}`);
+    }
+    if (filters?.toDate) {
+      query = query.where(sql`${evidenceDailySeals.date} <= ${filters.toDate}`);
+    }
+    
+    return await query.orderBy(desc(evidenceDailySeals.date));
+  }
+
+  // Legal norms operations
+  async createLegalNorm(normData: InsertLegalNorm): Promise<LegalNorm> {
+    const [norm] = await db
+      .insert(legalNorms)
+      .values(normData)
+      .returning();
+    return norm;
+  }
+
+  async getLegalNormById(id: string): Promise<LegalNorm | undefined> {
+    const [norm] = await db
+      .select()
+      .from(legalNorms)
+      .where(eq(legalNorms.id, id));
+    return norm;
+  }
+
+  async getLegalNormByCode(code: string): Promise<LegalNorm | undefined> {
+    const [norm] = await db
+      .select()
+      .from(legalNorms)
+      .where(eq(legalNorms.code, code));
+    return norm;
+  }
+
+  async getActiveLegalNorms(): Promise<LegalNorm[]> {
+    return await db
+      .select()
+      .from(legalNorms)
+      .where(eq(legalNorms.isActive, true))
+      .orderBy(legalNorms.code);
+  }
+
+  async updateLegalNorm(id: string, updates: Partial<LegalNorm>): Promise<LegalNorm | undefined> {
+    const [norm] = await db
+      .update(legalNorms)
+      .set(updates)
+      .where(eq(legalNorms.id, id))
+      .returning();
+    return norm;
+  }
+
+  async deactivateLegalNorm(id: string): Promise<LegalNorm | undefined> {
+    const [norm] = await db
+      .update(legalNorms)
+      .set({ isActive: false })
+      .where(eq(legalNorms.id, id))
+      .returning();
+    return norm;
+  }
+
+  // Operator profiles operations
+  async createOperatorProfile(profileData: InsertOperatorProfile): Promise<OperatorProfile> {
+    const [profile] = await db
+      .insert(operatorProfiles)
+      .values(profileData)
+      .returning();
+    return profile;
+  }
+
+  async getOperatorProfileById(id: string): Promise<OperatorProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(operatorProfiles)
+      .where(eq(operatorProfiles.id, id));
+    return profile;
+  }
+
+  async getOperatorProfileByName(operatorName: string): Promise<OperatorProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(operatorProfiles)
+      .where(eq(operatorProfiles.operatorName, operatorName));
+    return profile;
+  }
+
+  async getAllOperatorProfiles(): Promise<OperatorProfile[]> {
+    return await db
+      .select()
+      .from(operatorProfiles)
+      .orderBy(operatorProfiles.operatorName);
+  }
+
+  async updateOperatorProfile(id: string, updates: Partial<OperatorProfile>): Promise<OperatorProfile | undefined> {
+    const [profile] = await db
+      .update(operatorProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(operatorProfiles.id, id))
+      .returning();
+    return profile;
+  }
+
+  async deleteOperatorProfile(id: string): Promise<boolean> {
+    const result = await db
+      .delete(operatorProfiles)
+      .where(eq(operatorProfiles.id, id));
+    return result.rowCount > 0;
+  }
+  */
+  // End of САЗПД modules implementations comment block
 }
 
 export class MemStorage implements IStorage {

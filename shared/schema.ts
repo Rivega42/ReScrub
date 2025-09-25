@@ -13,6 +13,23 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { BlogCategoryEnum } from "./categories";
 
+// ====================
+// DOCUMENT GENERATION ENUMS
+// ====================
+
+/**
+ * Enum для типов документов в системе генерации документов САЗПД
+ */
+export const DocumentTypeEnum = z.enum([
+  "INITIAL_REQUEST",      // Начальное требование об удалении
+  "FOLLOW_UP_REQUEST",    // Повторное требование 
+  "CESSATION_DEMAND",     // Требование о прекращении обработки
+  "RKN_COMPLAINT",        // Жалоба в РКН
+  "RKN_APPEAL"            // Повторное обращение в РКН
+]);
+
+export type DocumentType = z.infer<typeof DocumentTypeEnum>;
+
 // Session storage table for Replit Auth
 export const sessions = pgTable(
   "sessions",
@@ -190,6 +207,7 @@ export const deletionRequests = pgTable("deletion_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
   scanId: varchar("scan_id").references(() => dataBrokerScans.id, { onDelete: "cascade" }),
+  // campaignId: varchar("campaign_id").references(() => campaigns.id, { onDelete: "set null" }), // САЗПД integration - temporarily disabled
   brokerName: varchar("broker_name").notNull(),
   requestType: varchar("request_type").notNull(), // 'deletion', 'correction', 'access'
   status: varchar("status").notNull().default("pending"), // 'pending', 'sent', 'processing', 'completed', 'rejected', 'failed', 'initiated', 'sent_initial', 'delivered_initial', 'operator_confirmed', 'reply_deleted', 'followup_sent', 'delivered_followup', 'no_response', 'escalated', 'closed'
@@ -758,6 +776,7 @@ export const emailTemplates = pgTable("email_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull().unique(), // 'welcome_email', 'password_reset', 'deletion_request'
   category: varchar("category").notNull(), // 'authentication', 'notifications', 'marketing', 'transactional'
+  documentType: varchar("document_type"), // DocumentType enum: 'INITIAL_REQUEST', 'FOLLOW_UP_REQUEST', 'CESSATION_DEMAND', 'RKN_COMPLAINT', 'RKN_APPEAL'
   subject: text("subject").notNull(), // Email subject line with variables like {{firstName}}
   htmlBody: text("html_body").notNull(), // HTML version of email
   textBody: text("text_body"), // Plain text version
@@ -780,6 +799,7 @@ export const emailTemplates = pgTable("email_templates", {
 }, (table) => [
   index("IDX_email_templates_name").on(table.name),
   index("IDX_email_templates_category").on(table.category),
+  index("IDX_email_templates_document_type").on(table.documentType),
   index("IDX_email_templates_active").on(table.isActive),
   index("IDX_email_templates_deleted").on(table.isDeleted),
 ]);
@@ -789,6 +809,7 @@ export const emailTemplateVersions = pgTable("email_template_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   templateId: varchar("template_id").notNull().references(() => emailTemplates.id, { onDelete: "cascade" }),
   version: integer("version").notNull(), // Version number (1, 2, 3, etc)
+  documentType: varchar("document_type"), // DocumentType enum: same as parent template
   subject: text("subject").notNull(),
   htmlBody: text("html_body").notNull(),
   textBody: text("text_body"),
@@ -806,10 +827,194 @@ export const emailTemplateVersions = pgTable("email_template_versions", {
 }, (table) => [
   index("IDX_email_template_versions_template").on(table.templateId),
   index("IDX_email_template_versions_version").on(table.templateId, table.version),
+  index("IDX_email_template_versions_document_type").on(table.documentType),
   index("IDX_email_template_versions_published").on(table.isPublished),
   // Unique constraint: one template cannot have duplicate version numbers
   sql`UNIQUE (template_id, version)`,
 ]);
+
+// ====================
+// САЗПД MODULES - Campaign Automation & Legal Decision System - TEMPORARILY DISABLED
+// ====================
+
+/*
+// Campaigns table - основная сущность кампаний
+export const campaigns = pgTable("campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  targetType: varchar("target_type").notNull(), // "operator" | "regulator"
+  status: varchar("status").notNull().default("draft"), // "draft" | "active" | "paused" | "completed" | "failed"
+  priority: varchar("priority").notNull().default("medium"), // "low" | "medium" | "high" | "urgent"
+  
+  // Metrics tracking
+  metrics: jsonb("metrics").default(sql`'{"requested": 0, "succeeded": 0, "failed": 0}'::jsonb`),
+  
+  // Deadlines management
+  deadlines: jsonb("deadlines").default(sql`'{"initialDue": null, "followUpDue": null, "escalationDue": null}'::jsonb`),
+  
+  // Extended campaign data
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional campaign configuration
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_campaigns_user_id").on(table.userId),
+  index("IDX_campaigns_status").on(table.status),
+  index("IDX_campaigns_target_type").on(table.targetType),
+  index("IDX_campaigns_priority").on(table.priority),
+]);
+
+/*
+// Decision rules table - правила принятия решений для автоматизации  
+export const decisionRules = pgTable("decision_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  state: varchar("state").notNull(), // Current state in the decision tree
+  signal: varchar("signal").notNull(), // Triggering signal/event
+  guard: jsonb("guard").default(sql`'{}'::jsonb`), // Conditions that must be met
+  action: varchar("action").notNull(), // Action to perform
+  nextState: varchar("next_state"), // Target state after action
+  waitDays: integer("wait_days").default(0), // Days to wait before transitioning
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_decision_rules_state").on(table.state),
+  index("IDX_decision_rules_signal").on(table.signal),
+  index("IDX_decision_rules_active").on(table.isActive),
+]);
+
+/*
+// Evidence events table - события доказательств (альтернатива блокчейну)
+export const evidenceEvents = pgTable("evidence_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: varchar("campaign_id").references(() => campaigns.id, { onDelete: "cascade" }),
+  requestId: varchar("request_id").references(() => deletionRequests.id, { onDelete: "cascade" }),
+  type: varchar("type").notNull(), // "email_sent" | "response_received" | "deadline_reached" | "escalation_triggered"
+  payload: jsonb("payload").notNull(), // Event-specific data
+  artefactHashes: text("artefact_hashes").array().default(sql`ARRAY[]::text[]`), // Hashes of related documents/emails
+  prevHash: varchar("prev_hash"), // Hash of previous event for chain integrity
+  hash: varchar("hash").notNull(), // SHA-256 hash of this event
+  signature: varchar("signature"), // Ed25519 signature for authenticity
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_evidence_events_campaign").on(table.campaignId),
+  index("IDX_evidence_events_request").on(table.requestId),
+  index("IDX_evidence_events_type").on(table.type),
+  index("IDX_evidence_events_created").on(table.createdAt),
+  index("IDX_evidence_events_hash").on(table.hash),
+]);
+
+// Evidence daily seals table - ежедневные печати для evidence events
+export const evidenceDailySeals = pgTable("evidence_daily_seals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull().unique(), // Date for the seal (typically end of day)
+  merkleRoot: varchar("merkle_root").notNull(), // Merkle tree root of all events for this day
+  signature: varchar("signature").notNull(), // Ed25519 signature of the merkle root
+  eventCount: integer("event_count").notNull().default(0), // Number of events sealed
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_evidence_daily_seals_date").on(table.date),
+]);
+
+// Legal norms table - база правовых норм для автоматизации
+export const legalNorms = pgTable("legal_norms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code").notNull().unique(), // "152_FZ_ART_14" | "GDPR_ART_17" etc
+  title: varchar("title").notNull(),
+  obligations: text("obligations").notNull(), // Text description of obligations
+  deadlinesDays: integer("deadlines_days").notNull(), // Standard response time in days
+  escalationPaths: jsonb("escalation_paths").default(sql`'[]'::jsonb`), // Escalation hierarchy
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_legal_norms_code").on(table.code),
+  index("IDX_legal_norms_active").on(table.isActive),
+]);
+
+// Operator profiles table - профили операторов для персонализации
+export const operatorProfiles = pgTable("operator_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operatorName: varchar("operator_name").notNull().unique(), // Имя оператора ПД
+  contacts: jsonb("contacts").default(sql`'{}'::jsonb`), // Email, phone, address, etc
+  slaOverrides: jsonb("sla_overrides").default(sql`'{}'::jsonb`), // Custom SLA settings
+  preferredChannels: text("preferred_channels").array().default(sql`ARRAY['email']::text[]`), // ["email", "form", "api"]
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional operator data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_operator_profiles_name").on(table.operatorName),
+]);
+
+*/
+// End of САЗПД modules comment block
+
+// ====================
+// САЗПД MODULES SCHEMAS AND TYPES - TEMPORARILY DISABLED
+// ====================
+/*
+
+// САЗПД insert schemas
+export const insertCampaignSchema = createInsertSchema(campaigns).omit({
+  id: true,
+  metrics: true, // auto-generated default
+  deadlines: true, // auto-generated default
+  metadata: true, // auto-generated default
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDecisionRuleSchema = createInsertSchema(decisionRules).omit({
+  id: true,
+  guard: true, // auto-generated default
+  isActive: true, // auto-generated default
+  createdAt: true,
+});
+
+export const insertEvidenceEventSchema = createInsertSchema(evidenceEvents).omit({
+  id: true,
+  artefactHashes: true, // auto-generated default
+  createdAt: true,
+});
+
+export const insertEvidenceDailySealSchema = createInsertSchema(evidenceDailySeals).omit({
+  id: true,
+  eventCount: true, // auto-generated default
+  createdAt: true,
+});
+
+export const insertLegalNormSchema = createInsertSchema(legalNorms).omit({
+  id: true,
+  escalationPaths: true, // auto-generated default
+  isActive: true, // auto-generated default
+  createdAt: true,
+});
+
+export const insertOperatorProfileSchema = createInsertSchema(operatorProfiles).omit({
+  id: true,
+  contacts: true, // auto-generated default
+  slaOverrides: true, // auto-generated default
+  preferredChannels: true, // auto-generated default
+  metadata: true, // auto-generated default
+  createdAt: true,
+  updatedAt: true,
+});
+
+// САЗПД types
+export type Campaign = typeof campaigns.$inferSelect;
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+export type DecisionRule = typeof decisionRules.$inferSelect;
+export type InsertDecisionRule = z.infer<typeof insertDecisionRuleSchema>;
+export type EvidenceEvent = typeof evidenceEvents.$inferSelect;
+export type InsertEvidenceEvent = z.infer<typeof insertEvidenceEventSchema>;
+export type EvidenceDailySeal = typeof evidenceDailySeals.$inferSelect;
+export type InsertEvidenceDailySeal = z.infer<typeof insertEvidenceDailySealSchema>;
+export type LegalNorm = typeof legalNorms.$inferSelect;
+export type InsertLegalNorm = z.infer<typeof insertLegalNormSchema>;
+export type OperatorProfile = typeof operatorProfiles.$inferSelect;
+export type InsertOperatorProfile = z.infer<typeof insertOperatorProfileSchema>;
+
+*/
+// End of САЗПД modules schemas and types comment block
 
 // ====================
 // ADMIN PANEL SCHEMAS AND TYPES
