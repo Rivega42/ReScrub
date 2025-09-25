@@ -4536,6 +4536,272 @@ ${allPages.map(page => `  <url>
   });
 
   // ====================
+  // ADMIN BLOG ARTICLES MANAGEMENT API ENDPOINTS
+  // ====================
+
+  // GET /api/admin/blog/articles - Get all blog articles for admin management
+  app.get("/api/admin/blog/articles", isAdmin, async (req: any, res) => {
+    try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_blog_articles',
+        targetType: 'blog_articles',
+        metadata: { query: req.query },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      // Parse query parameters for filtering
+      const filters = {
+        status: req.query.status as string | undefined,
+        category: req.query.category as string | undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0
+      };
+
+      const articles = await storage.getAllBlogArticles(filters);
+      
+      res.json({
+        success: true,
+        articles,
+        totalCount: articles.length,
+        filters
+      });
+    } catch (error) {
+      console.error('Error fetching admin blog articles:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статей блога' 
+      });
+    }
+  });
+
+  // GET /api/admin/blog/articles/:id - Get single blog article for admin management
+  app.get("/api/admin/blog/articles/:id", isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_blog_article',
+        targetType: 'blog_article',
+        metadata: { articleId: id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const article = await storage.getBlogArticleById(id);
+      
+      if (!article) {
+        return res.status(404).json({
+          success: false,
+          message: 'Статья не найдена'
+        });
+      }
+
+      res.json({
+        success: true,
+        article
+      });
+    } catch (error) {
+      console.error('Error fetching admin blog article:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения статьи блога' 
+      });
+    }
+  });
+
+  // POST /api/admin/blog/articles - Create new blog article
+  app.post("/api/admin/blog/articles", isAdmin, async (req: any, res) => {
+    try {
+      // Validate article data
+      const articleSchema = z.object({
+        title: z.string().min(1).max(500),
+        content: z.string().min(1),
+        excerpt: z.string().optional(),
+        category: z.string().min(1),
+        tags: z.array(z.string()).optional(),
+        status: z.enum(['draft', 'published']).default('draft'),
+        featured: z.boolean().default(false),
+        seoTitle: z.string().optional(),
+        seoDescription: z.string().optional(),
+        readingTime: z.number().optional()
+      });
+
+      const validatedData = articleSchema.parse(req.body);
+
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'create_blog_article',
+        targetType: 'blog_article',
+        metadata: { title: validatedData.title, category: validatedData.category },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      // Generate slug from title
+      const slug = validatedData.title
+        .toLowerCase()
+        .replace(/[^а-яёa-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .trim();
+
+      const articleData = {
+        ...validatedData,
+        slug,
+        publishedAt: validatedData.status === 'published' ? new Date() : null
+      };
+
+      const article = await storage.createBlogArticle(articleData);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Статья успешно создана',
+        article
+      });
+    } catch (error: any) {
+      console.error('Error creating admin blog article:', error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные статьи', 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка создания статьи блога' 
+      });
+    }
+  });
+
+  // PUT /api/admin/blog/articles/:id - Update blog article
+  app.put("/api/admin/blog/articles/:id", isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Validate article data
+      const updateSchema = z.object({
+        title: z.string().min(1).max(500).optional(),
+        content: z.string().min(1).optional(),
+        excerpt: z.string().optional(),
+        category: z.string().min(1).optional(),
+        tags: z.array(z.string()).optional(),
+        status: z.enum(['draft', 'published']).optional(),
+        featured: z.boolean().optional(),
+        seoTitle: z.string().optional(),
+        seoDescription: z.string().optional(),
+        readingTime: z.number().optional()
+      });
+
+      const validatedData = updateSchema.parse(req.body);
+
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'update_blog_article',
+        targetType: 'blog_article',
+        metadata: { articleId: id, updates: Object.keys(validatedData) },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      // Update slug if title changed
+      if (validatedData.title) {
+        const slug = validatedData.title
+          .toLowerCase()
+          .replace(/[^а-яёa-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .trim();
+        (validatedData as any).slug = slug;
+      }
+
+      // Set publishedAt if status changed to published
+      if (validatedData.status === 'published') {
+        (validatedData as any).publishedAt = new Date();
+      }
+
+      const updatedArticle = await storage.updateBlogArticle(id, validatedData);
+      
+      if (!updatedArticle) {
+        return res.status(404).json({
+          success: false,
+          message: 'Статья не найдена'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Статья успешно обновлена',
+        article: updatedArticle
+      });
+    } catch (error: any) {
+      console.error('Error updating admin blog article:', error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные статьи', 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка обновления статьи блога' 
+      });
+    }
+  });
+
+  // DELETE /api/admin/blog/articles/:id - Delete blog article
+  app.delete("/api/admin/blog/articles/:id", isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'delete_blog_article',
+        targetType: 'blog_article',
+        metadata: { articleId: id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const deleted = await storage.deleteBlogArticle(id);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'Статья не найдена'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Статья успешно удалена'
+      });
+    } catch (error) {
+      console.error('Error deleting admin blog article:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка удаления статьи блога' 
+      });
+    }
+  });
+
+  // ====================
   // SYSTEM MONITORING API ENDPOINTS
   // ====================
 
