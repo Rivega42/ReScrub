@@ -578,7 +578,7 @@ export default function BusinessAtomization() {
                 </Button>
               </Link>
               <Link href="/business/whitepaper">
-                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                <Button size="lg" variant="outline">
                   Техническая документация
                 </Button>
               </Link>

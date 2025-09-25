@@ -1028,7 +1028,7 @@ export default function BusinessAPI() {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary gap-2">
+              <Button size="lg" variant="outline" className="gap-2">
                 <Book className="h-4 w-4" />
                 OpenAPI спецификация
               </Button>

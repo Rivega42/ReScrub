@@ -663,7 +663,7 @@ export default function BusinessContact() {
                 +7 (495) 123-45-67
               </Button>
               <Link href="/business/register">
-                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary gap-2">
+                <Button size="lg" variant="outline" className="gap-2">
                   Начать бесплатно
                   <ArrowRight className="h-4 w-4" />
                 </Button>

@@ -661,7 +661,7 @@ export default function BusinessPricing() {
                 </Button>
               </Link>
               <Link href="/business/contact">
-                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                <Button size="lg" variant="outline">
                   Связаться с экспертом
                 </Button>
               </Link>

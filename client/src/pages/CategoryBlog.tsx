@@ -8,6 +8,8 @@ import { ArrowRight, Calendar, Clock, User, Search, Filter, ArrowLeft, Telescope
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
+import SidebarCTA from '@/components/SidebarCTA';
+import StickyBottomCTA from '@/components/StickyBottomCTA';
 import { useQuery } from '@tanstack/react-query';
 import {
   createEnhancedBlogArticle,
@@ -345,7 +347,27 @@ export default function CategoryBlog() {
               )}
             </>
           )}
+          {/* Category Sidebar CTA */}
+          <div className="mt-12">
+            <div className="max-w-sm mx-auto">
+              <SidebarCTA 
+                category={categoryName as keyof typeof import('@shared/cta-config').CATEGORY_CTA_CONTENT}
+                compact={false}
+                sticky={false}
+                variant="promo"
+                className="mb-8"
+                data-testid="category-sidebar-cta"
+              />
+            </div>
+          </div>
         </main>
+        
+        {/* Sticky Bottom CTA */}
+        <StickyBottomCTA 
+          showOnScroll={true}
+          hideOnFooter={true}
+          data-testid="category-sticky-cta"
+        />
         
         <Footer />
       </div>

@@ -28,6 +28,9 @@ import {
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO, BlogSEO } from '@/components/SEO';
+import InlineProductCTA from '@/components/InlineProductCTA';
+import ArticleEndCTA from '@/components/ArticleEndCTA';
+import StickyBottomCTA from '@/components/StickyBottomCTA';
 import ReactMarkdown from 'react-markdown';
 import { useMemo } from 'react';
 import TableOfContents from '@/components/TableOfContents';
@@ -399,6 +402,18 @@ export default function BlogArticle() {
             />
           </div>
 
+          {/* Inline Product CTA - After Key Insights */}
+          <div className="mb-12">
+            <InlineProductCTA 
+              category={article.category as keyof typeof import('@shared/cta-config').CATEGORY_CTA_CONTENT}
+              variant="featured"
+              showBenefits={true}
+              showSocialProof={true}
+              className="max-w-4xl mx-auto"
+              data-testid="article-inline-cta"
+            />
+          </div>
+
           {/* Main Content Area with Sidebar Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
             {/* Table of Contents Sidebar */}
@@ -622,7 +637,26 @@ export default function BlogArticle() {
               </Button>
             </div>
           </div>
+          
+          {/* Article End CTA */}
+          <div className="mt-16 mb-8">
+            <ArticleEndCTA 
+              category={article.category as keyof typeof import('@shared/cta-config').CATEGORY_CTA_CONTENT}
+              articleTitle={article.title}
+              showTestimonial={true}
+              showFullFeatures={true}
+              className="max-w-5xl mx-auto"
+              data-testid="article-end-cta"
+            />
+          </div>
         </article>
+        
+        {/* Sticky Bottom CTA */}
+        <StickyBottomCTA 
+          showOnScroll={true}
+          hideOnFooter={true}
+          data-testid="article-sticky-cta"
+        />
         
         <Footer />
       </div>

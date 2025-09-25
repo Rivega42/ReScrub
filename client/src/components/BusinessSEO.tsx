@@ -58,6 +58,17 @@ export interface BusinessSEOProps {
   russianSEO?: Partial<RussianSEOSchema>;
   /** Search bot hints */
   botHints?: Partial<SearchBotHints>;
+  /** Organization schema data for enhanced SEO */
+  organizationSchema?: {
+    name?: string;
+    description?: string;
+    contactPoints?: Array<{
+      telephone?: string;
+      contactType?: string;
+    }>;
+  };
+  /** Robots meta tag */
+  robots?: string;
 }
 
 /**
@@ -103,7 +114,7 @@ export function BusinessSEO({
   neuralSignals,
   russianSEO,
   botHints
-}: BusinessSEOProps): JSX.Element {
+}: BusinessSEOProps): JSX.Element | null {
   // Auto-detect current path if not provided
   const currentPath = useMemo(() => 
     path || (typeof window !== 'undefined' ? window.location.pathname : '/business'),
@@ -391,20 +402,17 @@ export function BusinessSEO({
     const organizationSchema: JsonLdOrganization = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      '@id': `${dynamicBaseUrl}#organization`,
       name: 'ResCrub Business',
       alternateName: 'РесКраб Бизнес',
       legalName: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_NAME,
       url: dynamicBaseUrl,
-      logo: {
-        '@type': 'ImageObject',
-        url: `${dynamicBaseUrl}/images/business-logo.png`,
-        width: 200,
-        height: 60
-      },
+      logo: `${dynamicBaseUrl}/images/business-logo.png`,
       description: 'Корпоративные решения для автоматизации соблюдения 152-ФЗ и защиты персональных данных в российских компаниях',
       foundingDate: '2024-01-01T00:00:00Z',
-      address: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS,
+      address: {
+        '@type': 'PostalAddress',
+        ...SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_ADDRESS
+      },
       contactPoint: [
         {
           '@type': 'ContactPoint',
@@ -448,7 +456,6 @@ export function BusinessSEO({
     const websiteSchema: JsonLdWebSite = {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      '@id': `${dynamicBaseUrl}#website`,
       name: 'ResCrub Business Platform',
       alternateName: 'Корпоративная платформа защиты данных',
       url: dynamicBaseUrl,
@@ -464,14 +471,12 @@ export function BusinessSEO({
       },
       publisher: {
         '@type': 'Organization',
-        '@id': `${dynamicBaseUrl}#organization`,
         name: 'ResCrub Business',
         url: dynamicBaseUrl
       },
       copyrightYear: 2024,
       copyrightHolder: {
         '@type': 'Organization',
-        '@id': `${dynamicBaseUrl}#organization`,
         name: 'ResCrub Business',
         url: dynamicBaseUrl
       },
@@ -545,12 +550,10 @@ export function BusinessSEO({
     const serviceSchema: JsonLdService = {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      '@id': `${dynamicBaseUrl}#service`,
       name: 'Корпоративная защита персональных данных',
       description: 'Комплексные решения для автоматизации соблюдения 152-ФЗ в российских компаниях',
       provider: {
         '@type': 'Organization',
-        '@id': `${dynamicBaseUrl}#organization`,
         name: 'ResCrub Business',
         url: dynamicBaseUrl
       },

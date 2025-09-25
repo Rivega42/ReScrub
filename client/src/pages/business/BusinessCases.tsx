@@ -562,7 +562,7 @@ export default function BusinessCases() {
                 </Button>
               </Link>
               <Link href="/business/register">
-                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary" data-testid="button-start-free-trial">
+                <Button size="lg" variant="outline" data-testid="button-start-free-trial">
                   Попробовать бесплатно
                 </Button>
               </Link>

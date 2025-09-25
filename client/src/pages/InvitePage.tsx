@@ -192,7 +192,7 @@ export default function InvitePage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link href={`/login?ref=${code}`} asChild>
-                <Button size="lg" className="text-lg px-8 py-6" data-testid="button-start-protection">
+                <Button size="lg" className="text-lg" data-testid="button-start-protection">
                   <Shield className="w-5 h-5 mr-2" />
                   Начать защиту данных
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -203,7 +203,7 @@ export default function InvitePage() {
                 variant="outline" 
                 size="lg" 
                 onClick={copyInviteLink}
-                className="text-lg px-8 py-6"
+                className="text-lg"
                 data-testid="button-copy-invite"
               >
                 <Copy className="w-5 h-5 mr-2" />

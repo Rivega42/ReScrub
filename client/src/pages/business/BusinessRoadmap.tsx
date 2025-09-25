@@ -538,7 +538,7 @@ export default function BusinessRoadmap() {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+              <Button size="lg" variant="outline">
                 Присоединиться к beta-программе
               </Button>
             </div>

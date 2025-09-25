@@ -492,7 +492,7 @@ export default function BusinessWhitepaper() {
                 <Download className="h-4 w-4" />
                 Скачать PDF (12.4 MB)
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary gap-2">
+              <Button size="lg" variant="outline" className="gap-2">
                 <FileText className="h-4 w-4" />
                 Читать онлайн
               </Button>

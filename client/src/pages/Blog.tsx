@@ -8,6 +8,8 @@ import { ArrowRight, Calendar, Clock, User, Search, Filter, ArrowLeft, ExternalL
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
+import PromoCodeBanner from '@/components/PromoCodeBanner';
+import StickyBottomCTA from '@/components/StickyBottomCTA';
 import { useQuery } from '@tanstack/react-query';
 import { 
   createEnhancedBlogArticle,
@@ -61,6 +63,16 @@ export default function Blog() {
       
       <div className="min-h-screen bg-background">
         <Header />
+        
+        {/* Promo Banner - Above the fold */}
+        <div className="container mx-auto px-4 pt-4">
+          <PromoCodeBanner 
+            promoKey="RESCRUB55"
+            autoRotate={true}
+            className="mb-4"
+            data-testid="blog-promo-banner"
+          />
+        </div>
         
         <main className="container mx-auto px-4 py-8" data-testid="main-blog">
           {/* Blog Header */}
@@ -373,6 +385,13 @@ export default function Blog() {
             </>
           )}
         </main>
+        
+        {/* Sticky Bottom CTA */}
+        <StickyBottomCTA 
+          showOnScroll={true}
+          hideOnFooter={true}
+          data-testid="blog-sticky-cta"
+        />
         
         <Footer />
       </div>
