@@ -397,6 +397,27 @@ export interface IStorage {
   testEmailTemplate(templateId: string, testEmail: string, testData?: any): Promise<{ success: boolean; message: string }>;
   exportEmailTemplate(id: string): Promise<any>;
   importEmailTemplate(templateData: any, createdBy: string): Promise<EmailTemplate>;
+
+  // ========================================
+  // TWO-STAGE EMAIL SYSTEM METHODS
+  // ========================================
+
+  // Enhanced Operator Action Tokens operations
+  cleanupExpiredTokens(): Promise<number>; // Returns count of deleted tokens
+
+  // Enhanced Inbound Emails operations  
+  getInboundEmailsByDeletionRequest(deletionRequestId: string): Promise<InboundEmail[]>;
+  updateInboundEmailClassification(id: string, parsedStatus: string): Promise<InboundEmail | undefined>;
+
+  // Deletion Request Status Transitions
+  updateDeletionRequestStatus(id: string, status: string, metadata?: any): Promise<DeletionRequest | undefined>;
+  updateFollowUpSent(id: string, messageId: string, sentAt: Date): Promise<DeletionRequest | undefined>;
+  updateEscalationSent(id: string, messageId: string, sentAt: Date): Promise<DeletionRequest | undefined>;
+  markOperatorConfirmed(id: string, confirmedAt: Date, confirmationToken?: string): Promise<DeletionRequest | undefined>;
+
+  // Enhanced Query Methods for automation
+  getDeletionRequestsRequiringFollowUp(): Promise<DeletionRequest[]>;
+  getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3234,6 +3255,172 @@ export class DatabaseStorage implements IStorage {
       console.error('Error getting user activity history:', error);
       return [];
     }
+  }
+
+  // ========================================
+  // TWO-STAGE EMAIL SYSTEM METHODS IMPLEMENTATION
+  // ========================================
+
+  // Enhanced Operator Action Tokens operations
+  async cleanupExpiredTokens(): Promise<number> {
+    const result = await db
+      .delete(operatorActionTokens)
+      .where(sql`${operatorActionTokens.expiresAt} < NOW()`)
+      .returning();
+    
+    console.log(`Cleaned up ${result.length} expired operator action tokens`);
+    return result.length;
+  }
+
+  // Enhanced Inbound Emails operations  
+  async getInboundEmailsByDeletionRequest(deletionRequestId: string): Promise<InboundEmail[]> {
+    return await db
+      .select()
+      .from(inboundEmails)
+      .where(eq(inboundEmails.deletionRequestId, deletionRequestId))
+      .orderBy(desc(inboundEmails.receivedAt));
+  }
+
+  async updateInboundEmailClassification(id: string, parsedStatus: string): Promise<InboundEmail | undefined> {
+    const [email] = await db
+      .update(inboundEmails)
+      .set({ parsedStatus })
+      .where(eq(inboundEmails.id, id))
+      .returning();
+    return email;
+  }
+
+  // Deletion Request Status Transitions
+  async updateDeletionRequestStatus(id: string, status: string, metadata?: any): Promise<DeletionRequest | undefined> {
+    const updates: Partial<DeletionRequest> = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    // Add metadata if provided
+    if (metadata) {
+      updates.responseDetails = metadata;
+    }
+
+    // Set completion timestamp for final statuses
+    if (['completed', 'rejected', 'closed'].includes(status)) {
+      updates.completedAt = new Date();
+    }
+
+    const [request] = await db
+      .update(deletionRequests)
+      .set(updates)
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async updateFollowUpSent(id: string, messageId: string, sentAt: Date): Promise<DeletionRequest | undefined> {
+    const [request] = await db
+      .update(deletionRequests)
+      .set({
+        followUpMessageId: messageId,
+        followUpSentAt: sentAt,
+        status: 'followup_sent',
+        updatedAt: new Date(),
+      })
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async updateEscalationSent(id: string, messageId: string, sentAt: Date): Promise<DeletionRequest | undefined> {
+    const [request] = await db
+      .update(deletionRequests)
+      .set({
+        escalationMessageId: messageId,
+        escalationSentAt: sentAt,
+        status: 'escalated',
+        updatedAt: new Date(),
+      })
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  async markOperatorConfirmed(id: string, confirmedAt: Date, confirmationToken?: string): Promise<DeletionRequest | undefined> {
+    const updates: Partial<DeletionRequest> = {
+      buttonConfirmedAt: confirmedAt,
+      status: 'operator_confirmed',
+      updatedAt: new Date(),
+    };
+
+    // If a confirmation token was used, store it in metadata
+    if (confirmationToken) {
+      const currentRequest = await db
+        .select()
+        .from(deletionRequests)
+        .where(eq(deletionRequests.id, id))
+        .limit(1);
+      
+      if (currentRequest[0]) {
+        const currentDetails = currentRequest[0].responseDetails || {};
+        updates.responseDetails = {
+          ...currentDetails,
+          confirmationToken,
+          confirmedVia: 'button_click',
+        };
+      }
+    }
+
+    const [request] = await db
+      .update(deletionRequests)
+      .set(updates)
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return request;
+  }
+
+  // Enhanced Query Methods for automation
+  async getDeletionRequestsRequiringFollowUp(): Promise<DeletionRequest[]> {
+    const now = new Date();
+    
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(
+        and(
+          // Must be in sent_initial or delivered_initial status
+          sql`${deletionRequests.status} IN ('sent_initial', 'delivered_initial')`,
+          // Follow-up is due (followUpDueAt has passed)
+          sql`${deletionRequests.followUpDueAt} IS NOT NULL AND ${deletionRequests.followUpDueAt} <= ${now}`,
+          // Haven't sent follow-up yet
+          sql`${deletionRequests.followUpSentAt} IS NULL`,
+          // No operator confirmation yet
+          sql`${deletionRequests.buttonConfirmedAt} IS NULL`,
+          // No recent meaningful inbound emails (to avoid sending follow-up if operator already replied)
+          sql`${deletionRequests.lastInboundAt} IS NULL OR ${deletionRequests.lastInboundAt} < ${deletionRequests.firstSentAt}`
+        )
+      )
+      .orderBy(deletionRequests.followUpDueAt);
+  }
+
+  async getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]> {
+    const now = new Date();
+    
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(
+        and(
+          // Must be in follow-up statuses or no response after initial
+          sql`${deletionRequests.status} IN ('followup_sent', 'delivered_followup', 'no_response', 'sent_initial', 'delivered_initial')`,
+          // Escalation is due (escalateDueAt has passed)
+          sql`${deletionRequests.escalateDueAt} IS NOT NULL AND ${deletionRequests.escalateDueAt} <= ${now}`,
+          // Haven't escalated yet
+          sql`${deletionRequests.escalationSentAt} IS NULL`,
+          // No operator confirmation yet
+          sql`${deletionRequests.buttonConfirmedAt} IS NULL`,
+          // No recent meaningful inbound emails
+          sql`${deletionRequests.lastInboundAt} IS NULL OR ${deletionRequests.lastInboundAt} < ${deletionRequests.firstSentAt}`
+        )
+      )
+      .orderBy(deletionRequests.escalateDueAt);
   }
 }
 
@@ -6362,6 +6549,50 @@ export class MemStorage implements IStorage {
 
   async getInboundEmailById(id: string): Promise<InboundEmail | undefined> {
     throw new Error('DB storage required - getInboundEmailById not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // ========================================
+  // TWO-STAGE EMAIL SYSTEM STUBS
+  // ========================================
+
+  // Enhanced Operator Action Tokens stubs
+  async cleanupExpiredTokens(): Promise<number> {
+    throw new Error('Two-stage email system - cleanupExpiredTokens not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Enhanced Inbound Emails stubs
+  async getInboundEmailsByDeletionRequest(deletionRequestId: string): Promise<InboundEmail[]> {
+    throw new Error('Two-stage email system - getInboundEmailsByDeletionRequest not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateInboundEmailClassification(id: string, parsedStatus: string): Promise<InboundEmail | undefined> {
+    throw new Error('Two-stage email system - updateInboundEmailClassification not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Deletion Request Status Transitions stubs
+  async updateDeletionRequestStatus(id: string, status: string, metadata?: any): Promise<DeletionRequest | undefined> {
+    throw new Error('Two-stage email system - updateDeletionRequestStatus not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateFollowUpSent(id: string, messageId: string, sentAt: Date): Promise<DeletionRequest | undefined> {
+    throw new Error('Two-stage email system - updateFollowUpSent not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateEscalationSent(id: string, messageId: string, sentAt: Date): Promise<DeletionRequest | undefined> {
+    throw new Error('Two-stage email system - updateEscalationSent not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async markOperatorConfirmed(id: string, confirmedAt: Date, confirmationToken?: string): Promise<DeletionRequest | undefined> {
+    throw new Error('Two-stage email system - markOperatorConfirmed not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Enhanced Query Methods stubs
+  async getDeletionRequestsRequiringFollowUp(): Promise<DeletionRequest[]> {
+    throw new Error('Two-stage email system - getDeletionRequestsRequiringFollowUp not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]> {
+    throw new Error('Two-stage email system - getDeletionRequestsRequiringEscalation not supported in MemStorage. Use DatabaseStorage for production.');
   }
 }
 
