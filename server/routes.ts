@@ -14,13 +14,16 @@ import {
   insertDocumentSchema,
   insertSubscriptionSchema,
   insertPaymentSchema,
+  insertBlogGenerationSettingsSchema,
   type UserAccount,
   type DataBroker,
   type DeletionRequest,
   type Document,
   type SubscriptionPlan,
   type Subscription,
-  type Payment
+  type Payment,
+  type BlogGenerationSettings,
+  type InsertBlogGenerationSettings
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -4139,6 +4142,123 @@ ${allPages.map(page => `  <url>
   // ====================
   
   // POST /api/admin/blog/generate - Admin blog article generation
+  // Get blog generation settings
+  app.get("/api/admin/blog/settings", isAdmin, async (req: any, res) => {
+    try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_blog_settings',
+        targetType: 'blog_settings',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const settings = await storage.getBlogGenerationSettings();
+      
+      if (!settings) {
+        // Create default settings if none exist
+        const defaultSettings = await storage.createBlogGenerationSettings({
+          isEnabled: true,
+          frequency: "daily",
+          maxArticlesPerDay: 3,
+          articleTypes: ["research", "opt-out-guide", "privacy-guide", "spam-protection", "law-guide"],
+          topics: ["защита персональных данных", "права пользователей", "кибербезопасность", "152-ФЗ", "GDPR в России"],
+          contentLength: "medium",
+          targetAudience: "citizens",
+          writingStyle: "informational",
+          seoOptimized: true,
+          includeStats: true,
+          includeStepByStep: true,
+          includeRussianLaw: true,
+          includeBrokerLists: true
+        });
+        
+        return res.json({
+          success: true,
+          settings: defaultSettings
+        });
+      }
+
+      res.json({
+        success: true,
+        settings
+      });
+    } catch (error) {
+      console.error('Error getting blog generation settings:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения настроек генерации блога' 
+      });
+    }
+  });
+
+  // Update blog generation settings
+  app.patch("/api/admin/blog/settings", isAdmin, async (req: any, res) => {
+    try {
+      // Comprehensive validation schema for all blog generation settings
+      const updateSchema = z.object({
+        isEnabled: z.boolean().optional(),
+        frequency: z.enum(['hourly', 'daily', 'weekly']).optional(),
+        maxArticlesPerDay: z.number().int().min(1).max(50).optional(),
+        articleTypes: z.array(z.string()).optional(),
+        topics: z.array(z.string()).optional(),
+        contentLength: z.enum(['brief', 'short', 'medium', 'detailed', 'comprehensive']).optional(),
+        targetAudience: z.enum(['citizens', 'lawyers', 'it-professionals', 'business', 'students']).optional(),
+        writingStyle: z.enum(['informational', 'tutorial', 'academic', 'conversational', 'legal']).optional(),
+        seoOptimized: z.boolean().optional(),
+        includeStats: z.boolean().optional(),
+        includeStepByStep: z.boolean().optional(),
+        includeRussianLaw: z.boolean().optional(),
+        includeBrokerLists: z.boolean().optional()
+      });
+
+      const validatedData = updateSchema.parse(req.body);
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'update_blog_settings',
+        targetType: 'blog_settings',
+        metadata: validatedData,
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const updatedSettings = await storage.updateBlogGenerationSettings(validatedData);
+      
+      if (!updatedSettings) {
+        return res.status(404).json({
+          success: false,
+          message: 'Настройки генерации блога не найдены'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Настройки генерации блога обновлены',
+        settings: updatedSettings
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные настроек',
+          errors: error.errors
+        });
+      }
+      
+      console.error('Error updating blog generation settings:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка обновления настроек генерации блога' 
+      });
+    }
+  });
+
   app.post("/api/admin/blog/generate", isAdmin, async (req: any, res) => {
     console.log(`🚀 [ADMIN BLOG] Starting admin blog generation request at ${new Date().toISOString()}`);
     console.log(`👤 [ADMIN BLOG] Admin user: ${req.adminUser.email} (ID: ${req.adminUser.id})`);

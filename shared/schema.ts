@@ -833,6 +833,8 @@ export const blogArticles = pgTable("blog_articles", {
   content: text("content").notNull(), // Main article content (markdown/html)
   excerpt: text("excerpt"), // Short description for article lists
   category: varchar("category").notNull().default("data-protection"), // "data-protection", "privacy-laws", "security-tips", "news"
+  // НОВОЕ: Тип статьи по образцу Incogni.com
+  articleType: varchar("article_type").notNull().default("research"), // "research", "opt-out-guide", "privacy-guide", "spam-protection", "law-guide"
   tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`), // Array of tags for organization
   seoTitle: varchar("seo_title"), // SEO-optimized title
   seoDescription: text("seo_description"), // SEO meta description
@@ -852,19 +854,35 @@ export const blogArticles = pgTable("blog_articles", {
   index("IDX_blog_articles_status_published").on(table.status, table.publishedAt),
   index("IDX_blog_articles_category_status_published").on(table.category, table.status, table.publishedAt),
   index("IDX_blog_articles_featured").on(table.featured),
+  index("IDX_blog_articles_type").on(table.articleType),
 ]);
 
-// Blog article generation settings table
+// Blog article generation settings table (ОБНОВЛЕНО для поддержки типов как у Incogni.com)
 export const blogGenerationSettings = pgTable("blog_generation_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   isEnabled: boolean("is_enabled").default(true), // Enable/disable auto-generation
   frequency: varchar("frequency").notNull().default("daily"), // "hourly", "daily", "weekly"
   maxArticlesPerDay: integer("max_articles_per_day").default(3), // Limit on daily article generation
+  
+  // НОВОЕ: Типы статей по образцу Incogni.com
+  articleTypes: text("article_types").array().default(sql`ARRAY['research', 'opt-out-guide', 'privacy-guide', 'spam-protection', 'law-guide']::text[]`), // Типы контента
+  
+  // Расширенные настройки контента
   topics: text("topics").array().default(sql`ARRAY['защита персональных данных', 'права пользователей', 'кибербезопасность', '152-ФЗ', 'GDPR в России']::text[]`), // Topic pool for generation
-  contentLength: varchar("content_length").default("medium"), // "short", "medium", "long"
-  targetAudience: varchar("target_audience").default("general"), // "general", "business", "technical"
+  contentLength: varchar("content_length").default("medium"), // "brief", "short", "medium", "detailed", "comprehensive"
+  targetAudience: varchar("target_audience").default("citizens"), // "citizens", "lawyers", "it-professionals", "business", "students"
+  
+  // НОВОЕ: Стиль написания
+  writingStyle: varchar("writing_style").default("informational"), // "informational", "tutorial", "academic", "conversational", "legal"
+  
+  // SEO и контент настройки
   seoOptimized: boolean("seo_optimized").default(true), // Generate SEO-optimized content
   includeStats: boolean("include_stats").default(true), // Include Russian data protection statistics
+  includeStepByStep: boolean("include_step_by_step").default(true), // Включать пошаговые инструкции
+  includeRussianLaw: boolean("include_russian_law").default(true), // Включать ссылки на российское законодательство
+  includeBrokerLists: boolean("include_broker_lists").default(true), // Включать списки брокеров данных
+  
+  // Системные поля
   lastGeneratedAt: timestamp("last_generated_at"),
   nextGenerationAt: timestamp("next_generation_at"),
   generationHistory: jsonb("generation_history").default(sql`'[]'::jsonb`), // Log of recent generations

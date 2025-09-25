@@ -80,14 +80,21 @@ interface BlogGenerationSettings {
   isEnabled: boolean;
   frequency: string;
   maxArticlesPerDay: number;
+  articleTypes: string[];
   topics: string[];
   contentLength: string;
   targetAudience: string;
-  tone: string;
-  language: string;
-  lastGeneration?: string;
-  nextGeneration?: string;
-  totalGenerated: number;
+  writingStyle: string;
+  seoOptimized?: boolean;
+  includeStats?: boolean;
+  includeStepByStep?: boolean;
+  includeRussianLaw?: boolean;
+  includeBrokerLists?: boolean;
+  lastGeneratedAt?: string;
+  nextGenerationAt?: string;
+  generationHistory?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface SchedulerStatus {
@@ -482,6 +489,154 @@ export default function AdminBlog() {
                 </div>
               </div>
 
+              {/* НОВОЕ: Типы контента как у Incogni.com */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Типы контента (по образцу Incogni.com)</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Тип статьи</Label>
+                    <Select
+                      value={(settings as any)?.articleTypes?.[0] || 'research'}
+                      onValueChange={(value) =>
+                        updateSettingsMutation.mutate({ 
+                          articleTypes: [value] // Пока используем один тип, позже можно расширить
+                        })
+                      }
+                    >
+                      <SelectTrigger data-testid="select-article-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="research">🔬 Research articles (исследовательские)</SelectItem>
+                        <SelectItem value="opt-out-guide">📋 Opt-out guides (пошаговые инструкции)</SelectItem>
+                        <SelectItem value="privacy-guide">🛡️ Privacy guides (руководства по приватности)</SelectItem>
+                        <SelectItem value="spam-protection">🚫 How to stop spam (защита от спама)</SelectItem>
+                        <SelectItem value="law-guide">⚖️ 152-ФЗ guides (российское законодательство)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Стиль написания</Label>
+                    <Select
+                      value={(settings as any)?.writingStyle || 'informational'}
+                      onValueChange={(value) =>
+                        updateSettingsMutation.mutate({ writingStyle: value })
+                      }
+                    >
+                      <SelectTrigger data-testid="select-writing-style">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="informational">📰 Информационный</SelectItem>
+                        <SelectItem value="tutorial">🎓 Обучающий</SelectItem>
+                        <SelectItem value="academic">🎯 Академический</SelectItem>
+                        <SelectItem value="conversational">💬 Разговорный</SelectItem>
+                        <SelectItem value="legal">⚖️ Юридический</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Целевая аудитория</Label>
+                    <Select
+                      value={(settings as any)?.targetAudience || 'citizens'}
+                      onValueChange={(value) =>
+                        updateSettingsMutation.mutate({ targetAudience: value })
+                      }
+                    >
+                      <SelectTrigger data-testid="select-target-audience">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="citizens">👥 Граждане</SelectItem>
+                        <SelectItem value="lawyers">⚖️ Юристы</SelectItem>
+                        <SelectItem value="it-professionals">💻 IT-специалисты</SelectItem>
+                        <SelectItem value="business">🏢 Бизнес</SelectItem>
+                        <SelectItem value="students">🎓 Студенты</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Длина контента</Label>
+                    <Select
+                      value={(settings as any)?.contentLength || 'medium'}
+                      onValueChange={(value) =>
+                        updateSettingsMutation.mutate({ contentLength: value })
+                      }
+                    >
+                      <SelectTrigger data-testid="select-content-length">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="brief">📝 Краткие (500-1000 слов)</SelectItem>
+                        <SelectItem value="short">📄 Короткие (1000-1500 слов)</SelectItem>
+                        <SelectItem value="medium">📚 Средние (1500-2500 слов)</SelectItem>
+                        <SelectItem value="detailed">📖 Подробные (2500-3500 слов)</SelectItem>
+                        <SelectItem value="comprehensive">📕 Исчерпывающие (3500+ слов)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Дополнительные настройки контента */}
+                <div className="space-y-3 border-t pt-4">
+                  <h4 className="font-medium text-sm">Дополнительные настройки контента</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Пошаговые инструкции</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Включать детальные пошаговые руководства
+                        </p>
+                      </div>
+                      <Switch
+                        checked={(settings as any)?.includeStepByStep || false}
+                        onCheckedChange={(checked) =>
+                          updateSettingsMutation.mutate({ includeStepByStep: checked })
+                        }
+                        data-testid="switch-step-by-step"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Российское законодательство</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Ссылки на 152-ФЗ и другие нормы РФ
+                        </p>
+                      </div>
+                      <Switch
+                        checked={(settings as any)?.includeRussianLaw || false}
+                        onCheckedChange={(checked) =>
+                          updateSettingsMutation.mutate({ includeRussianLaw: checked })
+                        }
+                        data-testid="switch-russian-law"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">Списки брокеров данных</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Включать списки российских сайтов-брокеров
+                        </p>
+                      </div>
+                      <Switch
+                        checked={(settings as any)?.includeBrokerLists || false}
+                        onCheckedChange={(checked) =>
+                          updateSettingsMutation.mutate({ includeBrokerLists: checked })
+                        }
+                        data-testid="switch-broker-lists"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Темы для генерации</Label>
                 <Textarea
@@ -493,9 +648,10 @@ export default function AdminBlog() {
                     })
                   }
                   data-testid="textarea-topics"
+                  className="min-h-[100px]"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Разделяйте темы запятыми. Например: защита данных, 152-ФЗ, кибербезопасность
+                  Темы автоматически обновляются с расширенной базой как у Incogni.com: российские брокеры данных, пошаговые инструкции, защита от спама, исследования
                 </p>
               </div>
             </CardContent>
