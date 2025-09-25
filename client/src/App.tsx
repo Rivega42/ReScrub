@@ -16,6 +16,7 @@ import NotFound from "@/pages/not-found";
 // Lazy-loaded страницы для оптимизации производительности
 // Основные страницы
 const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
+const OperatorConfirm = lazy(() => import("@/pages/operator-confirm"));
 const About = lazy(() => import("@/pages/About"));
 const DataBrokers = lazy(() => import("@/pages/DataBrokers"));
 const FAQ = lazy(() => import("@/pages/FAQ"));
@@ -125,6 +126,11 @@ function Router() {
       <Route path="/verify-email">
         <Suspense fallback={<PageLoadingFallback />}>
           <VerifyEmail />
+        </Suspense>
+      </Route>
+      <Route path="/operator/confirm/:token">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <OperatorConfirm />
         </Suspense>
       </Route>
       <Route path="/invite/:code">

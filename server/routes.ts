@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { referralCodes } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { sql } from "drizzle-orm";
+import { sql, eq, desc } from "drizzle-orm";
 import { 
   insertSupportTicketSchema, 
   insertUserAccountSchema, 
@@ -17,6 +17,8 @@ import {
   insertPaymentSchema,
   insertBlogGenerationSettingsSchema,
   sendGridInboundWebhookSchema,
+  inboundEmails,
+  operatorActionTokens,
   type UserAccount,
   type DataBroker,
   type DeletionRequest,
@@ -6060,9 +6062,7 @@ ${allPages.map(page => `  <url>
       const userAgent = req.headers['user-agent'] || 'unknown';
       
       await storage.markOperatorActionTokenAsUsed(token, clientIp, userAgent);
-      await storage.updateDeletionRequest(decodedToken.deletionRequestId, {
-        status: 'operator_confirmed'
-      });
+      await storage.markOperatorConfirmed(decodedToken.deletionRequestId, new Date(), token);
 
       // Success page
       res.send(`
@@ -6113,6 +6113,460 @@ ${allPages.map(page => `  <url>
         </body>
         </html>
       `);
+    }
+  });
+
+  // ====================================
+  // NEW API ROUTES FOR OPERATOR CONFIRMATION AND INBOUND EMAIL PROCESSING
+  // ====================================
+
+  // Operator Confirmation API Endpoint
+  app.get('/api/operator/confirm/:token', operatorConfirmLimiter, async (req: any, res) => {
+    try {
+      const { token } = req.params;
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      
+      // Log all confirmation attempts for audit trail
+      console.log(`🔍 Operator confirmation attempt: token=${token.substring(0, 10)}..., IP=${clientIp}, UserAgent=${userAgent}`);
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_TOKEN',
+          message: 'Отсутствует токен подтверждения'
+        });
+      }
+
+      // Verify HMAC token
+      const decodedToken = verifyConfirmationToken(token);
+      if (!decodedToken) {
+        console.warn(`⚠️ Invalid confirmation token attempted: ${token.substring(0, 10)}... from IP ${clientIp}`);
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_TOKEN',
+          message: 'Токен подтверждения недействителен или истёк'
+        });
+      }
+
+      // Check if token exists and not used
+      const tokenRecord = await storage.getOperatorActionTokenByToken(token);
+      if (!tokenRecord) {
+        console.warn(`⚠️ Token not found in database: ${token.substring(0, 10)}... from IP ${clientIp}`);
+        return res.status(404).json({
+          success: false,
+          error: 'TOKEN_NOT_FOUND',
+          message: 'Указанный токен не существует в системе'
+        });
+      }
+
+      if (tokenRecord.usedAt) {
+        console.warn(`⚠️ Token already used: ${token.substring(0, 10)}... from IP ${clientIp}, originally used at ${tokenRecord.usedAt}`);
+        return res.status(410).json({
+          success: false,
+          error: 'TOKEN_ALREADY_USED',
+          message: 'Данный токен подтверждения уже был использован',
+          usedAt: tokenRecord.usedAt.toISOString()
+        });
+      }
+
+      // Mark token as used and update deletion request
+      await storage.markOperatorActionTokenAsUsed(token, clientIp, userAgent);
+      const updatedRequest = await storage.markOperatorConfirmed(decodedToken.deletionRequestId, new Date(), token);
+      
+      console.log(`✅ Operator confirmation successful: deletionRequestId=${decodedToken.deletionRequestId}, IP=${clientIp}`);
+      
+      res.json({
+        success: true,
+        message: 'Подтверждение принято и обработано',
+        data: {
+          deletionRequestId: decodedToken.deletionRequestId,
+          confirmedAt: new Date().toISOString(),
+          status: 'operator_confirmed'
+        }
+      });
+      
+    } catch (error) {
+      console.error('API operator/confirm error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Произошла ошибка при обработке подтверждения'
+      });
+    }
+  });
+
+  // Inbound Email Processing Routes
+  
+  // Get inbound email details
+  app.get('/api/inbound-emails/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_inbound_email',
+        targetType: 'inbound_email',
+        targetId: id,
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      const email = await storage.getInboundEmailById(id);
+      if (!email) {
+        return res.status(404).json({
+          success: false,
+          error: 'EMAIL_NOT_FOUND',
+          message: 'Входящее письмо не найдено'
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: email
+      });
+      
+    } catch (error) {
+      console.error('Error fetching inbound email:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения данных письма'
+      });
+    }
+  });
+
+  // Manual classification of inbound email
+  app.patch('/api/inbound-emails/:id/classify', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Validation schema for classification request
+      const classifySchema = z.object({
+        classification: z.enum(['confirmation', 'rejection', 'question', 'out_of_office', 'other']),
+        notes: z.string().optional(),
+        linkToDeletionRequest: z.string().optional()
+      });
+      
+      const validatedData = classifySchema.parse(req.body);
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'classify_inbound_email',
+        targetType: 'inbound_email',
+        targetId: id,
+        metadata: validatedData,
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      const email = await storage.getInboundEmailById(id);
+      if (!email) {
+        return res.status(404).json({
+          success: false,
+          error: 'EMAIL_NOT_FOUND',
+          message: 'Входящее письмо не найдено'
+        });
+      }
+      
+      // Update email classification
+      const updateData: any = {
+        classification: validatedData.classification,
+        classifiedAt: new Date(),
+        classifiedBy: req.adminUser.id,
+        updatedAt: new Date()
+      };
+      
+      if (validatedData.notes) {
+        updateData.classificationNotes = validatedData.notes;
+      }
+      
+      if (validatedData.linkToDeletionRequest) {
+        updateData.deletionRequestId = validatedData.linkToDeletionRequest;
+      }
+      
+      // Note: This would require adding an updateInboundEmail method to storage
+      // For now, we'll use a direct database update
+      const [updatedEmail] = await db
+        .update(inboundEmails)
+        .set(updateData)
+        .where(eq(inboundEmails.id, id))
+        .returning();
+      
+      res.json({
+        success: true,
+        message: 'Классификация письма обновлена',
+        data: updatedEmail
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Некорректные данные классификации',
+          details: error.errors
+        });
+      }
+      
+      console.error('Error classifying inbound email:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка обновления классификации'
+      });
+    }
+  });
+
+  // Get emails related to deletion request
+  app.get('/api/deletion-requests/:id/emails', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_deletion_request_emails',
+        targetType: 'deletion_request',
+        targetId: id,
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      // Get deletion request to verify it exists
+      const deletionRequest = await storage.getDeletionRequestById(id);
+      if (!deletionRequest) {
+        return res.status(404).json({
+          success: false,
+          error: 'DELETION_REQUEST_NOT_FOUND',
+          message: 'Запрос на удаление не найден'
+        });
+      }
+      
+      // Get related inbound emails
+      const emails = await db
+        .select()
+        .from(inboundEmails)
+        .where(eq(inboundEmails.deletionRequestId, id))
+        .orderBy(desc(inboundEmails.receivedAt));
+      
+      res.json({
+        success: true,
+        data: {
+          deletionRequestId: id,
+          deletionRequestStatus: deletionRequest.status,
+          emails: emails
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error fetching deletion request emails:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения писем по запросу'
+      });
+    }
+  });
+
+  // Admin/Debug Routes
+
+  // Get deletion request details
+  app.get('/api/deletion-requests/:id', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_deletion_request',
+        targetType: 'deletion_request',
+        targetId: id,
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      const deletionRequest = await storage.getDeletionRequestById(id);
+      if (!deletionRequest) {
+        return res.status(404).json({
+          success: false,
+          error: 'DELETION_REQUEST_NOT_FOUND',
+          message: 'Запрос на удаление не найден'
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: deletionRequest
+      });
+      
+    } catch (error) {
+      console.error('Error fetching deletion request:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения запроса на удаление'
+      });
+    }
+  });
+
+  // Manual status update for deletion request
+  app.patch('/api/deletion-requests/:id/status', isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Validation schema for status update
+      const statusUpdateSchema = z.object({
+        status: z.enum(['pending', 'sent', 'delivered', 'response_received', 'operator_confirmed', 'completed', 'failed', 'expired']),
+        notes: z.string().optional(),
+        adminOverride: z.boolean().default(true)
+      });
+      
+      const validatedData = statusUpdateSchema.parse(req.body);
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'update_deletion_request_status',
+        targetType: 'deletion_request',
+        targetId: id,
+        metadata: {
+          newStatus: validatedData.status,
+          notes: validatedData.notes,
+          adminOverride: validatedData.adminOverride
+        },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      const deletionRequest = await storage.getDeletionRequestById(id);
+      if (!deletionRequest) {
+        return res.status(404).json({
+          success: false,
+          error: 'DELETION_REQUEST_NOT_FOUND',
+          message: 'Запрос на удаление не найден'
+        });
+      }
+      
+      // Update status with admin override flag
+      const updateData: any = {
+        status: validatedData.status,
+        updatedAt: new Date()
+      };
+      
+      if (validatedData.notes) {
+        updateData.processingNotes = validatedData.notes;
+      }
+      
+      // Add admin override metadata
+      const currentDetails = deletionRequest.responseDetails || {};
+      updateData.responseDetails = {
+        ...currentDetails,
+        adminOverride: {
+          adminId: req.adminUser.id,
+          previousStatus: deletionRequest.status,
+          newStatus: validatedData.status,
+          timestamp: new Date().toISOString(),
+          notes: validatedData.notes
+        }
+      };
+      
+      const updatedRequest = await storage.updateDeletionRequest(id, updateData);
+      
+      res.json({
+        success: true,
+        message: 'Статус запроса обновлен',
+        data: updatedRequest
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Некорректные данные для обновления статуса',
+          details: error.errors
+        });
+      }
+      
+      console.error('Error updating deletion request status:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка обновления статуса запроса'
+      });
+    }
+  });
+
+  // Get list of active operator tokens (without secrets)
+  app.get('/api/operator-tokens', isAdmin, async (req: any, res) => {
+    try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_operator_tokens',
+        targetType: 'operator_tokens',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      // Get all operator action tokens with safe fields only (no token secrets)
+      const tokens = await db
+        .select({
+          id: operatorActionTokens.id,
+          deletionRequestId: operatorActionTokens.deletionRequestId,
+          actionType: operatorActionTokens.actionType,
+          expiresAt: operatorActionTokens.expiresAt,
+          usedAt: operatorActionTokens.usedAt,
+          usedByIp: operatorActionTokens.usedByIp,
+          userAgent: operatorActionTokens.userAgent,
+          createdAt: operatorActionTokens.createdAt
+        })
+        .from(operatorActionTokens)
+        .orderBy(desc(operatorActionTokens.createdAt))
+        .limit(100); // Limit to last 100 tokens for performance
+      
+      // Separate active and used tokens
+      const activeTokens = tokens.filter(token => !token.usedAt && new Date(token.expiresAt) > new Date());
+      const usedTokens = tokens.filter(token => token.usedAt);
+      const expiredTokens = tokens.filter(token => !token.usedAt && new Date(token.expiresAt) <= new Date());
+      
+      res.json({
+        success: true,
+        data: {
+          summary: {
+            total: tokens.length,
+            active: activeTokens.length,
+            used: usedTokens.length,
+            expired: expiredTokens.length
+          },
+          tokens: {
+            active: activeTokens,
+            used: usedTokens.slice(0, 20), // Show only last 20 used tokens
+            expired: expiredTokens
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error fetching operator tokens:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения списка токенов'
+      });
     }
   });
 
