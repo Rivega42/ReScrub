@@ -2084,8 +2084,19 @@ ${allPages.map(page => `  <url>
   // Blog Scheduler Management Endpoints
   
   // Get scheduler status and statistics
-  app.get("/api/blog/scheduler/status", isEmailAuthenticated, async (req, res) => {
+  app.get("/api/blog/scheduler/status", isAdmin, async (req: any, res) => {
     try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_blog_scheduler_status',
+        targetType: 'blog_scheduler',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
       const scheduler = SchedulerInstance.get();
       if (!scheduler) {
         return res.status(503).json({ 
@@ -2116,8 +2127,19 @@ ${allPages.map(page => `  <url>
   });
 
   // Force blog generation
-  app.post("/api/blog/scheduler/force", isEmailAuthenticated, async (req, res) => {
+  app.post("/api/blog/scheduler/force", isAdmin, async (req: any, res) => {
     try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'force_blog_generation',
+        targetType: 'blog_scheduler',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
       const scheduler = SchedulerInstance.get();
       if (!scheduler) {
         return res.status(503).json({ 
@@ -2146,8 +2168,19 @@ ${allPages.map(page => `  <url>
   });
 
   // Get detailed generation settings  
-  app.get("/api/blog/scheduler/settings", isEmailAuthenticated, async (req, res) => {
+  app.get("/api/blog/scheduler/settings", isAdmin, async (req: any, res) => {
     try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_blog_scheduler_settings',
+        targetType: 'blog_scheduler',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
       const scheduler = SchedulerInstance.get();
       if (!scheduler) {
         return res.status(503).json({ 
@@ -2172,7 +2205,7 @@ ${allPages.map(page => `  <url>
   });
 
   // Update generation settings
-  app.post("/api/blog/scheduler/settings", isEmailAuthenticated, async (req, res) => {
+  app.post("/api/blog/scheduler/settings", isAdmin, async (req: any, res) => {
     try {
       const scheduler = SchedulerInstance.get();
       if (!scheduler) {
@@ -2190,6 +2223,17 @@ ${allPages.map(page => `  <url>
       });
 
       const validatedData = updateSchema.parse(req.body);
+      
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'update_blog_scheduler_settings',
+        targetType: 'blog_scheduler',
+        metadata: validatedData,
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
       
       await scheduler.updateGenerationSettings({
         enabled: validatedData.enabled,
@@ -2223,8 +2267,19 @@ ${allPages.map(page => `  <url>
   });
 
   // Get comprehensive scheduler statistics
-  app.get("/api/blog/scheduler/stats", isEmailAuthenticated, async (req, res) => {
+  app.get("/api/blog/scheduler/stats", isAdmin, async (req: any, res) => {
     try {
+      // Log admin action for audit trail
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_blog_scheduler_stats',
+        targetType: 'blog_scheduler',
+        metadata: {},
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
       const scheduler = SchedulerInstance.get();
       if (!scheduler) {
         return res.status(503).json({ 
@@ -4187,9 +4242,11 @@ ${allPages.map(page => `  <url>
           category: generatedArticle.category,
           tags: generatedArticle.tags,
           featured: generatedArticle.featured,
+          status: "published",
           seoDescription: generatedArticle.metaDescription,
           seoTitle: generatedArticle.seoTitle,
-          readingTime: generatedArticle.readingTime
+          readingTime: generatedArticle.readingTime,
+          publishedAt: new Date()
         });
         
         const saveTime = Date.now() - saveStartTime;
