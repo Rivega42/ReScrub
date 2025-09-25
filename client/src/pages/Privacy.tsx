@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Shield, FileText, Clock, Phone, Mail, User, Building, Globe, Lock } from "lucide-react";
+import { Shield, FileText, Clock, Phone, Mail, User, Building, Globe, Lock, CreditCard } from "lucide-react";
 import { useEffect } from "react";
 
 export default function Privacy() {
@@ -144,7 +144,7 @@ export default function Privacy() {
                   
                   <Card className="bg-muted/30">
                     <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                           <div className="flex items-center gap-2 mb-3">
                             <Building className="h-5 w-5 text-primary" />
@@ -152,11 +152,8 @@ export default function Privacy() {
                           </div>
                           <div className="space-y-2 text-sm">
                             <p><strong>Полное наименование:</strong><br />
-                            Общество с ограниченной ответственностью "РесКраб"</p>
-                            <p><strong>Сокращенное наименование:</strong> ООО "РесКраб"</p>
-                            <p><strong>ОГРН:</strong> 1187746123456</p>
-                            <p><strong>ИНН:</strong> 7707123456</p>
-                            <p><strong>КПП:</strong> 770701001</p>
+                            Индивидуальный предприниматель Гудков Роман Владимирович</p>
+                            <p><strong>ИНН:</strong> 781912607115</p>
                           </div>
                         </div>
                         <div>
@@ -174,6 +171,21 @@ export default function Privacy() {
                             <p><strong>Телефон:</strong> +7 (495) 123-45-67</p>
                           </div>
                         </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <CreditCard className="h-5 w-5 text-primary" />
+                            <h4 className="font-semibold text-foreground">Банковские реквизиты:</h4>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <p><strong>Расчётный счёт:</strong><br />
+                            40802810903500001660</p>
+                            <p><strong>Банк:</strong><br />
+                            ООО "Банк Точка"</p>
+                            <p><strong>БИК:</strong> 044525104</p>
+                            <p><strong>Корр. счёт:</strong><br />
+                            30101810745374525104</p>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -184,7 +196,7 @@ export default function Privacy() {
                   </p>
                   
                   <p>
-                    2.3. Оператор зарегистрирован в Едином государственном реестре юридических лиц 
+                    2.3. Оператор зарегистрирован в Едином государственном реестре индивидуальных предпринимателей 
                     и осуществляет деятельность в соответствии с законодательством Российской Федерации.
                   </p>
                 </div>

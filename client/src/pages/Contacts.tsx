@@ -224,7 +224,7 @@ export default function Contacts() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <p className="font-semibold">ООО "РесКраб"</p>
+                    <p className="font-semibold">ИП Гудков Роман Владимирович</p>
                     <p className="text-muted-foreground">
                       Москва, ул. Тверская, 7, стр. 1<br />
                       Бизнес-центр "Тверской Пассаж"<br />

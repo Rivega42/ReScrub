@@ -585,7 +585,7 @@ export const SEO_CONSTANTS = {
   
   // Russian business information for Schema.org
   RUSSIAN_BUSINESS: {
-    LEGAL_NAME: 'ООО "РесКраб"',
+    LEGAL_NAME: 'Индивидуальный предприниматель Гудков Роман Владимирович',
     LEGAL_ADDRESS: {
       streetAddress: 'ул. Тверская, д. 10, стр. 1',
       addressLocality: 'Москва',
@@ -604,7 +604,7 @@ export const SEO_CONSTANTS = {
       dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     },
     FOUNDED_YEAR: 2024,
-    TAX_ID: '7701234567', // Example INN
+    TAX_ID: '781912607115', // ИНН ИП Гудкова Р.В.
     CURRENCIES: ['RUB'],
     LANGUAGES: ['ru', 'en']
   }
