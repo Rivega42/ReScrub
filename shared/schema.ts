@@ -192,7 +192,7 @@ export const deletionRequests = pgTable("deletion_requests", {
   scanId: varchar("scan_id").references(() => dataBrokerScans.id, { onDelete: "cascade" }),
   brokerName: varchar("broker_name").notNull(),
   requestType: varchar("request_type").notNull(), // 'deletion', 'correction', 'access'
-  status: varchar("status").notNull().default("pending"), // 'pending', 'sent', 'processing', 'completed', 'rejected', 'failed'
+  status: varchar("status").notNull().default("pending"), // 'pending', 'sent', 'processing', 'completed', 'rejected', 'failed', 'initiated', 'sent_initial', 'delivered_initial', 'operator_confirmed', 'reply_deleted', 'followup_sent', 'delivered_followup', 'no_response', 'escalated', 'closed'
   requestMethod: varchar("request_method"), // 'email', 'form', 'api', 'postal'
   requestDetails: jsonb("request_details").default(sql`'{}'::jsonb`),
   sentAt: timestamp("sent_at"),
@@ -201,9 +201,60 @@ export const deletionRequests = pgTable("deletion_requests", {
   completedAt: timestamp("completed_at"),
   followUpRequired: boolean("follow_up_required").default(false),
   followUpDate: timestamp("follow_up_date"),
+  // Новые поля для двухэтапной отправки писем операторам ПД
+  trackingId: varchar("tracking_id"), // уникальный ID для отслеживания в email headers
+  operatorEmail: varchar("operator_email"), // email оператора ПД
+  firstSentAt: timestamp("first_sent_at"), // время отправки первого письма
+  followUpSentAt: timestamp("follow_up_sent_at"), // время отправки повторного письма
+  responseDeadlineAt: timestamp("response_deadline_at"), // крайний срок ответа
+  followUpDueAt: timestamp("follow_up_due_at"), // когда отправить повторное письмо
+  escalateDueAt: timestamp("escalate_due_at"), // когда эскалировать в Росреестр
+  buttonConfirmedAt: timestamp("button_confirmed_at"), // когда оператор нажал кнопку "удалили"
+  lastInboundAt: timestamp("last_inbound_at"), // последний входящий ответ
+  escalationSentAt: timestamp("escalation_sent_at"), // время отправки в Росреестр
+  initialMessageId: varchar("initial_message_id"), // ID первого письма
+  followUpMessageId: varchar("follow_up_message_id"), // ID повторного письма
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Inbound emails table для обработки входящих писем от операторов ПД
+export const inboundEmails = pgTable("inbound_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  deletionRequestId: varchar("deletion_request_id").notNull().references(() => deletionRequests.id, { onDelete: "cascade" }),
+  operatorEmail: varchar("operator_email").notNull(),
+  subject: varchar("subject"),
+  bodyText: text("body_text"),
+  bodyHtml: text("body_html"),
+  parsedStatus: varchar("parsed_status").notNull(), // 'deleted', 'rejected', 'need_info', 'other'
+  headers: jsonb("headers").default(sql`'{}'::jsonb`),
+  inReplyTo: varchar("in_reply_to"),
+  references: varchar("references"),
+  xTrackId: varchar("x_track_id"),
+  receivedAt: timestamp("received_at").notNull().defaultNow(),
+}, (table) => [
+  index("IDX_inbound_emails_deletion_request").on(table.deletionRequestId),
+  index("IDX_inbound_emails_operator").on(table.operatorEmail),
+  index("IDX_inbound_emails_track_id").on(table.xTrackId),
+  index("IDX_inbound_emails_received").on(table.receivedAt),
+]);
+
+// Operator action tokens для подтверждения действий операторов ПД
+export const operatorActionTokens = pgTable("operator_action_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  deletionRequestId: varchar("deletion_request_id").notNull().references(() => deletionRequests.id, { onDelete: "cascade" }),
+  token: varchar("token").notNull().unique(), // HMAC токен
+  type: varchar("type").notNull(), // 'confirm_deletion'
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  usedByIp: varchar("used_by_ip"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_operator_tokens_deletion_request").on(table.deletionRequestId),
+  index("IDX_operator_tokens_token").on(table.token),
+  index("IDX_operator_tokens_expires").on(table.expiresAt),
+]);
 
 // Notifications table
 export const notifications = pgTable("notifications", {
@@ -369,6 +420,17 @@ export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).
   completedAt: true,
   followUpRequired: true,
   followUpDate: true,
+  // Исключаем новые автогенерируемые поля
+  firstSentAt: true,
+  followUpSentAt: true,
+  responseDeadlineAt: true,
+  followUpDueAt: true,
+  escalateDueAt: true,
+  buttonConfirmedAt: true,
+  lastInboundAt: true,
+  escalationSentAt: true,
+  initialMessageId: true,
+  followUpMessageId: true,
   createdAt: true,
   updatedAt: true,
 });
@@ -410,6 +472,18 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
 });
 
+// Insert schemas for new tables
+export const insertInboundEmailSchema = createInsertSchema(inboundEmails).omit({
+  id: true,
+  receivedAt: true, // defaultNow()
+});
+
+export const insertOperatorActionTokenSchema = createInsertSchema(operatorActionTokens).omit({
+  id: true,
+  usedAt: true, // заполняется при использовании
+  createdAt: true, // defaultNow()
+});
+
 // Types
 export type UserAccount = typeof userAccounts.$inferSelect;
 export type InsertUserAccount = z.infer<typeof insertUserAccountSchema>;
@@ -435,6 +509,10 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InboundEmail = typeof inboundEmails.$inferSelect;
+export type InsertInboundEmail = z.infer<typeof insertInboundEmailSchema>;
+export type OperatorActionToken = typeof operatorActionTokens.$inferSelect;
+export type InsertOperatorActionToken = z.infer<typeof insertOperatorActionTokenSchema>;
 
 // ====================
 // ACHIEVEMENTS SYSTEM
