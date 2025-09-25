@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ArrowRight, Calendar, Clock, User, Search, Filter, ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, User, Search, Filter, ArrowLeft, ExternalLink, Telescope } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { SEO } from '@/components/SEO';
@@ -15,6 +15,8 @@ import {
   SEO_CONSTANTS
 } from '@shared/seo';
 import { type BlogArticle } from '@/data/blogArticles';
+import { BLOG_CATEGORIES, getAllCategoriesSorted, getCategoryUrl } from '@shared/categories';
+
 
 // Blog listing component
 export default function Blog() {
@@ -70,6 +72,86 @@ export default function Blog() {
               Экспертные статьи, пошаговые инструкции и актуальные новости о приватности в российском интернете
             </p>
           </div>
+
+          {/* Category Navigation */}
+          <section className="mb-12" data-testid="category-navigation">
+            <h2 className="text-2xl font-bold mb-6 text-center">Выберите категорию</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {/* All Categories Button */}
+              <Card 
+                className={`cursor-pointer transition-all duration-200 hover-elevate ${
+                  selectedCategory === '' 
+                    ? 'ring-2 ring-primary bg-primary/5' 
+                    : 'hover:shadow-md'
+                }`}
+                onClick={() => setSelectedCategory('')}
+                data-testid="category-card-all"
+              >
+                <CardContent className="p-4 text-center">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className={`p-3 rounded-full ${selectedCategory === '' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      <Telescope className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Все статьи</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Просмотреть все материалы
+                      </p>
+                      <div className="mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {articles.length} статей
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Category Cards */}
+              {getAllCategoriesSorted().map((category) => {
+                const IconComponent = category.icon;
+                const articlesInCategory = articles.filter(article => article.category === category.key);
+                const isSelected = selectedCategory === category.key;
+                
+                return (
+                  <Link href={getCategoryUrl(category.key)}>
+                    <Card 
+                      key={category.key}
+                      className={`cursor-pointer transition-all duration-200 hover-elevate ${
+                        isSelected 
+                          ? 'ring-2 ring-primary bg-primary/5' 
+                          : 'hover:shadow-md'
+                      }`}
+                      data-testid={`category-card-${category.slug}`}
+                    >
+                    <CardContent className="p-4 text-center">
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className={`p-3 rounded-full transition-colors ${
+                          isSelected 
+                            ? 'bg-primary text-primary-foreground' 
+                            : `${category.color} ${category.darkColor}`
+                        }`}>
+                          <IconComponent className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm">{category.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {category.description}
+                          </p>
+                          <div className="mt-2">
+                            <Badge variant="outline" className="text-xs">
+                              {articlesInCategory.length} статей
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
 
           {/* Loading State */}
           {isLoading && (
@@ -136,7 +218,18 @@ export default function Blog() {
                   <Card key={article.id} className="hover-elevate transition-all duration-200" data-testid={`card-featured-article-${article.id}`}>
                     <CardHeader>
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" data-testid={`badge-category-${article.id}`}>{article.category}</Badge>
+                        {BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES] ? (
+                          <Badge 
+                            variant="outline" 
+                            className={`${BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES].color} ${BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES].darkColor} border`}
+                            data-testid={`badge-category-${article.id}`}
+                          >
+                            {React.createElement(BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES].icon, { className: "h-3 w-3 mr-1" })}
+                            {article.category}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" data-testid={`badge-category-${article.id}`}>{article.category}</Badge>
+                        )}
                         <Badge variant="outline" data-testid={`badge-featured-${article.id}`}>Рекомендуется</Badge>
                       </div>
                       <CardTitle className="line-clamp-2" data-testid={`text-article-title-${article.id}`}>
@@ -212,7 +305,18 @@ export default function Blog() {
                       <Card key={article.id} className="hover-elevate transition-all duration-200" data-testid={`card-article-${article.id}`}>
                         <CardHeader>
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="secondary" data-testid={`badge-category-${article.id}`}>{article.category}</Badge>
+                            {BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES] ? (
+                              <Badge 
+                                variant="outline" 
+                                className={`${BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES].color} ${BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES].darkColor} border`}
+                                data-testid={`badge-category-${article.id}`}
+                              >
+                                {React.createElement(BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES].icon, { className: "h-3 w-3 mr-1" })}
+                                {article.category}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" data-testid={`badge-category-${article.id}`}>{article.category}</Badge>
+                            )}
                             {article.featured && (
                               <Badge variant="outline" data-testid={`badge-featured-${article.id}`}>Рекомендуется</Badge>
                             )}

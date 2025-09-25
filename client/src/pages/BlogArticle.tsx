@@ -18,7 +18,12 @@ import {
   ExternalLink,
   ArrowRight,
   ChevronRight,
-  Lightbulb
+  Lightbulb,
+  BarChart3,
+  FileText,
+  Shield,
+  PhoneOff,
+  Scale
 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -38,6 +43,8 @@ import {
   SEO_CONSTANTS
 } from '@shared/seo';
 import { type BlogArticle } from '@/data/blogArticles';
+import { BLOG_CATEGORIES, getCategorySlug } from '@shared/categories';
+
 
 // Helper functions for robust anchor processing
 function childrenToText(children: any): string {
@@ -222,7 +229,10 @@ export default function BlogArticle() {
   // Enhanced JSON-LD structured data
   const jsonLd = enhancedArticle ? buildEnhancedArticleJsonLd(enhancedArticle, `/blog/${article.slug}`) : null;
   
-  // Enhanced breadcrumb JSON-LD
+  // Get category info for breadcrumbs
+  const categoryInfo = BLOG_CATEGORIES[article.category as keyof typeof BLOG_CATEGORIES];
+  
+  // Enhanced breadcrumb JSON-LD with category
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -239,9 +249,15 @@ export default function BlogArticle() {
         "name": "Блог",
         "item": "https://rescrub.com/blog"
       },
-      {
+      ...(categoryInfo ? [{
         "@type": "ListItem",
         "position": 3,
+        "name": categoryInfo.displayName,
+        "item": `https://rescrub.com/blog/category/${categoryInfo.slug}`
+      }] : []),
+      {
+        "@type": "ListItem",
+        "position": categoryInfo ? 4 : 3,
         "name": article.title,
         "item": `https://rescrub.com/blog/${article.slug}`
       }
@@ -263,20 +279,62 @@ export default function BlogArticle() {
         <Header />
         
         <article className="container mx-auto px-4 py-8 max-w-7xl" data-testid="article-content">
-          {/* Navigation */}
+          {/* Breadcrumbs Navigation */}
           <nav className="mb-8" data-testid="article-navigation">
-            <Link href="/blog">
-              <Button variant="outline" size="sm" data-testid="button-back-to-blog">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Назад к блогу
-              </Button>
-            </Link>
+            {/* Breadcrumbs */}
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-4" data-testid="article-breadcrumbs">
+              <Link href="/blog" className="hover:text-foreground transition-colors">
+                Блог
+              </Link>
+              {categoryInfo && (
+                <>
+                  <ChevronRight className="h-4 w-4" />
+                  <Link 
+                    href={`/blog/category/${categoryInfo.slug}`} 
+                    className="hover:text-foreground transition-colors"
+                  >
+                    {categoryInfo.displayName}
+                  </Link>
+                </>
+              )}
+              <ChevronRight className="h-4 w-4" />
+              <span className="text-foreground font-medium truncate">{article.title}</span>
+            </div>
+            
+            {/* Back Button */}
+            <div className="flex gap-2">
+              <Link href="/blog">
+                <Button variant="outline" size="sm" data-testid="button-back-to-blog">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Все статьи
+                </Button>
+              </Link>
+              {categoryInfo && (
+                <Link href={`/blog/category/${categoryInfo.slug}`}>
+                  <Button variant="outline" size="sm" data-testid="button-back-to-category">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    {categoryInfo.displayName}
+                  </Button>
+                </Link>
+              )}
+            </div>
           </nav>
 
           {/* Article Header */}
           <header className="mb-12" data-testid="article-header">
             <div className="flex items-center gap-2 mb-4">
-              <Badge variant="secondary" data-testid="badge-article-category">{article.category}</Badge>
+              {categoryInfo ? (
+                <Badge 
+                  variant="outline" 
+                  className={`${categoryInfo.color} ${categoryInfo.darkColor} border`}
+                  data-testid="badge-article-category"
+                >
+                  <categoryInfo.icon className="h-3 w-3 mr-1" />
+                  {categoryInfo.displayName}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" data-testid="badge-article-category">{article.category}</Badge>
+              )}
               {article.featured && (
                 <Badge variant="outline" data-testid="badge-article-featured">Рекомендуется</Badge>
               )}

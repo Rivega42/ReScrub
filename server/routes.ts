@@ -33,6 +33,7 @@ import { verifyWebhookSignature, processWebhookEvents, type WebhookEvent, sendEm
 import { robokassaClient } from "./robokassa";
 import { SchedulerInstance } from "./scheduler-instance";
 import { BlogGeneratorService } from "./blog-generator";
+import { isValidCategory, SLUG_TO_CATEGORY } from "../shared/categories";
 import fs from 'fs';
 import path from 'path';
 
@@ -1998,7 +1999,27 @@ ${allPages.map(page => `  <url>
       const { category, featured, limit = 50, offset = 0 } = req.query;
       
       const filters: any = {};
-      if (category && typeof category === 'string') filters.category = category;
+      
+      // Enhanced category filtering with validation
+      if (category && typeof category === 'string') {
+        let categoryKey = category;
+        
+        // If category is a slug, convert to category key
+        if (SLUG_TO_CATEGORY[category]) {
+          categoryKey = SLUG_TO_CATEGORY[category];
+        }
+        
+        // Validate category
+        if (!isValidCategory(categoryKey)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid category "${category}". Must be one of: ${Object.keys(SLUG_TO_CATEGORY).join(', ')} or category names.`
+          });
+        }
+        
+        filters.category = categoryKey;
+      }
+      
       if (featured !== undefined) filters.featured = featured === 'true';
       if (limit) filters.limit = Math.min(parseInt(limit as string), 100); // Max 100 
       if (offset) filters.offset = parseInt(offset as string);

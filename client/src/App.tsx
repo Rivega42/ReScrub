@@ -11,6 +11,7 @@ import VerifyEmail from "@/pages/VerifyEmail";
 import About from "@/pages/About";
 import Blog from "@/pages/Blog";
 import BlogArticle from "@/pages/BlogArticle";
+import CategoryBlog from "@/pages/CategoryBlog";
 import DataBrokers from "@/pages/DataBrokers";
 import Reports from "@/pages/Reports";
 import FAQ from "@/pages/FAQ";
@@ -72,6 +73,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/invite/:code" component={InvitePage} />
+      <Route path="/blog/category/:category" component={CategoryBlog} />
       <Route path="/blog/:slug" component={BlogArticle} />
       <Route path="/blog" component={Blog} />
       <Route path="/data-brokers" component={DataBrokers} />

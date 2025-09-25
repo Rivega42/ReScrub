@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { BlogCategoryEnum } from "./categories";
 
 // Session storage table for Replit Auth
 export const sessions = pgTable(
@@ -901,6 +902,9 @@ export const insertBlogArticleSchema = createInsertSchema(blogArticles).omit({
   viewCount: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Enforce category validation using our centralized enum
+  category: BlogCategoryEnum
 });
 
 export const insertBlogGenerationSettingsSchema = createInsertSchema(blogGenerationSettings).omit({

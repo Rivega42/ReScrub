@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import { IStorage } from "./storage";
-import { BlogArticle, BlogGenerationSettings } from "../shared/schema";
+import { BlogArticle, BlogGenerationSettings, BlogCategoryEnum } from "../shared/schema";
 import { z } from "zod";
+import { BLOG_CATEGORIES, getAllCategoriesSorted, isValidCategory } from "../shared/categories";
 
 // Using GPT-4o as the most reliable and available OpenAI model for content generation
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o";
@@ -178,6 +179,11 @@ export class BlogGeneratorService {
     articleType?: string,
     language: string = "ru"
   ): Promise<GeneratedBlogArticle> {
+    // Validate category if provided
+    if (category && !isValidCategory(category)) {
+      throw new Error(`Invalid category "${category}". Must be one of: ${getAllCategoriesSorted().join(', ')}`);
+    }
+    
     const settings = await this.getGenerationSettings();
     const actualTopic = topic || this.selectRandomTopic(settings);
     const actualCategory = category || this.selectRandomCategory(settings);
@@ -214,6 +220,11 @@ export class BlogGeneratorService {
     category?: string,
     language: string = "ru"
   ): Promise<GeneratedBlogArticle> {
+    // Validate category if provided
+    if (category && !isValidCategory(category)) {
+      throw new Error(`Invalid category "${category}". Must be one of: ${getAllCategoriesSorted().join(', ')}`);
+    }
+    
     const settings = await this.getGenerationSettings();
     const actualTopic = topic || this.selectRandomTopic(settings);
     const actualCategory = category || this.selectRandomCategory(settings);
@@ -700,13 +711,13 @@ export class BlogGeneratorService {
       frequency: "daily",
       maxArticlesPerDay: 3,
       
-      // НОВОЕ: Типы статей как у Incogni.com
+      // НОВОЕ: Категории статей как у Incogni.com
       articleTypes: [
-        "research",        // Исследовательские статьи
-        "opt-out-guide",   // Пошаговые инструкции по удалению данных
-        "privacy-guide",   // Руководства по защите приватности  
-        "spam-protection", // Как остановить спам
-        "law-guide"        // 152-ФЗ guides (российское законодательство)
+        "Research",        // Исследовательские статьи про утечки данных, анализ брокеров
+        "Opt-out Guides",  // Пошаговые инструкции по удалению данных с конкретных сайтов
+        "Privacy Guides",  // Руководства по защите приватности и безопасности
+        "How to stop spam", // Методы борьбы со спамом (звонки, SMS, email)
+        "152-ФЗ Guides"    // Статьи про российское законодательство и права граждан
       ],
       
       // РАСШИРЕННЫЕ ТЕМЫ как у Incogni.com
@@ -791,83 +802,82 @@ export class BlogGeneratorService {
   }
 
   /**
-   * Выбирает случайную категорию из предустановленного списка (ОБНОВЛЕНО для Incogni.com)
+   * Выбирает случайную категорию из централизованного списка (ОБНОВЛЕНО для production)
    */
   private selectRandomCategory(settings: BlogGenerationSettings): string {
-    const categories = [
-      "research",        // Исследовательские статьи
-      "opt-out-guides",  // Пошаговые инструкции
-      "privacy-guides",  // Руководства по приватности
-      "spam-protection", // Защита от спама
-      "law-guides",      // Законодательство и права
-      "data-brokers",    // Брокеры данных
-      "security-tips",   // Советы по безопасности
-      "news-analysis"    // Новости и аналитика
-    ];
+    const categories = getAllCategoriesSorted();
     return categories[Math.floor(Math.random() * categories.length)];
   }
 
   /**
-   * НОВОЕ: Выбирает случайный тип статьи из настроек (как у Incogni.com)
+   * НОВОЕ: Выбирает случайную категорию из настроек (ОБНОВЛЕНО для centralized categories)
    */
   private selectRandomArticleType(settings: BlogGenerationSettings): string {
-    const articleTypes = settings.articleTypes || [
-      "research", "opt-out-guide", "privacy-guide", "spam-protection", "law-guide"
-    ];
+    const articleTypes = settings.articleTypes || getAllCategoriesSorted();
     return articleTypes[Math.floor(Math.random() * articleTypes.length)];
   }
 
   /**
-   * НОВОЕ: Выбирает тему по типу статьи для более таргетированного контента
+   * НОВОЕ: Выбирает тему по категории для более таргетированного контента (ОБНОВЛЕНО для Incogni.com)
    */
-  private selectTopicByArticleType(settings: BlogGenerationSettings, articleType: string): string {
+  private selectTopicByArticleType(settings: BlogGenerationSettings, category: string): string {
     const allTopics = settings.topics || [];
     
-    // Фильтруем темы по типу статьи для более релевантного контента
+    // Фильтруем темы по категории для более релевантного контента
     let filteredTopics: string[] = [];
     
-    switch (articleType) {
-      case "research":
+    switch (category) {
+      case "Research":
         filteredTopics = allTopics.filter(topic => 
           topic.toLowerCase().includes("исследование") || 
           topic.toLowerCase().includes("анализ") ||
-          topic.toLowerCase().includes("статистика")
+          topic.toLowerCase().includes("статистика") ||
+          topic.toLowerCase().includes("рейтинг") ||
+          topic.toLowerCase().includes("утечки") ||
+          topic.toLowerCase().includes("брокер")
         );
         break;
         
-      case "opt-out-guide":
+      case "Opt-out Guides":
         filteredTopics = allTopics.filter(topic => 
           topic.toLowerCase().includes("удалить") || 
           topic.toLowerCase().includes("пошаговое") ||
           topic.toLowerCase().includes("инструкция") ||
-          topic.toLowerCase().includes("отозвать")
+          topic.toLowerCase().includes("отозвать") ||
+          topic.toLowerCase().includes("как") ||
+          topic.toLowerCase().includes("руководство")
         );
         break;
         
-      case "privacy-guide":
+      case "Privacy Guides":
         filteredTopics = allTopics.filter(topic => 
           topic.toLowerCase().includes("защита") || 
           topic.toLowerCase().includes("приватность") ||
           topic.toLowerCase().includes("безопасность") ||
-          topic.toLowerCase().includes("права")
+          topic.toLowerCase().includes("настройки") ||
+          topic.toLowerCase().includes("конфиденциальность")
         );
         break;
         
-      case "spam-protection":
+      case "How to stop spam":
         filteredTopics = allTopics.filter(topic => 
           topic.toLowerCase().includes("спам") || 
           topic.toLowerCase().includes("звонки") ||
           topic.toLowerCase().includes("реклам") ||
-          topic.toLowerCase().includes("фильтр")
+          topic.toLowerCase().includes("фильтр") ||
+          topic.toLowerCase().includes("остановить") ||
+          topic.toLowerCase().includes("блокировка")
         );
         break;
         
-      case "law-guide":
+      case "152-ФЗ Guides":
         filteredTopics = allTopics.filter(topic => 
           topic.toLowerCase().includes("152-фз") || 
           topic.toLowerCase().includes("законодательство") ||
-          topic.toLowerCase().includes("gdpr") ||
-          topic.toLowerCase().includes("права")
+          topic.toLowerCase().includes("права") ||
+          topic.toLowerCase().includes("закон") ||
+          topic.toLowerCase().includes("роскомнадзор") ||
+          topic.toLowerCase().includes("жалоба")
         );
         break;
         
