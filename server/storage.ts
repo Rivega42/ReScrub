@@ -1220,6 +1220,9 @@ export class DatabaseStorage implements IStorage {
       console.log('✅ Created demo user profile');
     }
 
+    // Seed data brokers globally (independent of user demo data)
+    await this.seedDataBrokers();
+    
     // Seed demo data
     await this.seedDemoData(userAccount.id);
     console.log('🎉 Demo account seeding completed!');
@@ -1342,6 +1345,73 @@ export class DatabaseStorage implements IStorage {
     });
 
     console.log('✅ Demo data seeded successfully');
+  }
+
+  // Seed data brokers globally (independent of user demo data)
+  private async seedDataBrokers(): Promise<void> {
+    // Check if data brokers already exist to avoid duplicates
+    const existingBrokers = await this.getAllDataBrokers();
+    if (existingBrokers.length === 0) {
+      console.log('🏢 Seeding data brokers...');
+      
+      // Insert Сбербанк
+      await this.insertDataBroker({
+        name: 'Сбербанк',
+        legalName: 'ПАО "Сбербанк России"',
+        category: 'банк',
+        description: 'Крупнейший банк России. Обрабатывает персональные данные клиентов для предоставления банковских услуг.',
+        website: 'https://sberbank.ru',
+        email: 'personaldata@sberbank.ru',
+        phone: '8-800-555-5550',
+        address: 'г. Москва, ул. Вавилова, д. 19',
+        privacyPolicyUrl: 'https://sberbank.ru/privacy',
+        removalInstructions: 'Подача заявления через отделение банка или письменное обращение с копией паспорта.',
+        isActive: true,
+        difficultyLevel: 'medium',
+        responseTime: '1-2 недели',
+        tags: ['банк', 'кредитная история', 'финансовые данные']
+      });
+
+      // Insert МТС
+      await this.insertDataBroker({
+        name: 'МТС',
+        legalName: 'ПАО "Мобильные ТелеСистемы"',
+        category: 'телеком',
+        description: 'Крупнейший оператор сотовой связи. Хранит данные абонентов, историю звонков, SMS.',
+        website: 'https://mts.ru',
+        email: 'privacy@mts.ru',
+        phone: '8-800-250-0890',
+        address: 'г. Москва, ул. Марксистская, д. 4',
+        privacyPolicyUrl: 'https://mts.ru/personal-data',
+        removalInstructions: 'Обращение в офис МТС с паспортом или через личный кабинет.',
+        isActive: true,
+        difficultyLevel: 'easy',
+        responseTime: '3-5 дней',
+        tags: ['телеком', 'мобильная связь', 'геолокация']
+      });
+
+      // Insert Яндекс
+      await this.insertDataBroker({
+        name: 'Яндекс',
+        legalName: 'ООО "Яндекс"',
+        category: 'технологии',
+        description: 'Интернет-компания. Собирает поисковые запросы, данные браузера, поведенческие данные.',
+        website: 'https://yandex.ru',
+        email: 'dataprotection@yandex.ru',
+        phone: '8-800-234-24-80',
+        address: 'г. Москва, ул. Льва Толстого, д. 16',
+        privacyPolicyUrl: 'https://yandex.ru/legal/confidential',
+        removalInstructions: 'Удаление аккаунта через настройки Яндекс ID.',
+        isActive: true,
+        difficultyLevel: 'medium',
+        responseTime: '1-2 недели',
+        tags: ['поисковик', 'реклама', 'поведенческие данные']
+      });
+
+      console.log('✅ Data brokers seeded successfully');
+    } else {
+      console.log('✅ Data brokers already exist, skipping seeding');
+    }
   }
 
   // Public profile operations
