@@ -478,6 +478,18 @@ export const insertInboundEmailSchema = createInsertSchema(inboundEmails).omit({
   receivedAt: true, // defaultNow()
 });
 
+// Webhook payload validation schema for SendGrid Inbound Parse
+export const sendGridInboundWebhookSchema = z.object({
+  from: z.string().min(1).max(500).email("Invalid from email address"),
+  to: z.string().min(1).max(500),
+  subject: z.string().min(1).max(1000),
+  text: z.string().max(100000).optional(), // 100KB max for text
+  html: z.string().max(200000).optional(), // 200KB max for HTML
+  headers: z.string().max(10000).optional(), // JSON string of headers
+  envelope: z.string().max(1000).optional(),
+  attachments: z.number().int().min(0).max(0).optional(), // We reject attachments for security
+});
+
 export const insertOperatorActionTokenSchema = createInsertSchema(operatorActionTokens).omit({
   id: true,
   usedAt: true, // заполняется при использовании

@@ -358,6 +358,14 @@ export function seoMetaInjection() {
     const userAgent = req.get('User-Agent') || '';
     const isBot = checkIsBotRequest(userAgent);
     
+    // Skip API routes and assets BEFORE bot detection (critical for webhooks)
+    const routePath = normalizeRoutePath(req.path);
+    if (routePath.startsWith('/api/') || 
+        routePath.startsWith('/assets/') || 
+        routePath.includes('.')) {
+      return next();
+    }
+    
     // Only process for bots requesting HTML content
     if (!isBot || !req.accepts('html')) {
       return next();
@@ -375,14 +383,6 @@ export function seoMetaInjection() {
     try {
       // Get base URL and clean path
       const baseUrl = getBaseUrl(req);
-      const routePath = normalizeRoutePath(req.path);
-      
-      // Skip API routes and assets
-      if (routePath.startsWith('/api/') || 
-          routePath.startsWith('/assets/') || 
-          routePath.includes('.')) {
-        return next();
-      }
       
       // Get page metadata
       const pageMeta = getPageMetaWithFallback(routePath);

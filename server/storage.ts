@@ -134,6 +134,12 @@ export interface IStorage {
   createDeletionRequest(requestData: InsertDeletionRequest): Promise<DeletionRequest>;
   getUserDeletionRequests(userId: string): Promise<DeletionRequest[]>;
   updateDeletionRequest(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
+  getDeletionRequestByTrackingId(trackingId: string): Promise<DeletionRequest | undefined>;
+  getDeletionRequestByMessageId(messageId: string): Promise<DeletionRequest | undefined>;
+
+  // Inbound emails
+  createInboundEmail(emailData: InsertInboundEmail): Promise<InboundEmail>;
+  getInboundEmailById(id: string): Promise<InboundEmail | undefined>;
 
   // Operator action tokens operations
   createOperatorActionToken(tokenData: InsertOperatorActionToken): Promise<OperatorActionToken>;
@@ -631,6 +637,41 @@ export class DatabaseStorage implements IStorage {
       .where(eq(deletionRequests.id, id))
       .returning();
     return request;
+  }
+
+  async getDeletionRequestByTrackingId(trackingId: string): Promise<DeletionRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(deletionRequests)
+      .where(eq(deletionRequests.trackingId, trackingId));
+    return request;
+  }
+
+  async getDeletionRequestByMessageId(messageId: string): Promise<DeletionRequest | undefined> {
+    const requests = await db
+      .select()
+      .from(deletionRequests)
+      .where(
+        sql`${deletionRequests.initialMessageId} = ${messageId} OR ${deletionRequests.followUpMessageId} = ${messageId}`
+      );
+    return requests[0];
+  }
+
+  // Inbound emails
+  async createInboundEmail(emailData: InsertInboundEmail): Promise<InboundEmail> {
+    const [email] = await db
+      .insert(inboundEmails)
+      .values(emailData)
+      .returning();
+    return email;
+  }
+
+  async getInboundEmailById(id: string): Promise<InboundEmail | undefined> {
+    const [email] = await db
+      .select()
+      .from(inboundEmails)
+      .where(eq(inboundEmails.id, id));
+    return email;
   }
 
   // Operator action tokens operations
@@ -6177,6 +6218,24 @@ export class MemStorage implements IStorage {
 
   async markOperatorActionTokenAsUsed(token: string, usedByIp: string, userAgent: string): Promise<OperatorActionToken | undefined> {
     throw new Error('Operator action tokens are not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Deletion request by tracking/message ID operations (stub implementations for MemStorage)
+  async getDeletionRequestByTrackingId(trackingId: string): Promise<DeletionRequest | undefined> {
+    throw new Error('DB storage required - getDeletionRequestByTrackingId not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getDeletionRequestByMessageId(messageId: string): Promise<DeletionRequest | undefined> {
+    throw new Error('DB storage required - getDeletionRequestByMessageId not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Inbound email operations (stub implementations for MemStorage)
+  async createInboundEmail(emailData: InsertInboundEmail): Promise<InboundEmail> {
+    throw new Error('DB storage required - createInboundEmail not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getInboundEmailById(id: string): Promise<InboundEmail | undefined> {
+    throw new Error('DB storage required - getInboundEmailById not supported in MemStorage. Use DatabaseStorage for production.');
   }
 }
 

@@ -264,9 +264,8 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       notificationId = notification.id;
     }
 
-    // Generate unique tracking ID for Mailganer
-    const timestamp = Math.floor(Date.now() / 1000);
-    const trackingId = `rescrub-${timestamp}-${deletionRequestId || 'standalone'}`;
+    // Generate cryptographically secure tracking ID for end-to-end correlation
+    const trackingId = crypto.randomUUID();
 
     // Определяем правильный email для Reply-To
     const replyToEmail = data.senderEmail.includes('@') ? data.senderEmail : `${data.senderEmail}@${SENDER_DOMAIN}`;
@@ -312,16 +311,37 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
 
     // Update deletion request status if provided
     if (deletionRequestId) {
-      await storage.updateDeletionRequest(deletionRequestId, {
+      // Get current deletion request to check if this is initial or follow-up
+      const currentRequest = await storage.getDeletionRequestById(deletionRequestId);
+      let updateData: any = {
         status: 'sent',
         sentAt: new Date(),
         requestMethod: 'email',
         requestDetails: {
           emailTo: to,
           messageId,
-          subject: renderedTemplate.subject
+          subject: renderedTemplate.subject,
+          trackingId: trackingId
         }
-      });
+      };
+
+      // Save Message-ID to appropriate field based on current status
+      if (!currentRequest?.initialMessageId) {
+        // This is the initial send
+        updateData.initialMessageId = messageId;
+        updateData.firstSentAt = new Date();
+        console.log(`✅ Saved initial Message-ID: ${messageId} for deletion request: ${deletionRequestId}`);
+      } else if (!currentRequest?.followUpMessageId) {
+        // This is a follow-up send
+        updateData.followUpMessageId = messageId;
+        updateData.followUpSentAt = new Date();
+        console.log(`✅ Saved follow-up Message-ID: ${messageId} for deletion request: ${deletionRequestId}`);
+      } else {
+        // Multiple follow-ups - just update the details
+        console.log(`⚠️ Additional email sent for deletion request: ${deletionRequestId}, Message-ID: ${messageId}`);
+      }
+
+      await storage.updateDeletionRequest(deletionRequestId, updateData);
     }
 
     console.log(`Email sent successfully to ${to}, messageId: ${messageId}`);

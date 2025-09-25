@@ -16,6 +16,7 @@ import {
   insertSubscriptionSchema,
   insertPaymentSchema,
   insertBlogGenerationSettingsSchema,
+  sendGridInboundWebhookSchema,
   type UserAccount,
   type DataBroker,
   type DeletionRequest,
@@ -39,6 +40,9 @@ import fs from 'fs';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { generateConfirmationToken, verifyConfirmationToken } from './auth/tokens';
+import multer from 'multer';
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
 
 // Extend Express session types
 declare module 'express-session' {
@@ -83,6 +87,17 @@ const operatorConfirmLimiter = rateLimit({
   max: 10, // limit each IP to 10 requests per windowMs
   message: {
     error: 'Слишком много попыток подтверждения. Попробуйте позже.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for SendGrid webhook endpoint
+const sendGridWebhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // limit each IP to 100 requests per minute (high volume expected)
+  message: {
+    error: 'Too many webhook requests'
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -1042,6 +1057,479 @@ ${allPages.map(page => `  <url>
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+
+  // ========================================
+  // SENDGRID INBOUND PARSE WEBHOOK
+  // ========================================
+
+  // Initialize DOMPurify for server-side HTML sanitization
+  const window = new JSDOM('').window;
+  const purifyHTML = DOMPurify(window);
+
+  // SECURITY: Strict multer configuration with attachment rejection by default
+  const sendGridUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 1024 * 1024, // 1MB limit (reduced for security)
+      fields: 20, // Reduced field limit
+      fieldSize: 512 * 1024, // 512KB per field (reduced)
+      files: 0 // REJECT ALL ATTACHMENTS by default for security
+    },
+    fileFilter: (req, file, cb) => {
+      // SECURITY: Reject ALL attachments by default
+      console.log(`🚨 SECURITY: Rejecting attachment: ${file.originalname} (${file.mimetype})`);
+      cb(null, false);
+    }
+  });
+
+  // Email classification rules
+  function classifyEmailResponse(text: string, subject: string): string {
+    const content = `${subject} ${text}`.toLowerCase();
+    
+    // Rule 1: deleted/fulfilled
+    const deletedKeywords = ['удалил', 'удалено', 'выполнено', 'удалили', 'удален', 'удалена', 'выполнен', 'выполнена'];
+    if (deletedKeywords.some(keyword => content.includes(keyword))) {
+      console.log('Classification: deleted/fulfilled - matched keywords:', deletedKeywords.filter(k => content.includes(k)));
+      return 'deleted';
+    }
+
+    // Rule 2: rejected
+    const rejectedKeywords = ['отказ', 'не можем', 'оснований нет', 'отказано', 'невозможно', 'не можете'];
+    if (rejectedKeywords.some(keyword => content.includes(keyword))) {
+      console.log('Classification: rejected - matched keywords:', rejectedKeywords.filter(k => content.includes(k)));
+      return 'rejected';
+    }
+
+    // Rule 3: need_info
+    const needInfoKeywords = ['нужн', 'предостав', 'пришлите', 'подтверд', 'требуется', 'необходимо'];
+    if (needInfoKeywords.some(keyword => content.includes(keyword))) {
+      console.log('Classification: need_info - matched keywords:', needInfoKeywords.filter(k => content.includes(k)));
+      return 'need_info';
+    }
+
+    // Rule 4: other (default)
+    console.log('Classification: other - no specific keywords matched');
+    return 'other';
+  }
+
+  // Correlate incoming email with deletion request
+  async function correlateDeletionRequest(
+    xTrackId: string | undefined,
+    inReplyTo: string | undefined,
+    references: string | undefined,
+    operatorEmail: string
+  ): Promise<DeletionRequest | undefined> {
+    
+    // Method 1: Direct X-Track-Id correlation (highest priority)
+    if (xTrackId) {
+      const request = await storage.getDeletionRequestByTrackingId(xTrackId);
+      if (request) {
+        console.log(`✅ Found deletion request by X-Track-Id: ${xTrackId}`);
+        return request;
+      }
+    }
+
+    // Method 2: In-Reply-To header correlation
+    if (inReplyTo) {
+      const request = await storage.getDeletionRequestByMessageId(inReplyTo);
+      if (request) {
+        console.log(`✅ Found deletion request by In-Reply-To: ${inReplyTo}`);
+        return request;
+      }
+    }
+
+    // Method 3: References header correlation (check all message IDs)
+    if (references) {
+      const messageIds = references.split(/[\s,]+/).filter(id => id.trim());
+      for (const msgId of messageIds) {
+        const request = await storage.getDeletionRequestByMessageId(msgId.trim());
+        if (request) {
+          console.log(`✅ Found deletion request by References: ${msgId}`);
+          return request;
+        }
+      }
+    }
+
+    // Method 4: Fallback by operator email (least reliable)
+    try {
+      const requests = await storage.getUserDeletionRequests(''); // This needs to be updated to search by operator email
+      // For now, we'll search through recent requests manually
+      // TODO: Add getDeletionRequestsByOperatorEmail method to storage
+      console.log(`⚠️ No direct correlation found for operator: ${operatorEmail}`);
+      return undefined;
+    } catch (error) {
+      console.error('Error in fallback correlation:', error);
+      return undefined;
+    }
+  }
+
+  // SECURITY CRITICAL: Basic Auth verification for SendGrid Inbound Parse webhooks
+  function verifySendGridBasicAuth(req: any): boolean {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      console.error('🚨 SECURITY: Missing Basic Auth header in SendGrid webhook');
+      return false;
+    }
+
+    // SECURITY CRITICAL: Basic Auth credentials MUST be set
+    if (!process.env.SENDGRID_INBOUND_AUTH_USER || !process.env.SENDGRID_INBOUND_AUTH_PASS) {
+      console.error('🚨 SECURITY CRITICAL: SENDGRID_INBOUND_AUTH_USER or SENDGRID_INBOUND_AUTH_PASS not set - webhook authentication DISABLED!');
+      return false; // NEVER allow without credentials
+    }
+
+    try {
+      const base64Credentials = authHeader.split(' ')[1];
+      const credentials = Buffer.from(base64Credentials, 'base64').toString('utf8');
+      const [username, password] = credentials.split(':');
+
+      const expectedUsername = process.env.SENDGRID_INBOUND_AUTH_USER;
+      const expectedPassword = process.env.SENDGRID_INBOUND_AUTH_PASS;
+
+      const isValid = username === expectedUsername && password === expectedPassword;
+      if (!isValid) {
+        console.error('🚨 SECURITY: SendGrid webhook Basic Auth verification FAILED', {
+          receivedUsername: username ? username.substring(0, 3) + '...' : '[MISSING]',
+          expectedUsername: expectedUsername ? expectedUsername.substring(0, 3) + '...' : '[NOT SET]'
+        });
+      }
+      return isValid;
+    } catch (error) {
+      console.error('🚨 SECURITY: SendGrid webhook Basic Auth verification error:', error);
+      return false;
+    }
+  }
+
+  // SECURITY: Log authentication failures
+  function logWebhookAuthFailure(reason: string, req: any) {
+    const authFailureLog = {
+      timestamp: new Date().toISOString(),
+      reason,
+      ip: req.ip || req.connection?.remoteAddress || 'unknown',
+      userAgent: req.headers['user-agent'] || 'unknown',
+      headers: {
+        'authorization': req.headers['authorization'] ? '[PRESENT]' : '[MISSING]',
+        'content-type': req.headers['content-type'] || '[MISSING]',
+        'content-length': req.headers['content-length'] || '[MISSING]'
+      },
+      bodySize: req.body ? JSON.stringify(req.body).length : 0
+    };
+    console.error('🚨 WEBHOOK AUTH FAILURE:', JSON.stringify(authFailureLog, null, 2));
+  }
+
+  // SECURITY: SendGrid IP allowlist with official SendGrid IP ranges
+  // Official SendGrid IP ranges for Inbound Parse (as of 2024)
+  const SENDGRID_DEFAULT_IP_RANGES = [
+    '167.89.0.0/17',
+    '167.89.118.0/24', 
+    '167.89.121.0/24',
+    '167.89.123.0/24',
+    '208.115.214.0/24',
+    '208.115.235.0/24',
+    '149.72.152.0/24',
+    '149.72.154.0/24',
+    '149.72.156.0/24',
+    '149.72.158.0/24',
+    '149.72.160.0/24',
+    '149.72.162.0/24',
+    '149.72.164.0/24',
+    '149.72.166.0/24',
+    '149.72.168.0/24',
+    '149.72.170.0/24',
+    '149.72.172.0/24',
+    '149.72.174.0/24',
+    '149.72.176.0/24',
+    '149.72.178.0/24',
+    '149.72.180.0/24',
+    '149.72.182.0/24',
+    '149.72.184.0/24',
+    '149.72.186.0/24',
+    '149.72.188.0/24',
+    '149.72.190.0/24'
+  ];
+
+  const SENDGRID_ALLOWED_IPS = process.env.SENDGRID_ALLOWED_IPS ? 
+    process.env.SENDGRID_ALLOWED_IPS.split(',').map(ip => ip.trim()) : SENDGRID_DEFAULT_IP_RANGES;
+
+  // Simple CIDR check function
+  function isIPInCIDR(ip: string, cidr: string): boolean {
+    if (cidr.includes('/')) {
+      const [network, prefixLength] = cidr.split('/');
+      const networkParts = network.split('.').map(Number);
+      const ipParts = ip.split('.').map(Number);
+      const prefix = parseInt(prefixLength, 10);
+      
+      // Convert to 32-bit integers
+      const networkInt = (networkParts[0] << 24) | (networkParts[1] << 16) | (networkParts[2] << 8) | networkParts[3];
+      const ipInt = (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
+      
+      // Create subnet mask
+      const mask = (0xFFFFFFFF << (32 - prefix)) >>> 0;
+      
+      return (networkInt & mask) === (ipInt & mask);
+    } else {
+      return ip === cidr;
+    }
+  }
+
+  function isIPAllowed(ip: string): boolean {
+    // Always allow in development for testing
+    if (process.env.NODE_ENV === 'development') {
+      return true;
+    }
+    
+    return SENDGRID_ALLOWED_IPS.some(allowedRange => isIPInCIDR(ip, allowedRange));
+  }
+
+  // Idempotency check by Message-Id
+  const processedMessages = new Set<string>();
+
+
+  // SendGrid Inbound Parse webhook endpoint - SECURITY HARDENED with Basic Auth
+  app.post('/api/webhooks/sendgrid/inbound',
+    sendGridWebhookLimiter,
+    sendGridUpload.any(),
+    async (req: any, res) => {
+      const startTime = Date.now();
+      const requestId = crypto.randomBytes(8).toString('hex');
+      
+      try {
+        // SECURITY: Check IP allowlist first (enhanced for SendGrid)
+        const clientIP = req.ip || req.connection?.remoteAddress || 'unknown';
+        if (!isIPAllowed(clientIP)) {
+          logWebhookAuthFailure(`IP not allowed: ${clientIP}`, req);
+          return res.status(403).json({ error: 'Forbidden - IP not allowed' });
+        }
+
+        console.log(`📨 [${requestId}] Received SendGrid inbound webhook from IP: ${clientIP}`);
+
+        // SECURITY CRITICAL: ALWAYS verify Basic Auth credentials  
+        if (!verifySendGridBasicAuth(req)) {
+          logWebhookAuthFailure('Invalid Basic Auth credentials', req);
+          return res.status(401).json({ error: 'Unauthorized - Invalid credentials' });
+        }
+
+        console.log(`✅ [${requestId}] SendGrid webhook authentication successful`);
+
+        // SECURITY: Validate payload with Zod schema
+        let validatedPayload;
+        try {
+          console.log(`🔍 [${requestId}] Validating payload with keys:`, Object.keys(req.body));
+          validatedPayload = sendGridInboundWebhookSchema.parse(req.body);
+          console.log(`✅ [${requestId}] Payload validation successful`);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const errorDetails = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            console.log(`❌ [${requestId}] Zod validation failed:`, errorDetails);
+            logWebhookAuthFailure(`Payload validation failed: ${errorDetails}`, req);
+            return res.status(400).json({ 
+              error: 'Bad Request - Invalid payload format',
+              validationErrors: error.errors 
+            });
+          }
+          console.log(`❌ [${requestId}] Payload validation error:`, error);
+          logWebhookAuthFailure('Payload validation error', req);
+          return res.status(400).json({ error: 'Bad Request - Payload validation failed' });
+        }
+
+        // Extract validated fields
+        const {
+          from,
+          to,
+          subject,
+          text,
+          html,
+          headers,
+          envelope
+        } = validatedPayload;
+
+        // SECURITY: Reject requests with attachments
+        if (req.files && req.files.length > 0) {
+          logWebhookAuthFailure(`Attachments rejected: ${req.files.length} files`, req);
+          return res.status(400).json({ 
+            error: 'Bad Request - Attachments not allowed for security' 
+          });
+        }
+
+        // Parse and validate headers JSON
+        let parsedHeaders: any = {};
+        try {
+          parsedHeaders = headers ? JSON.parse(headers) : {};
+          
+          // Validate headers object size
+          if (Object.keys(parsedHeaders).length > 100) {
+            logWebhookAuthFailure('Too many headers', req);
+            return res.status(413).json({ error: 'Too many headers' });
+          }
+        } catch (error) {
+          console.warn(`[${requestId}] Failed to parse headers JSON:`, error);
+          parsedHeaders = {};
+        }
+
+        // Extract correlation data
+        const messageId = parsedHeaders['Message-ID'] || envelope?.from || `unknown-${Date.now()}`;
+        const xTrackId = parsedHeaders['X-Track-ID'] || parsedHeaders['X-Track-Id'];
+        const inReplyTo = parsedHeaders['In-Reply-To'];
+        const references = parsedHeaders['References'];
+
+        // Idempotency check
+        if (processedMessages.has(messageId)) {
+          console.log(`⚠️ Duplicate message ignored: ${messageId}`);
+          return res.status(200).json({ success: true, message: 'Duplicate message ignored' });
+        }
+        processedMessages.add(messageId);
+
+        // Clean up old processed messages (keep last 1000)
+        if (processedMessages.size > 1000) {
+          const messagesToDelete = Array.from(processedMessages).slice(0, processedMessages.size - 1000);
+          messagesToDelete.forEach(msg => processedMessages.delete(msg));
+        }
+
+        // Sanitize HTML content
+        const sanitizedHtml = html ? purifyHTML.sanitize(html, {
+          ALLOWED_TAGS: ['p', 'br', 'div', 'span', 'strong', 'em', 'u', 'a'],
+          ALLOWED_ATTR: ['href'],
+          ALLOWED_URI_REGEXP: /^https?:\/\//
+        }) : undefined;
+
+        // Classify email response with structured logging
+        const emailText = text || '';
+        const emailSubject = subject || '';
+        const classification = classifyEmailResponse(emailText, emailSubject);
+
+        // STRUCTURED LOG: Email classification outcome
+        const classificationLog = {
+          timestamp: new Date().toISOString(),
+          requestId,
+          eventType: 'email_classification',
+          from,
+          subject: emailSubject.substring(0, 100), // Truncate for logging
+          classification,
+          textLength: emailText.length,
+          hasHtml: !!html,
+          processingTimeMs: Date.now() - startTime
+        };
+        console.log('📊 CLASSIFICATION:', JSON.stringify(classificationLog));
+
+        // Correlate with deletion request
+        const deletionRequest = await correlateDeletionRequest(
+          xTrackId,
+          inReplyTo,
+          references,
+          from
+        );
+
+        // STRUCTURED LOG: Correlation outcome
+        const correlationLog = {
+          timestamp: new Date().toISOString(),
+          requestId,
+          eventType: 'email_correlation',
+          from,
+          correlationMethods: {
+            xTrackId: !!xTrackId,
+            inReplyTo: !!inReplyTo,
+            references: !!references,
+            operatorEmail: !!from
+          },
+          correlationHeaders: {
+            xTrackId: xTrackId || null,
+            messageId: messageId || null,
+            inReplyTo: inReplyTo || null,
+            references: references ? references.substring(0, 200) : null
+          },
+          correlationSuccess: !!deletionRequest,
+          deletionRequestId: deletionRequest?.id || null,
+          deletionRequestStatus: deletionRequest?.status || null
+        };
+        console.log('🔗 CORRELATION:', JSON.stringify(correlationLog));
+
+        // Create inbound email record
+        const inboundEmail = await storage.createInboundEmail({
+          deletionRequestId: deletionRequest?.id || 'unknown',
+          operatorEmail: from,
+          subject: emailSubject,
+          bodyText: emailText,
+          bodyHtml: sanitizedHtml,
+          parsedStatus: classification,
+          headers: parsedHeaders,
+          inReplyTo,
+          references,
+          xTrackId
+        });
+
+        console.log(`✅ Created inbound email record: ${inboundEmail.id}`);
+
+        // Update deletion request status based on classification
+        if (deletionRequest) {
+          let newStatus = deletionRequest.status;
+          
+          switch (classification) {
+            case 'deleted':
+              newStatus = 'reply_deleted';
+              break;
+            case 'rejected':
+              newStatus = 'rejected';
+              break;
+            case 'need_info':
+              newStatus = 'processing';
+              break;
+            default:
+              newStatus = 'processing';
+          }
+
+          if (newStatus !== deletionRequest.status) {
+            await storage.updateDeletionRequest(deletionRequest.id, {
+              status: newStatus,
+              responseReceived: true,
+              responseDetails: {
+                classification,
+                responseAt: new Date(),
+                messageId,
+                inboundEmailId: inboundEmail.id
+              },
+              lastInboundAt: new Date()
+            });
+
+            console.log(`✅ Updated deletion request ${deletionRequest.id} status: ${newStatus}`);
+          }
+        }
+
+        // STRUCTURED LOG: Final processing outcome
+        const processingLog = {
+          timestamp: new Date().toISOString(),
+          requestId,
+          eventType: 'webhook_processing_complete',
+          from,
+          clientIP,
+          messageId,
+          classification,
+          correlationSuccess: !!deletionRequest,
+          deletionRequestId: deletionRequest?.id || null,
+          inboundEmailId: inboundEmail.id,
+          requestUpdated: deletionRequest && newStatus !== deletionRequest.status,
+          newStatus: deletionRequest ? newStatus : null,
+          totalProcessingTimeMs: Date.now() - startTime,
+          attachmentsRejected: req.files ? req.files.length : 0
+        };
+        console.log('✅ PROCESSING_COMPLETE:', JSON.stringify(processingLog));
+
+        res.status(200).json({ 
+          success: true, 
+          messageId,
+          classification,
+          correlatedRequest: !!deletionRequest,
+          requestId
+        });
+
+      } catch (error: any) {
+        console.error('❌ Error processing SendGrid inbound webhook:', error);
+        res.status(500).json({ 
+          error: 'Internal server error',
+          message: error.message 
+        });
+      }
+    }
+  );
 
   // ========================================
   // DELETION REQUESTS API (Protected)
