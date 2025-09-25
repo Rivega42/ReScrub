@@ -210,3 +210,6 @@ E-mail: {{senderEmail}}
 </body>
 </html>`
 };
+
+// Alias для использования в email automation scheduler согласно ФЗ-152
+export const followUpDeletionTemplate = followUpTemplate;

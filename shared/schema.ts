@@ -208,12 +208,13 @@ export const deletionRequests = pgTable("deletion_requests", {
   followUpSentAt: timestamp("follow_up_sent_at"), // время отправки повторного письма
   responseDeadlineAt: timestamp("response_deadline_at"), // крайний срок ответа
   followUpDueAt: timestamp("follow_up_due_at"), // когда отправить повторное письмо
-  escalateDueAt: timestamp("escalate_due_at"), // когда эскалировать в Росреестр
+  escalateDueAt: timestamp("escalate_due_at"), // когда эскалировать в Роскомнадзор
   buttonConfirmedAt: timestamp("button_confirmed_at"), // когда оператор нажал кнопку "удалили"
   lastInboundAt: timestamp("last_inbound_at"), // последний входящий ответ
-  escalationSentAt: timestamp("escalation_sent_at"), // время отправки в Росреестр
+  escalationSentAt: timestamp("escalation_sent_at"), // время отправки в Роскомнадзор
   initialMessageId: varchar("initial_message_id"), // ID первого письма
   followUpMessageId: varchar("follow_up_message_id"), // ID повторного письма
+  escalationMessageId: varchar("escalation_message_id"), // ID письма эскалации в Роскомнадзор
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -431,6 +432,7 @@ export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).
   escalationSentAt: true,
   initialMessageId: true,
   followUpMessageId: true,
+  escalationMessageId: true,
   createdAt: true,
   updatedAt: true,
 });

@@ -133,6 +133,12 @@ export interface IStorage {
   // Deletion requests
   createDeletionRequest(requestData: InsertDeletionRequest): Promise<DeletionRequest>;
   getUserDeletionRequests(userId: string): Promise<DeletionRequest[]>;
+  getDeletionRequests(filters?: {
+    status?: string;
+    olderThanDays?: number;
+    withoutInboundEmails?: boolean;
+    operatorNotConfirmed?: boolean;
+  }): Promise<DeletionRequest[]>;
   updateDeletionRequest(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
   getDeletionRequestByTrackingId(trackingId: string): Promise<DeletionRequest | undefined>;
   getDeletionRequestByMessageId(messageId: string): Promise<DeletionRequest | undefined>;
@@ -628,6 +634,85 @@ export class DatabaseStorage implements IStorage {
       .from(deletionRequests)
       .where(eq(deletionRequests.userId, userId))
       .orderBy(desc(deletionRequests.createdAt));
+  }
+
+  async getDeletionRequests(filters?: {
+    status?: string;
+    olderThanDays?: number;
+    withoutInboundEmails?: boolean;
+    operatorNotConfirmed?: boolean;
+  }): Promise<DeletionRequest[]> {
+    let query = db.select().from(deletionRequests);
+    const conditions = [];
+
+    if (filters?.status) {
+      conditions.push(eq(deletionRequests.status, filters.status));
+    }
+
+    if (filters?.olderThanDays) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.olderThanDays);
+      conditions.push(sql`${deletionRequests.firstSentAt} < ${cutoffDate} OR ${deletionRequests.createdAt} < ${cutoffDate}`);
+    }
+
+    if (filters?.operatorNotConfirmed) {
+      conditions.push(sql`${deletionRequests.buttonConfirmedAt} IS NULL`);
+    }
+
+    if (filters?.withoutInboundEmails) {
+      // Улучшенная логика: ищем запросы БЕЗ значимых ответов операторов
+      // Игнорируем auto-replies, bounces и неклассифицированные сообщения
+      query = db
+        .select({
+          id: deletionRequests.id,
+          userId: deletionRequests.userId,
+          scanId: deletionRequests.scanId,
+          brokerName: deletionRequests.brokerName,
+          requestType: deletionRequests.requestType,
+          status: deletionRequests.status,
+          requestMethod: deletionRequests.requestMethod,
+          requestDetails: deletionRequests.requestDetails,
+          sentAt: deletionRequests.sentAt,
+          responseReceived: deletionRequests.responseReceived,
+          responseDetails: deletionRequests.responseDetails,
+          completedAt: deletionRequests.completedAt,
+          followUpRequired: deletionRequests.followUpRequired,
+          followUpDate: deletionRequests.followUpDate,
+          trackingId: deletionRequests.trackingId,
+          operatorEmail: deletionRequests.operatorEmail,
+          firstSentAt: deletionRequests.firstSentAt,
+          followUpSentAt: deletionRequests.followUpSentAt,
+          responseDeadlineAt: deletionRequests.responseDeadlineAt,
+          followUpDueAt: deletionRequests.followUpDueAt,
+          escalateDueAt: deletionRequests.escalateDueAt,
+          buttonConfirmedAt: deletionRequests.buttonConfirmedAt,
+          lastInboundAt: deletionRequests.lastInboundAt,
+          escalationSentAt: deletionRequests.escalationSentAt,
+          initialMessageId: deletionRequests.initialMessageId,
+          followUpMessageId: deletionRequests.followUpMessageId,
+          createdAt: deletionRequests.createdAt,
+          updatedAt: deletionRequests.updatedAt,
+        })
+        .from(deletionRequests)
+        .leftJoin(
+          inboundEmails, 
+          and(
+            eq(deletionRequests.id, inboundEmails.deletionRequestId),
+            // Считаем только значимые ответы: 'deleted', 'rejected', 'need_info'
+            // Игнорируем 'other' (auto-replies, bounces, неклассифицированные)
+            sql`${inboundEmails.parsedStatus} IN ('deleted', 'rejected', 'need_info')`
+          )
+        );
+      
+      // Ищем запросы БЕЗ значимых inbound emails
+      conditions.push(sql`${inboundEmails.id} IS NULL`);
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    return await query.orderBy(desc(deletionRequests.createdAt));
   }
 
   async updateDeletionRequest(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined> {
@@ -3551,6 +3636,47 @@ export class MemStorage implements IStorage {
         const timeB = b.createdAt ? b.createdAt.getTime() : 0;
         return timeB - timeA;
       });
+  }
+
+  async getDeletionRequests(filters?: {
+    status?: string;
+    olderThanDays?: number;
+    withoutInboundEmails?: boolean;
+    operatorNotConfirmed?: boolean;
+  }): Promise<DeletionRequest[]> {
+    let results = [...this.deletionRequestsData];
+
+    if (filters?.status) {
+      results = results.filter(req => req.status === filters.status);
+    }
+
+    if (filters?.olderThanDays) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.olderThanDays);
+      results = results.filter(req => {
+        const firstSentAt = (req as any).firstSentAt;
+        const createdAt = req.createdAt;
+        return (firstSentAt && firstSentAt < cutoffDate) || (createdAt && createdAt < cutoffDate);
+      });
+    }
+
+    if (filters?.operatorNotConfirmed) {
+      results = results.filter(req => !(req as any).buttonConfirmedAt);
+    }
+
+    if (filters?.withoutInboundEmails) {
+      // Улучшенная логика для in-memory storage:
+      // Проверяем не только responseReceived, но и отсутствие значимых inbound emails
+      // Используем responseReceived как прокси для «значимых» ответов
+      // Оставляем только запросы без подтвержденных ответов операторов
+      results = results.filter(req => !req.responseReceived && !(req as any).buttonConfirmedAt);
+    }
+
+    return results.sort((a, b) => {
+      const timeA = a.createdAt ? a.createdAt.getTime() : 0;
+      const timeB = b.createdAt ? b.createdAt.getTime() : 0;
+      return timeB - timeA;
+    });
   }
 
   async updateDeletionRequest(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined> {

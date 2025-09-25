@@ -6,6 +6,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { getSession } from "./replitAuth";
 import { seoMetaInjection } from "./middleware/seo";
 import { subscriptionManager } from "./subscription-manager";
+import { emailAutomationScheduler } from "./email-automation-scheduler";
 import { storage } from "./storage";
 import { BlogGeneratorService } from "./blog-generator";
 import { BlogScheduler } from "./blog-scheduler";
@@ -177,6 +178,11 @@ app.use((req, res, next) => {
     // Start subscription manager for recurring payments
     console.log('🚀 Initializing subscription manager...');
     subscriptionManager.start();
+    
+    // Start email automation scheduler for deletion request follow-ups and escalations
+    console.log('📧 Initializing email automation scheduler...');
+    emailAutomationScheduler.start();
+    console.log('✅ Email automation scheduler started successfully (ФЗ-152 compliance)');
     
     // Initialize and start blog scheduler for automatic article generation
     if (process.env.OPENAI_API_KEY && !SchedulerInstance.isInitialized()) {
