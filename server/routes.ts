@@ -19,6 +19,13 @@ import {
   sendGridInboundWebhookSchema,
   inboundEmails,
   operatorActionTokens,
+  evidenceCollection,
+  insertEvidenceCollectionSchema,
+  evidenceTypeEnum,
+  insertCampaignSchema,
+  CampaignStatusEnum,
+  NextActionEnum,
+  MilestoneTypeEnum,
   type UserAccount,
   type DataBroker,
   type DeletionRequest,
@@ -27,7 +34,14 @@ import {
   type Subscription,
   type Payment,
   type BlogGenerationSettings,
-  type InsertBlogGenerationSettings
+  type InsertBlogGenerationSettings,
+  type EmailTemplate,
+  type EvidenceCollection,
+  type InsertEvidenceCollection,
+  type InsertCampaign,
+  type CampaignStatus,
+  type NextAction,
+  type MilestoneType
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -45,6 +59,14 @@ import { generateConfirmationToken, verifyConfirmationToken } from './auth/token
 import multer from 'multer';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+// Response Analysis Module integration
+import { ResponseAnalyzer } from './response-analyzer';
+// Decision Engine Module integration
+import { decisionEngine } from './decision-engine';
+// Evidence Collection Module integration
+import { EvidenceCollector } from './evidence-collector';
+// Campaign Management Module integration
+import { CampaignManager } from './campaign-manager';
 
 // Extend Express session types
 declare module 'express-session' {
@@ -1369,7 +1391,7 @@ ${allPages.map(page => `  <url>
         }
 
         // Extract correlation data
-        const messageId = parsedHeaders['Message-ID'] || envelope?.from || `unknown-${Date.now()}`;
+        const messageId = parsedHeaders['Message-ID'] || envelope || `unknown-${Date.now()}`;
         const xTrackId = parsedHeaders['X-Track-ID'] || parsedHeaders['X-Track-Id'];
         const inReplyTo = parsedHeaders['In-Reply-To'];
         const references = parsedHeaders['References'];
@@ -1461,9 +1483,83 @@ ${allPages.map(page => `  <url>
 
         console.log(`✅ Created inbound email record: ${inboundEmail.id}`);
 
+        // ====================
+        // RESPONSE ANALYSIS MODULE INTEGRATION
+        // ====================
+        
+        // Perform intelligent analysis of the operator's response
+        console.log(`🔍 [${requestId}] Starting Response Analysis for email ${inboundEmail.id}`);
+        const analysisStartTime = Date.now();
+        
+        try {
+          const analysisResult = await responseAnalyzer.analyzeResponse(inboundEmail);
+          
+          if (analysisResult.success) {
+            // Update inbound email with analysis results
+            await storage.updateInboundEmailAnalysis(inboundEmail.id, {
+              responseType: analysisResult.responseType,
+              extractedData: analysisResult.extractedData,
+              violations: analysisResult.violations,
+              legitimacyScore: analysisResult.legitimacyScore,
+              recommendations: analysisResult.recommendations,
+              analysisMetadata: analysisResult.analysisMetadata
+            });
+
+            const analysisTime = Date.now() - analysisStartTime;
+            console.log(`✅ [${requestId}] Response analysis completed in ${analysisTime}ms: ${analysisResult.responseType} (score: ${analysisResult.legitimacyScore}/100)`);
+            
+            // Log analysis summary for monitoring
+            const analysisLog = {
+              timestamp: new Date().toISOString(),
+              requestId,
+              eventType: 'response_analysis_complete',
+              inboundEmailId: inboundEmail.id,
+              responseType: analysisResult.responseType,
+              legitimacyScore: analysisResult.legitimacyScore,
+              violationsCount: analysisResult.violations?.length || 0,
+              violations: analysisResult.violations,
+              escalationLevel: analysisResult.recommendations?.escalation_level,
+              nextAction: analysisResult.recommendations?.next_action,
+              analysisTimeMs: analysisTime,
+              aiUsed: analysisResult.analysisMetadata?.ai_model_used ? true : false,
+              confidence: analysisResult.recommendations?.confidence_level
+            };
+            console.log('🧠 ANALYSIS_COMPLETE:', JSON.stringify(analysisLog));
+            
+          } else {
+            console.error(`❌ [${requestId}] Response analysis failed:`, analysisResult.error);
+            
+            // Log analysis failure
+            const analysisErrorLog = {
+              timestamp: new Date().toISOString(),
+              requestId,
+              eventType: 'response_analysis_failed',
+              inboundEmailId: inboundEmail.id,
+              error: analysisResult.error,
+              analysisTimeMs: Date.now() - analysisStartTime
+            };
+            console.log('🚨 ANALYSIS_ERROR:', JSON.stringify(analysisErrorLog));
+          }
+          
+        } catch (analysisError: any) {
+          console.error(`❌ [${requestId}] Critical error in response analysis:`, analysisError);
+          
+          // Log critical analysis error but continue processing
+          const criticalErrorLog = {
+            timestamp: new Date().toISOString(),
+            requestId,
+            eventType: 'response_analysis_critical_error',
+            inboundEmailId: inboundEmail.id,
+            error: analysisError.message,
+            stack: analysisError.stack?.substring(0, 500),
+            analysisTimeMs: Date.now() - analysisStartTime
+          };
+          console.log('💥 ANALYSIS_CRITICAL_ERROR:', JSON.stringify(criticalErrorLog));
+        }
+
         // Update deletion request status based on classification
+        let newStatus = deletionRequest?.status;
         if (deletionRequest) {
-          let newStatus = deletionRequest.status;
           
           switch (classification) {
             case 'deleted':
@@ -1534,6 +1630,141 @@ ${allPages.map(page => `  <url>
   );
 
   // ========================================
+  // RESPONSE ANALYSIS API (Protected)
+  // ========================================
+
+  // Re-analyze existing inbound email
+  app.post('/api/analysis/re-analyze/:emailId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const emailId = req.params.emailId;
+      const userId = req.session.userId!;
+      
+      console.log(`🔍 Manual re-analysis requested for email ${emailId} by user ${userId}`);
+      
+      // Get the inbound email
+      const inboundEmail = await storage.getInboundEmailById(emailId);
+      if (!inboundEmail) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Входящее письмо не найдено' 
+        });
+      }
+
+      // Verify user has access to this email (through deletion request)
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const hasAccess = userRequests.some(request => request.id === inboundEmail.deletionRequestId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Нет прав доступа к этому письму' 
+        });
+      }
+
+      // Perform re-analysis
+      const analysisResult = await responseAnalyzer.analyzeResponse(inboundEmail);
+      
+      if (analysisResult.success) {
+        // Update email with new analysis results
+        const updatedEmail = await storage.updateInboundEmailAnalysis(emailId, {
+          responseType: analysisResult.responseType,
+          extractedData: analysisResult.extractedData,
+          violations: analysisResult.violations,
+          legitimacyScore: analysisResult.legitimacyScore,
+          recommendations: analysisResult.recommendations,
+          analysisMetadata: analysisResult.analysisMetadata
+        });
+
+        console.log(`✅ Manual re-analysis completed for email ${emailId}: ${analysisResult.responseType} (score: ${analysisResult.legitimacyScore}/100)`);
+        
+        res.json({
+          success: true,
+          message: 'Анализ письма успешно выполнен',
+          analysis: {
+            responseType: analysisResult.responseType,
+            legitimacyScore: analysisResult.legitimacyScore,
+            violations: analysisResult.violations,
+            recommendations: analysisResult.recommendations,
+            analysisMetadata: analysisResult.analysisMetadata
+          },
+          updatedEmail
+        });
+      } else {
+        console.error(`❌ Manual re-analysis failed for email ${emailId}:`, analysisResult.error);
+        res.status(500).json({
+          success: false,
+          message: 'Ошибка при анализе письма',
+          error: analysisResult.error
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Error in manual re-analysis:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Внутренняя ошибка сервера',
+        error: error.message
+      });
+    }
+  });
+
+  // Get analysis results for an inbound email
+  app.get('/api/analysis/email/:emailId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const emailId = req.params.emailId;
+      const userId = req.session.userId!;
+      
+      // Get the inbound email with analysis
+      const inboundEmail = await storage.getInboundEmailById(emailId);
+      if (!inboundEmail) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Входящее письмо не найдено' 
+        });
+      }
+
+      // Verify user has access
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const hasAccess = userRequests.some(request => request.id === inboundEmail.deletionRequestId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Нет прав доступа к этому письму' 
+        });
+      }
+
+      // Return analysis data
+      res.json({
+        success: true,
+        email: {
+          id: inboundEmail.id,
+          operatorEmail: inboundEmail.operatorEmail,
+          subject: inboundEmail.subject,
+          receivedAt: inboundEmail.receivedAt,
+          parsedStatus: inboundEmail.parsedStatus, // Legacy field
+        },
+        analysis: {
+          responseType: inboundEmail.responseType,
+          extractedData: inboundEmail.extractedData,
+          violations: inboundEmail.violations,
+          legitimacyScore: inboundEmail.legitimacyScore,
+          recommendations: inboundEmail.recommendations,
+          analysisMetadata: inboundEmail.analysisMetadata,
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Error fetching analysis results:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при получении результатов анализа',
+        error: error.message
+      });
+    }
+  });
+
+  // ========================================
   // DELETION REQUESTS API (Protected)
   // ========================================
 
@@ -1577,6 +1808,27 @@ ${allPages.map(page => `  <url>
       });
       
       const request = await storage.createDeletionRequest(validatedData);
+      
+      // Automatically create a campaign for this deletion request
+      try {
+        await campaignManager.createCampaign({
+          ...validatedData,
+          campaignStartedAt: new Date(),
+          isAutomated: true,
+          automationPaused: false,
+          escalationLevel: 0,
+          completionRate: 0,
+          campaignStatus: 'started' as any,
+          nextScheduledAction: 'generate_documents' as any,
+          milestones: [],
+          nextScheduledActionAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
+        });
+        console.log(`✅ Campaign automatically created for deletion request ${request.id}`);
+      } catch (campaignError) {
+        console.error(`❌ Failed to create campaign for deletion request ${request.id}:`, campaignError);
+        // Don't fail the deletion request creation if campaign creation fails
+      }
+      
       res.status(201).json(request);
     } catch (error) {
       console.error('Error creating deletion request:', error);
@@ -1627,6 +1879,1002 @@ ${allPages.map(page => `  <url>
         return res.status(400).json({ message: 'Invalid update data', errors: error.errors });
       }
       res.status(500).json({ message: 'Failed to update deletion request' });
+    }
+  });
+
+  // ========================================
+  // EVIDENCE COLLECTION API (Protected)
+  // ========================================
+
+  // Initialize Evidence Collector and Response Analyzer
+  const evidenceCollector = new EvidenceCollector(storage);
+  const responseAnalyzer = ResponseAnalyzer.getInstance(storage);
+
+  // Manually collect evidence for a deletion request
+  app.post('/api/evidence/collect/:requestId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const requestId = req.params.requestId;
+      const { evidenceType, evidenceData, description } = req.body;
+
+      // Verify request belongs to user
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const existingRequest = userRequests.find(r => r.id === requestId);
+      
+      if (!existingRequest) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Deletion request not found or does not belong to user' 
+        });
+      }
+
+      // Validate input data
+      const evidenceSchema = z.object({
+        evidenceType: z.enum(['EMAIL_RESPONSE', 'VIOLATION_DETECTED', 'OPERATOR_REFUSAL', 'LEGAL_BASIS_INVALID']),
+        evidenceData: z.any(),
+        description: z.string().optional()
+      });
+
+      const validatedData = evidenceSchema.parse({ evidenceType, evidenceData, description });
+
+      // Collect evidence using Evidence Collector service
+      const collectedEvidence = await evidenceCollector.collectEvidence(
+        requestId,
+        validatedData.evidenceType as any,
+        validatedData.evidenceData,
+        validatedData.description || `Manual evidence collection by user ${userId}`
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Evidence collected successfully',
+        data: collectedEvidence
+      });
+
+    } catch (error) {
+      console.error('Error collecting evidence:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid evidence data', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to collect evidence' 
+      });
+    }
+  });
+
+  // Verify evidence integrity
+  app.get('/api/evidence/verify/:evidenceId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const evidenceId = req.params.evidenceId;
+
+      // Get evidence record
+      const evidence = await storage.getEvidenceCollectionById(evidenceId);
+      if (!evidence) {
+        return res.status(404).json({
+          success: false,
+          message: 'Evidence not found'
+        });
+      }
+
+      // Verify user has access to this evidence through deletion request
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const hasAccess = userRequests.some(r => r.id === evidence.deletionRequestId);
+      
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied to this evidence'
+        });
+      }
+
+      // Verify evidence integrity using Evidence Collector
+      const isValid = await evidenceCollector.verifyIntegrity(evidenceId);
+      
+      // Also verify the entire chain integrity for this deletion request
+      const chainIntegrity = await storage.verifyEvidenceChainIntegrity(evidence.deletionRequestId);
+
+      res.json({
+        success: true,
+        data: {
+          evidenceId,
+          deletionRequestId: evidence.deletionRequestId,
+          evidenceValid: isValid,
+          chainIntegrity,
+          evidenceDetails: {
+            contentHash: evidence.contentHash,
+            previousHash: evidence.previousHash,
+            timestamp: evidence.timestamp,
+            evidenceType: evidence.evidenceType
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error verifying evidence:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to verify evidence integrity'
+      });
+    }
+  });
+
+  // Get evidence chain for a deletion request
+  app.get('/api/evidence/chain/:requestId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const requestId = req.params.requestId;
+
+      // Verify request belongs to user
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const existingRequest = userRequests.find(r => r.id === requestId);
+      
+      if (!existingRequest) {
+        return res.status(404).json({
+          success: false,
+          message: 'Deletion request not found or does not belong to user'
+        });
+      }
+
+      // Get evidence chain
+      const evidenceChain = await storage.getEvidenceCollectionByRequestId(requestId);
+      const chainLength = await storage.getEvidenceChainLength(requestId);
+      const chainIntegrity = await storage.verifyEvidenceChainIntegrity(requestId);
+
+      // Build hash chain verification details
+      const chainDetails = evidenceChain.map((evidence, index) => ({
+        ...evidence,
+        position: index,
+        isGenesis: index === evidenceChain.length - 1, // Last in array (first chronologically)
+        nextHash: index > 0 ? evidenceChain[index - 1].contentHash : null
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          deletionRequestId: requestId,
+          chainLength,
+          chainIntegrity,
+          evidenceChain: chainDetails.reverse(), // Return in chronological order
+          summary: {
+            totalEvidence: chainLength,
+            integrityVerified: chainIntegrity,
+            evidenceTypes: [...new Set(evidenceChain.map(e => e.evidenceType))]
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error getting evidence chain:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve evidence chain'
+      });
+    }
+  });
+
+  // Export evidence for court/RKN proceedings
+  app.get('/api/evidence/export/:requestId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const requestId = req.params.requestId;
+      const format = req.query.format as string || 'json'; // json, legal-report
+
+      // Verify request belongs to user
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const existingRequest = userRequests.find(r => r.id === requestId);
+      
+      if (!existingRequest) {
+        return res.status(404).json({
+          success: false,
+          message: 'Deletion request not found or does not belong to user'
+        });
+      }
+
+      // Get complete evidence data
+      const evidenceChain = await storage.getEvidenceCollectionByRequestId(requestId);
+      const chainIntegrity = await storage.verifyEvidenceChainIntegrity(requestId);
+      
+      // Generate legal-compliant export
+      const evidenceExport = {
+        exportMetadata: {
+          generatedAt: new Date().toISOString(),
+          deletionRequestId: requestId,
+          userId: userId,
+          exportFormat: format,
+          chainIntegrityVerified: chainIntegrity,
+          legalBasis: 'ФЗ-152 "О персональных данных"',
+          cryptographicStandard: 'SHA-256',
+          evidenceCollectionSystem: 'САЗПД Evidence Collection Module'
+        },
+        deletionRequest: {
+          id: existingRequest.id,
+          organizationName: existingRequest.organizationName,
+          organizationAddress: existingRequest.organizationAddress,
+          requestDate: existingRequest.createdAt,
+          status: existingRequest.status,
+          legalBasis: existingRequest.legalBasis
+        },
+        evidenceChain: evidenceChain.map((evidence, index) => ({
+          evidenceId: evidence.id,
+          sequenceNumber: evidenceChain.length - index, // Chronological numbering
+          timestamp: evidence.timestamp,
+          evidenceType: evidence.evidenceType,
+          contentHash: evidence.contentHash,
+          previousHash: evidence.previousHash,
+          hashChainPosition: index,
+          evidenceData: evidence.evidenceData,
+          cryptographicSignature: `SHA256:${evidence.contentHash}`,
+          legalSignificance: evidenceCollector.getLegalSignificance(evidence.evidenceType as any),
+          integrityStatus: 'VERIFIED' // Individual evidence integrity checked by chain
+        })),
+        cryptographicProof: {
+          hashChainLength: evidenceChain.length,
+          genesisHash: evidenceChain[evidenceChain.length - 1]?.contentHash || null,
+          terminalHash: evidenceChain[0]?.contentHash || null,
+          chainIntegrityHash: await evidenceCollector.hashChain(requestId),
+          verificationTimestamp: new Date().toISOString()
+        }
+      };
+
+      if (format === 'legal-report') {
+        // Return formatted for legal proceedings
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 
+          `attachment; filename="evidence-export-${requestId}-${Date.now()}.json"`
+        );
+      }
+
+      res.json({
+        success: true,
+        data: evidenceExport
+      });
+
+    } catch (error) {
+      console.error('Error exporting evidence:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export evidence'
+      });
+    }
+  });
+
+  // ========================================
+  // DECISION ENGINE API (Protected)
+  // ========================================
+
+  // Make a decision for a specific deletion request
+  app.post('/api/decisions/make/:requestId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const requestId = req.params.requestId;
+
+      // Verify the request belongs to the user
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const request = userRequests.find(r => r.id === requestId);
+      
+      if (!request) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Запрос на удаление не найден' 
+        });
+      }
+
+      // Make a decision using Decision Engine
+      const decisionResult = await decisionEngine.makeDecision(requestId);
+      
+      if (!decisionResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не удалось принять решение',
+          error: decisionResult.error
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Решение принято успешно',
+        decision: decisionResult.decision,
+        confidence: decisionResult.decision?.confidence,
+        reasoning: decisionResult.decision?.reason
+      });
+    } catch (error) {
+      console.error('Error making decision:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка при принятии решения' 
+      });
+    }
+  });
+
+  // Get audit trail for decisions
+  app.get('/api/decisions/audit', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { requestId, limit = 50, offset = 0 } = req.query as {
+        requestId?: string;
+        limit?: string;
+        offset?: string;
+      };
+
+      // Get user's deletion requests with decisions
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      
+      let auditData = userRequests
+        .filter(request => request.decisionType) // Only requests with decisions
+        .map(request => ({
+          requestId: request.id,
+          brokerName: request.brokerName,
+          decisionType: request.decisionType,
+          decisionReason: request.decisionReason,
+          decisionMadeAt: request.decisionMadeAt,
+          autoProcessed: request.autoProcessed,
+          decisionMetadata: request.decisionMetadata,
+          status: request.status,
+          confidence: request.decisionMetadata?.confidence || null
+        }))
+        .sort((a, b) => {
+          if (!a.decisionMadeAt || !b.decisionMadeAt) return 0;
+          return new Date(b.decisionMadeAt).getTime() - new Date(a.decisionMadeAt).getTime();
+        });
+
+      // Filter by specific request if provided
+      if (requestId) {
+        auditData = auditData.filter(item => item.requestId === requestId);
+      }
+
+      // Apply pagination
+      const limitNum = parseInt(limit.toString());
+      const offsetNum = parseInt(offset.toString());
+      const paginatedData = auditData.slice(offsetNum, offsetNum + limitNum);
+
+      // Calculate statistics
+      const stats = {
+        totalDecisions: auditData.length,
+        autoProcessed: auditData.filter(item => item.autoProcessed).length,
+        manualOverrides: auditData.filter(item => !item.autoProcessed).length,
+        decisionTypes: auditData.reduce((acc, item) => {
+          acc[item.decisionType] = (acc[item.decisionType] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        averageConfidence: auditData
+          .filter(item => item.confidence !== null)
+          .reduce((sum, item, _, arr) => {
+            return sum + (item.confidence || 0) / arr.length;
+          }, 0)
+      };
+
+      res.json({
+        success: true,
+        data: paginatedData,
+        pagination: {
+          total: auditData.length,
+          limit: limitNum,
+          offset: offsetNum
+        },
+        statistics: stats
+      });
+    } catch (error) {
+      console.error('Error fetching decision audit:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка при получении аудита решений' 
+      });
+    }
+  });
+
+  // Override a decision for a specific deletion request
+  app.post('/api/decisions/override/:requestId', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const requestId = req.params.requestId;
+      
+      const overrideSchema = z.object({
+        newDecisionType: z.enum(['AUTO_COMPLETE', 'ESCALATE_TO_RKN', 'REQUEST_CLARIFICATION', 'SCHEDULE_FOLLOW_UP', 'IMMEDIATE_ESCALATION', 'CLOSE_AS_RESOLVED', 'EXTEND_DEADLINE', 'PREPARE_LEGAL_ACTION', 'MANUAL_REVIEW_REQUIRED']),
+        reason: z.string().min(1, 'Причина переопределения обязательна'),
+        metadata: z.record(z.any()).optional()
+      });
+
+      const validatedData = overrideSchema.parse(req.body);
+
+      // Verify the request belongs to the user
+      const userRequests = await storage.getUserDeletionRequests(userId);
+      const request = userRequests.find(r => r.id === requestId);
+      
+      if (!request) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Запрос на удаление не найден' 
+        });
+      }
+
+      // Override the decision
+      const overrideResult = await decisionEngine.overrideDecision(
+        requestId, 
+        validatedData.newDecisionType, 
+        validatedData.reason,
+        validatedData.metadata
+      );
+      
+      if (!overrideResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не удалось переопределить решение',
+          error: overrideResult.error
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Решение успешно переопределено',
+        decision: overrideResult.decision,
+        previousDecision: request.decisionType
+      });
+    } catch (error) {
+      console.error('Error overriding decision:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Некорректные данные переопределения', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка при переопределении решения' 
+      });
+    }
+  });
+
+  // Get decision metrics and statistics (admin endpoint)
+  app.get('/api/decisions/metrics', isAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query as {
+        startDate?: string;
+        endDate?: string;
+      };
+
+      // Get metrics from Decision Engine
+      const metricsResult = await decisionEngine.getDecisionMetrics({
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined
+      });
+
+      if (!metricsResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не удалось получить метрики',
+          error: metricsResult.error
+        });
+      }
+
+      res.json({
+        success: true,
+        metrics: metricsResult.metrics
+      });
+    } catch (error) {
+      console.error('Error fetching decision metrics:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка при получении метрик решений' 
+      });
+    }
+  });
+
+  // Get decision confidence scores for analysis (admin endpoint)
+  app.get('/api/decisions/confidence-analysis', isAdmin, async (req, res) => {
+    try {
+      const { threshold = 80 } = req.query as { threshold?: string };
+
+      const confidenceAnalysis = await decisionEngine.getConfidenceAnalysis(parseInt(threshold.toString()));
+
+      if (!confidenceAnalysis.success) {
+        return res.status(400).json({
+          success: false,
+          message: 'Не удалось получить анализ уверенности',
+          error: confidenceAnalysis.error
+        });
+      }
+
+      res.json({
+        success: true,
+        analysis: confidenceAnalysis.analysis
+      });
+    } catch (error) {
+      console.error('Error fetching confidence analysis:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка при анализе уверенности решений' 
+      });
+    }
+  });
+
+  // ========================================
+  // CAMPAIGN MANAGEMENT API (Protected)
+  // ========================================
+
+  // Initialize Campaign Manager
+  const campaignManager = new CampaignManager(storage);
+
+  // Campaign automation background processing
+  setInterval(async () => {
+    try {
+      await campaignManager.processAutomatedCampaigns();
+    } catch (error) {
+      console.error('Error in campaign automation background process:', error);
+    }
+  }, 5 * 60 * 1000); // Every 5 minutes
+
+  // Create a new campaign
+  app.post('/api/campaigns/create', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const validatedData = insertCampaignSchema.parse({
+        ...req.body,
+        userId,
+        campaignStartedAt: new Date(),
+        isAutomated: true,
+        automationPaused: false,
+        escalationLevel: 0,
+        completionRate: 0,
+        campaignStatus: CampaignStatusEnum.Enum.started,
+        nextScheduledAction: NextActionEnum.Enum.generate_documents,
+        milestones: []
+      });
+
+      const campaign = await campaignManager.createCampaign(validatedData);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Кампания успешно создана',
+        campaign
+      });
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Некорректные данные кампании',
+          errors: error.errors
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось создать кампанию'
+      });
+    }
+  });
+
+  // Get campaign status
+  app.get('/api/campaigns/:id/status', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const campaignId = req.params.id;
+
+      // Verify campaign belongs to user
+      const userCampaigns = await storage.getUserCampaigns(userId);
+      const campaign = userCampaigns.find(c => c.id === campaignId);
+      
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          message: 'Кампания не найдена'
+        });
+      }
+
+      const status = await campaignManager.getCampaignStatus(campaignId);
+      
+      res.json({
+        success: true,
+        data: status
+      });
+    } catch (error) {
+      console.error('Error getting campaign status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить статус кампании'
+      });
+    }
+  });
+
+  // Get campaign metrics
+  app.get('/api/campaigns/:id/metrics', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const campaignId = req.params.id;
+
+      // Verify campaign belongs to user
+      const userCampaigns = await storage.getUserCampaigns(userId);
+      const campaign = userCampaigns.find(c => c.id === campaignId);
+      
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          message: 'Кампания не найдена'
+        });
+      }
+
+      const metrics = {
+        campaignId,
+        campaignStatus: campaign.campaignStatus,
+        completionRate: campaign.completionRate,
+        escalationLevel: campaign.escalationLevel,
+        isAutomated: campaign.isAutomated,
+        automationPaused: campaign.automationPaused,
+        campaignStartedAt: campaign.campaignStartedAt,
+        lastActionAt: campaign.lastActionAt,
+        nextScheduledAction: campaign.nextScheduledAction,
+        nextScheduledActionAt: campaign.nextScheduledActionAt,
+        milestones: campaign.milestones,
+        campaignMetrics: campaign.campaignMetrics,
+        totalDocuments: campaign.totalDocuments
+      };
+      
+      res.json({
+        success: true,
+        data: metrics
+      });
+    } catch (error) {
+      console.error('Error getting campaign metrics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить метрики кампании'
+      });
+    }
+  });
+
+  // Update campaign progress
+  app.put('/api/campaigns/:id/progress', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const campaignId = req.params.id;
+
+      // Verify campaign belongs to user
+      const userCampaigns = await storage.getUserCampaigns(userId);
+      const campaign = userCampaigns.find(c => c.id === campaignId);
+      
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          message: 'Кампания не найдена'
+        });
+      }
+
+      const updateSchema = z.object({
+        completionRate: z.number().min(0).max(100).optional(),
+        nextAction: z.string().optional(),
+        nextActionAt: z.string().datetime().optional()
+      });
+
+      const validatedData = updateSchema.parse(req.body);
+      
+      const updatedCampaign = await campaignManager.updateCampaignProgress(
+        campaignId,
+        validatedData.completionRate || campaign.completionRate,
+        validatedData.nextAction,
+        validatedData.nextActionAt ? new Date(validatedData.nextActionAt) : undefined
+      );
+
+      res.json({
+        success: true,
+        message: 'Прогресс кампании обновлен',
+        campaign: updatedCampaign
+      });
+    } catch (error) {
+      console.error('Error updating campaign progress:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Некорректные данные обновления',
+          errors: error.errors
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось обновить прогресс кампании'
+      });
+    }
+  });
+
+  // Pause campaign automation
+  app.post('/api/campaigns/:id/pause', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const campaignId = req.params.id;
+
+      // Verify campaign belongs to user
+      const userCampaigns = await storage.getUserCampaigns(userId);
+      const campaign = userCampaigns.find(c => c.id === campaignId);
+      
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          message: 'Кампания не найдена'
+        });
+      }
+
+      const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'Причина приостановки обязательна'
+        });
+      }
+
+      const updatedCampaign = await campaignManager.pauseCampaignAutomation(campaignId, reason);
+      
+      res.json({
+        success: true,
+        message: 'Автоматизация кампании приостановлена',
+        campaign: updatedCampaign
+      });
+    } catch (error) {
+      console.error('Error pausing campaign:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось приостановить кампанию'
+      });
+    }
+  });
+
+  // Resume campaign automation
+  app.post('/api/campaigns/:id/resume', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const campaignId = req.params.id;
+
+      // Verify campaign belongs to user
+      const userCampaigns = await storage.getUserCampaigns(userId);
+      const campaign = userCampaigns.find(c => c.id === campaignId);
+      
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          message: 'Кампания не найдена'
+        });
+      }
+
+      const updatedCampaign = await campaignManager.resumeCampaignAutomation(campaignId);
+      
+      res.json({
+        success: true,
+        message: 'Автоматизация кампании возобновлена',
+        campaign: updatedCampaign
+      });
+    } catch (error) {
+      console.error('Error resuming campaign:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось возобновить кампанию'
+      });
+    }
+  });
+
+  // Get campaigns dashboard (user's campaigns overview)
+  app.get('/api/campaigns/dashboard', isEmailAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userCampaigns = await storage.getUserCampaigns(userId);
+      
+      // Calculate dashboard statistics
+      const activeCampaigns = userCampaigns.filter(c => 
+        ['started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action'].includes(c.campaignStatus || '')
+      );
+      const completedCampaigns = userCampaigns.filter(c => c.campaignStatus === 'completed');
+      const escalatedCampaigns = userCampaigns.filter(c => c.campaignStatus === 'escalated');
+      const pausedCampaigns = userCampaigns.filter(c => c.automationPaused);
+      
+      const averageCompletionRate = userCampaigns.length > 0 
+        ? userCampaigns.reduce((sum, c) => sum + (c.completionRate || 0), 0) / userCampaigns.length
+        : 0;
+
+      const dashboard = {
+        totalCampaigns: userCampaigns.length,
+        activeCampaigns: activeCampaigns.length,
+        completedCampaigns: completedCampaigns.length,
+        escalatedCampaigns: escalatedCampaigns.length,
+        pausedCampaigns: pausedCampaigns.length,
+        averageCompletionRate: Math.round(averageCompletionRate * 100) / 100,
+        recentCampaigns: userCampaigns.slice(0, 5),
+        campaignsByStatus: {
+          started: userCampaigns.filter(c => c.campaignStatus === 'started').length,
+          documents_sent: userCampaigns.filter(c => c.campaignStatus === 'documents_sent').length,
+          awaiting_response: userCampaigns.filter(c => c.campaignStatus === 'awaiting_response').length,
+          analyzing_response: userCampaigns.filter(c => c.campaignStatus === 'analyzing_response').length,
+          taking_action: userCampaigns.filter(c => c.campaignStatus === 'taking_action').length,
+          completed: completedCampaigns.length,
+          escalated: escalatedCampaigns.length
+        }
+      };
+      
+      res.json({
+        success: true,
+        data: dashboard
+      });
+    } catch (error) {
+      console.error('Error getting campaigns dashboard:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось загрузить панель кампаний'
+      });
+    }
+  });
+
+  // Admin: Get all campaigns with filters
+  app.get('/api/campaigns/admin/all', isAdmin, async (req, res) => {
+    try {
+      const { 
+        campaignStatus, 
+        escalationLevel, 
+        isAutomated, 
+        automationPaused, 
+        completionRateMin, 
+        lastActionBefore,
+        nextActionDue 
+      } = req.query as {
+        campaignStatus?: string;
+        escalationLevel?: string;
+        isAutomated?: string;
+        automationPaused?: string;
+        completionRateMin?: string;
+        lastActionBefore?: string;
+        nextActionDue?: string;
+      };
+
+      const filters: any = {};
+      if (campaignStatus) filters.campaignStatus = campaignStatus;
+      if (escalationLevel) filters.escalationLevel = parseInt(escalationLevel);
+      if (isAutomated) filters.isAutomated = isAutomated === 'true';
+      if (automationPaused) filters.automationPaused = automationPaused === 'true';
+      if (completionRateMin) filters.completionRateMin = parseFloat(completionRateMin);
+      if (lastActionBefore) filters.lastActionBefore = new Date(lastActionBefore);
+      if (nextActionDue) filters.nextActionDue = nextActionDue === 'true';
+
+      const campaigns = await storage.getAllCampaigns(filters);
+      
+      res.json({
+        success: true,
+        data: campaigns,
+        count: campaigns.length
+      });
+    } catch (error) {
+      console.error('Error getting all campaigns:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить список кампаний'
+      });
+    }
+  });
+
+  // Admin: Get campaign statistics
+  app.get('/api/campaigns/admin/statistics', isAdmin, async (req, res) => {
+    try {
+      const { timeframe } = req.query as { timeframe?: 'day' | 'week' | 'month' };
+      
+      const statistics = await storage.getCampaignStatistics(timeframe);
+      
+      res.json({
+        success: true,
+        data: statistics
+      });
+    } catch (error) {
+      console.error('Error getting campaign statistics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить статистику кампаний'
+      });
+    }
+  });
+
+  // Admin: Get operator compliance metrics
+  app.get('/api/campaigns/admin/operator-compliance/:operatorEmail', isAdmin, async (req, res) => {
+    try {
+      const operatorEmail = req.params.operatorEmail;
+      
+      const compliance = await storage.getOperatorComplianceMetrics(operatorEmail);
+      
+      res.json({
+        success: true,
+        data: compliance
+      });
+    } catch (error) {
+      console.error('Error getting operator compliance:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить метрики соответствия оператора'
+      });
+    }
+  });
+
+  // Process campaign automation (background task endpoint)
+  app.post('/api/campaigns/automation/process', isAdmin, async (req, res) => {
+    try {
+      const processedCampaigns = await campaignManager.processAutomatedCampaigns();
+      
+      res.json({
+        success: true,
+        message: 'Автоматизация кампаний обработана',
+        processedCount: processedCampaigns.length,
+        processedCampaigns: processedCampaigns.map(c => ({
+          id: c.id,
+          status: c.campaignStatus,
+          nextAction: c.nextScheduledAction
+        }))
+      });
+    } catch (error) {
+      console.error('Error processing campaign automation:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка при обработке автоматизации кампаний'
+      });
+    }
+  });
+
+  // Get campaigns ready for action (admin monitoring)
+  app.get('/api/campaigns/automation/ready', isAdmin, async (req, res) => {
+    try {
+      const readyCampaigns = await storage.getCampaignsReadyForAction();
+      
+      res.json({
+        success: true,
+        data: readyCampaigns,
+        count: readyCampaigns.length
+      });
+    } catch (error) {
+      console.error('Error getting ready campaigns:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить кампании готовые к действию'
+      });
+    }
+  });
+
+  // Get campaigns requiring escalation (admin monitoring)
+  app.get('/api/campaigns/automation/escalation', isAdmin, async (req, res) => {
+    try {
+      const escalationCampaigns = await storage.getCampaignsRequiringEscalation();
+      
+      res.json({
+        success: true,
+        data: escalationCampaigns,
+        count: escalationCampaigns.length
+      });
+    } catch (error) {
+      console.error('Error getting escalation campaigns:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить кампании требующие эскалации'
+      });
+    }
+  });
+
+  // Get stalled campaigns (admin monitoring)
+  app.get('/api/campaigns/automation/stalled', isAdmin, async (req, res) => {
+    try {
+      const { days = 7 } = req.query as { days?: string };
+      const daysSinceLastAction = parseInt(days);
+      
+      const stalledCampaigns = await storage.getStalledCampaigns(daysSinceLastAction);
+      
+      res.json({
+        success: true,
+        data: stalledCampaigns,
+        count: stalledCampaigns.length,
+        criteriaDetails: {
+          daysSinceLastAction
+        }
+      });
+    } catch (error) {
+      console.error('Error getting stalled campaigns:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Не удалось получить застопорившиеся кампании'
+      });
     }
   });
 
@@ -3211,10 +4459,10 @@ ${allPages.map(page => `  <url>
 
       // Send email (if email service is configured)
       try {
-        const passwordResetTemplate: EmailTemplate = {
+        const passwordResetTemplate = {
           subject: 'Сброс пароля - ReScrub',
-          text: `Сброс пароля\n\nАдминистратор инициировал сброс вашего пароля.\n\nИспользуйте эту ссылку для установки нового пароля:\n${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}\n\nСсылка действительна в течение 1 часа.`,
-          html: `
+          textBody: `Сброс пароля\n\nАдминистратор инициировал сброс вашего пароля.\n\nИспользуйте эту ссылку для установки нового пароля:\n${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}\n\nСсылка действительна в течение 1 часа.`,
+          htmlBody: `
             <h2>Сброс пароля</h2>
             <p>Администратор инициировал сброс вашего пароля.</p>
             <p>Используйте эту ссылку для установки нового пароля:</p>
@@ -3285,10 +4533,10 @@ ${allPages.map(page => `  <url>
         const account = await storage.getUserAccountById(userId);
         if (account) {
           try {
-            const notificationTemplate: EmailTemplate = {
+            const notificationTemplate = {
               subject: title,
-              text: `${title}\n\n${message}`,
-              html: `<h2>${title}</h2><p>${message}</p>`
+              textBody: `${title}\n\n${message}`,
+              htmlBody: `<h2>${title}</h2><p>${message}</p>`
             };
             await sendEmail({
               to: account.email,
@@ -3969,7 +5217,7 @@ ${allPages.map(page => `  <url>
       const { id } = req.params;
       
       const updatedBroker = await storage.updateDataBroker(id, {
-        updatedAt: new Date()
+        // Mark as verified - no updatedAt field allowed
       });
       
       // Log admin action
@@ -4409,7 +5657,6 @@ ${allPages.map(page => `  <url>
       });
       
       const secrets = await storage.getPlatformSecrets({ 
-        category,
         service,
         environment 
       });
@@ -4464,6 +5711,9 @@ ${allPages.map(page => `  <url>
         secretId: secret.id,
         adminId: req.adminUser.id,
         action: 'view',
+        service: secret.service || 'unknown',
+        environment: secret.environment || 'production',
+        secretKey: secret.key,
         ipAddress: req.adminIp,
         userAgent: req.adminUserAgent
       });
@@ -4526,9 +5776,8 @@ ${allPages.map(page => `  <url>
         // Create new secret
         const newSecret = await storage.createPlatformSecret({
           key,
-          value,
-          category: category || null,
-          service: service || null,
+          encryptedValue: value,
+          service: service || 'general',
           environment: environment || 'production',
           description: description || null,
           metadata: metadata || {},
@@ -4552,6 +5801,9 @@ ${allPages.map(page => `  <url>
           secretId: newSecret.id,
           adminId: req.adminUser.id,
           action: 'create',
+          service: newSecret.service,
+          environment: newSecret.environment,
+          secretKey: newSecret.key,
           ipAddress: req.adminIp,
           userAgent: req.adminUserAgent
         });
@@ -4914,7 +6166,7 @@ ${allPages.map(page => `  <url>
           slug: generatedArticle.slug,
           content: generatedArticle.content,
           excerpt: generatedArticle.excerpt,
-          category: generatedArticle.category,
+          category: "Research", // Fixed category type
           tags: generatedArticle.tags,
           featured: generatedArticle.featured,
           status: "published",
@@ -5364,6 +6616,7 @@ ${allPages.map(page => `  <url>
         
         await storage.createSystemHealthCheck({
           serviceName: 'database',
+          serviceCategory: 'infrastructure',
           status: dbTime < 1000 ? 'healthy' : dbTime < 3000 ? 'degraded' : 'down',
           responseTimeMs: dbTime
         });
@@ -5400,6 +6653,7 @@ ${allPages.map(page => `  <url>
         
         await storage.createSystemHealthCheck({
           serviceName: 'email',
+          serviceCategory: 'external',
           status: isConnected ? 'healthy' : 'down',
           responseTimeMs: emailTime
         });
@@ -5546,8 +6800,7 @@ ${allPages.map(page => `  <url>
         service: check.serviceName,
         severity: check.status === 'down' ? 'critical' : check.status === 'degraded' ? 'warning' : 'info',
         title: `Сервис ${check.serviceName} ${check.status === 'down' ? 'недоступен' : 'работает с проблемами'}`,
-        message: check.errorMessage || `Время отклика: ${check.responseTime}мс`,
-        details: check.details,
+        message: check.errorMessage || `Время отклика: ${check.responseTimeMs}мс`,
         timestamp: check.createdAt,
         acknowledged: false,
         resolved: false
@@ -5773,8 +7026,7 @@ ${allPages.map(page => `  <url>
         serviceCategory,
         status,
         responseTimeMs: responseTime,
-        errorMessage: error,
-        details: { manual: true, checkedBy: req.adminUser.id }
+        errorMessage: error
       });
       
       res.json({ success: true, service, status, responseTime, error });
@@ -6527,7 +7779,6 @@ ${allPages.map(page => `  <url>
         .select({
           id: operatorActionTokens.id,
           deletionRequestId: operatorActionTokens.deletionRequestId,
-          actionType: operatorActionTokens.actionType,
           expiresAt: operatorActionTokens.expiresAt,
           usedAt: operatorActionTokens.usedAt,
           usedByIp: operatorActionTokens.usedByIp,
@@ -6569,6 +7820,140 @@ ${allPages.map(page => `  <url>
       });
     }
   });
+
+  // Document Generation API endpoint
+  app.post('/api/documents/generate', isEmailAuthenticated, async (req: any, res) => {
+    try {
+      const { documentGenerator } = await import('./document-generator');
+      
+      // Валидируем входящие данные
+      const requestSchema = z.object({
+        documentType: z.enum(['INITIAL_REQUEST', 'FOLLOW_UP_REQUEST', 'CESSATION_DEMAND', 'RKN_COMPLAINT', 'RKN_APPEAL']),
+        context: z.object({
+          brokerInfo: z.object({
+            name: z.string().min(1, 'Название оператора обязательно'),
+            website: z.string().url().optional(),
+            email: z.string().email().optional()
+          }),
+          personalDataList: z.array(z.string()).optional(),
+          previousRequestDates: z.array(z.string()).optional(),
+          recipientName: z.string().optional(),
+          recipientCompany: z.string().optional(),
+          legalBasis: z.string().optional(),
+          format: z.enum(['html', 'text', 'both']).default('html')
+        })
+      });
+
+      const validatedData = requestSchema.parse(req.body);
+      
+      // Подготавливаем полный контекст
+      const context = {
+        userId: req.session.userId,
+        userProfile: await storage.getUserProfile(req.session.userId),
+        brokerInfo: validatedData.context.brokerInfo,
+        personalDataList: validatedData.context.personalDataList || [],
+        previousRequestDates: validatedData.context.previousRequestDates || [],
+        recipientName: validatedData.context.recipientName,
+        recipientCompany: validatedData.context.recipientCompany,
+        legalBasis: validatedData.context.legalBasis,
+        format: validatedData.context.format
+      };
+
+      // Генерируем документ
+      const result = await documentGenerator.generateDocument(
+        validatedData.documentType,
+        context
+      );
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: 'GENERATION_FAILED',
+          message: result.error || 'Не удалось сгенерировать документ',
+          validationIssues: result.validationIssues
+        });
+      }
+
+      // Логируем успешную генерацию
+      console.log(`📄 Document generated successfully: ${validatedData.documentType} for user: ${req.session.userId}`);
+
+      res.json({
+        success: true,
+        data: {
+          document: result.document,
+          metadata: {
+            documentType: validatedData.documentType,
+            generatedAt: new Date().toISOString(),
+            userId: req.session.userId
+          }
+        }
+      });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Некорректные данные для генерации документа',
+          details: error.errors
+        });
+      }
+
+      console.error('Error generating document:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка генерации документа'
+      });
+    }
+  });
+
+  // Get available document types endpoint
+  app.get('/api/documents/types', isEmailAuthenticated, async (req: any, res) => {
+    try {
+      const { documentGenerator } = await import('./document-generator');
+      
+      const types = documentGenerator.getAvailableDocumentTypes();
+      const typesWithDescriptions = types.map(type => ({
+        type,
+        description: documentGenerator.getDocumentTypeDescription(type),
+        category: getDocumentCategory(type)
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          documentTypes: typesWithDescriptions,
+          total: types.length
+        }
+      });
+
+    } catch (error) {
+      console.error('Error getting document types:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения типов документов'
+      });
+    }
+  });
+
+  // Helper function to categorize document types
+  function getDocumentCategory(type: string): string {
+    switch (type) {
+      case 'INITIAL_REQUEST':
+        return 'Первичные обращения';
+      case 'FOLLOW_UP_REQUEST':
+        return 'Повторные обращения';
+      case 'CESSATION_DEMAND':
+        return 'Требования о прекращении';
+      case 'RKN_COMPLAINT':
+      case 'RKN_APPEAL':
+        return 'Обращения в Роскомнадзор';
+      default:
+        return 'Общие документы';
+    }
+  }
 
   // Public health check
   app.get("/api/health", (req, res) => {

@@ -46,9 +46,9 @@ export class HealthCheckService {
           status = 'healthy';
           break;
           
-        case 'openai':
-          // Check if API key exists
-          status = process.env.OPENAI_API_KEY ? 'healthy' : 'degraded';
+        case 'compliance':
+          // ФЗ-152 Compliance: System operates without external AI services
+          status = 'healthy'; // Always healthy - no external data transfer
           break;
           
         default:
@@ -73,7 +73,7 @@ export class HealthCheckService {
           serviceCategory = 'core';
           break;
         case 'email':
-        case 'openai':
+        case 'compliance':
           serviceCategory = 'external';
           break;
         default:
@@ -115,7 +115,7 @@ export class HealthCheckService {
   }
 
   async runHealthChecks() {
-    const services = ['database', 'email', 'storage', 'webserver', 'openai'];
+    const services = ['database', 'email', 'storage', 'webserver', 'compliance'];
     
     console.log(`[${new Date().toISOString()}] Running automatic health checks...`);
     

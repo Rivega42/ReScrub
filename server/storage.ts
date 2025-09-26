@@ -29,6 +29,8 @@ import {
   emailServiceStatus,
   emailTemplates,
   emailTemplateVersions,
+  evidenceCollection,
+  legalArticles,
   // САЗПД modules tables - temporarily disabled
   // campaigns,
   // decisionRules,
@@ -94,6 +96,10 @@ import {
   type InsertEmailTemplate,
   type EmailTemplateVersion,
   type InsertEmailTemplateVersion,
+  type EvidenceCollection,
+  type InsertEvidenceCollection,
+  type LegalArticle,
+  type InsertLegalArticle,
   // САЗПД modules types - temporarily disabled
   // type Campaign,
   // type InsertCampaign,
@@ -162,10 +168,42 @@ export interface IStorage {
   updateDeletionRequest(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
   getDeletionRequestByTrackingId(trackingId: string): Promise<DeletionRequest | undefined>;
   getDeletionRequestByMessageId(messageId: string): Promise<DeletionRequest | undefined>;
+  getDeletionRequestById(id: string): Promise<DeletionRequest | undefined>;
+
+  // Evidence Collection operations
+  createEvidenceCollection(evidenceData: InsertEvidenceCollection): Promise<EvidenceCollection>;
+  getEvidenceCollectionById(id: string): Promise<EvidenceCollection | undefined>;
+  getEvidenceCollectionByRequestId(deletionRequestId: string): Promise<EvidenceCollection[]>;
+  updateEvidenceCollection(id: string, updates: Partial<EvidenceCollection>): Promise<EvidenceCollection | undefined>;
+  verifyEvidenceChainIntegrity(deletionRequestId: string): Promise<boolean>;
+  getEvidenceChainLength(deletionRequestId: string): Promise<number>;
+  
+  // Transactional evidence collection for preventing race conditions
+  getLastEvidenceInChainWithLock(deletionRequestId: string): Promise<EvidenceCollection | null>;
+  createEvidenceCollectionAtomic(evidenceData: InsertEvidenceCollection, deletionRequestId: string): Promise<EvidenceCollection>;
+
+  // Legal Knowledge Base operations
+  createLegalArticle(articleData: InsertLegalArticle): Promise<LegalArticle>;
+  getLegalArticleById(id: string): Promise<LegalArticle | undefined>;
+  getLegalArticlesByViolationType(violationType: string): Promise<LegalArticle[]>;
+  getLegalArticlesByCategory(category: string): Promise<LegalArticle[]>;
+  getAllLegalArticles(): Promise<LegalArticle[]>;
+  updateLegalArticle(id: string, updates: Partial<LegalArticle>): Promise<LegalArticle | undefined>;
+  deleteLegalArticle(id: string): Promise<boolean>;
+  getLegalArticlesByLawReference(lawReference: string): Promise<LegalArticle[]>;
+  searchLegalArticles(searchTerm: string): Promise<LegalArticle[]>;
 
   // Inbound emails
   createInboundEmail(emailData: InsertInboundEmail): Promise<InboundEmail>;
   getInboundEmailById(id: string): Promise<InboundEmail | undefined>;
+  updateInboundEmailAnalysis(id: string, analysisData: {
+    responseType?: string;
+    extractedData?: any;
+    violations?: string[];
+    legitimacyScore?: number;
+    recommendations?: any;
+    analysisMetadata?: any;
+  }): Promise<InboundEmail | undefined>;
 
   // Operator action tokens operations
   createOperatorActionToken(tokenData: InsertOperatorActionToken): Promise<OperatorActionToken>;
@@ -440,17 +478,52 @@ export interface IStorage {
   getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]>;
 
   // ========================================
-  // САЗПД MODULES METHODS - TEMPORARILY DISABLED
+  // CAMPAIGN MANAGEMENT MODULE METHODS
   // ========================================
-  /* TEMPORARILY DISABLED - САЗПД methods causing compilation issues
-  // Campaign operations
-  createCampaign(campaignData: InsertCampaign): Promise<Campaign>;
-  getCampaignById(id: string): Promise<Campaign | undefined>;
-  getUserCampaigns(userId: string): Promise<Campaign[]>;
-  getAllCampaigns(filters?: { status?: string; targetType?: string; priority?: string }): Promise<Campaign[]>;
-  updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign | undefined>;
-  deleteCampaign(id: string): Promise<boolean>;
-  updateCampaignMetrics(id: string, metrics: { requested?: number; succeeded?: number; failed?: number }): Promise<Campaign | undefined>;
+  
+  // Campaign operations (using deletion_requests as the base entity)
+  createCampaign(campaignData: InsertCampaign): Promise<DeletionRequest>;
+  getCampaignById(id: string): Promise<DeletionRequest | undefined>;
+  getUserCampaigns(userId: string): Promise<DeletionRequest[]>;
+  getAllCampaigns(filters?: { 
+    campaignStatus?: string; 
+    escalationLevel?: number; 
+    isAutomated?: boolean;
+    automationPaused?: boolean;
+    completionRateMin?: number;
+    lastActionBefore?: Date;
+    nextActionDue?: boolean;
+  }): Promise<DeletionRequest[]>;
+  updateCampaign(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
+  updateCampaignStatus(id: string, status: string, milestone?: any): Promise<DeletionRequest | undefined>;
+  updateCampaignMetrics(id: string, metrics: Record<string, any>): Promise<DeletionRequest | undefined>;
+  updateCampaignProgress(id: string, completionRate: number, nextAction?: string, nextActionAt?: Date): Promise<DeletionRequest | undefined>;
+  pauseCampaignAutomation(id: string, reason: string): Promise<DeletionRequest | undefined>;
+  resumeCampaignAutomation(id: string): Promise<DeletionRequest | undefined>;
+  
+  // Campaign analytics and monitoring
+  getCampaignStatistics(timeframe?: 'day' | 'week' | 'month'): Promise<{
+    totalCampaigns: number;
+    activeCampaigns: number;
+    completedCampaigns: number;
+    escalatedCampaigns: number;
+    averageCompletionTime: number;
+    successRate: number;
+    escalationRate: number;
+  }>;
+  
+  getCampaignsByOperator(operatorEmail: string): Promise<DeletionRequest[]>;
+  getOperatorComplianceMetrics(operatorEmail: string): Promise<{
+    totalCampaigns: number;
+    successfulCampaigns: number;
+    averageResponseTime: number;
+    complianceScore: number;
+  }>;
+  
+  // Campaign automation queries
+  getCampaignsReadyForAction(): Promise<DeletionRequest[]>;
+  getCampaignsRequiringEscalation(): Promise<DeletionRequest[]>;
+  getStalledCampaigns(daysSinceLastAction: number): Promise<DeletionRequest[]>;
 
   // Decision rules operations
   createDecisionRule(ruleData: InsertDecisionRule): Promise<DecisionRule>;
@@ -490,6 +563,34 @@ export interface IStorage {
   updateOperatorProfile(id: string, updates: Partial<OperatorProfile>): Promise<OperatorProfile | undefined>;
   deleteOperatorProfile(id: string): Promise<boolean>;
   */
+
+  // ========================================
+  // DECISION ENGINE MODULE METHODS
+  // ========================================
+
+  // Decision Engine operations
+  getDeletionRequestsForDecisionMaking(filters?: {
+    status?: string[];
+    withoutDecisions?: boolean;
+    withAnalyzedResponses?: boolean;
+    olderThanDays?: number;
+  }): Promise<DeletionRequest[]>;
+  
+  getDecisionAuditLog(filters?: {
+    userId?: string;
+    decisionType?: string;
+    dateRange?: { start: Date; end: Date };
+    autoProcessedOnly?: boolean;
+  }): Promise<DeletionRequest[]>;
+  
+  getDecisionStatistics(timeframe?: 'day' | 'week' | 'month'): Promise<{
+    totalDecisions: number;
+    autoExecuted: number;
+    manualReview: number;
+    decisionsByType: Record<string, number>;
+    averageConfidence: number;
+    escalationRate: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -806,6 +907,276 @@ export class DatabaseStorage implements IStorage {
     return requests[0];
   }
 
+  async getDeletionRequestById(id: string): Promise<DeletionRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(deletionRequests)
+      .where(eq(deletionRequests.id, id));
+    return request;
+  }
+
+  // Evidence Collection operations
+  async createEvidenceCollection(evidenceData: InsertEvidenceCollection): Promise<EvidenceCollection> {
+    const [evidence] = await db
+      .insert(evidenceCollection)
+      .values(evidenceData)
+      .returning();
+    return evidence;
+  }
+
+  async getEvidenceCollectionById(id: string): Promise<EvidenceCollection | undefined> {
+    const [evidence] = await db
+      .select()
+      .from(evidenceCollection)
+      .where(eq(evidenceCollection.id, id));
+    return evidence;
+  }
+
+  async getEvidenceCollectionByRequestId(deletionRequestId: string): Promise<EvidenceCollection[]> {
+    const evidence = await db
+      .select()
+      .from(evidenceCollection)
+      .where(eq(evidenceCollection.deletionRequestId, deletionRequestId))
+      .orderBy(desc(evidenceCollection.timestamp));
+    return evidence;
+  }
+
+  async updateEvidenceCollection(id: string, updates: Partial<EvidenceCollection>): Promise<EvidenceCollection | undefined> {
+    const [evidence] = await db
+      .update(evidenceCollection)
+      .set({ 
+        ...updates, 
+        updatedAt: new Date() 
+      })
+      .where(eq(evidenceCollection.id, id))
+      .returning();
+    return evidence;
+  }
+
+  async verifyEvidenceChainIntegrity(deletionRequestId: string): Promise<boolean> {
+    try {
+      const evidenceList = await this.getEvidenceCollectionByRequestId(deletionRequestId);
+      if (evidenceList.length === 0) return true; // Empty chain is valid
+      
+      // Sort by timestamp for proper chain verification
+      const sortedEvidence = evidenceList.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      // Verify each link in the chain
+      for (let i = 0; i < sortedEvidence.length; i++) {
+        const current = sortedEvidence[i];
+        const previous = i > 0 ? sortedEvidence[i - 1] : null;
+        
+        // Check if previous hash reference is correct
+        if (i === 0) {
+          // Genesis evidence should have no previous hash or null
+          if (current.previousHash !== null && current.previousHash !== '') {
+            return false;
+          }
+        } else {
+          // Non-genesis evidence should reference previous content hash
+          if (current.previousHash !== previous?.contentHash) {
+            return false;
+          }
+        }
+        
+        // Additional integrity checks can be added here:
+        // - Verify content hash matches actual content
+        // - Verify timestamp hash
+        // - Verify digital fingerprint
+        // These would require re-implementing the hashing logic from EvidenceCollector
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error verifying evidence chain integrity:', error);
+      return false;
+    }
+  }
+
+  async getEvidenceChainLength(deletionRequestId: string): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(evidenceCollection)
+        .where(eq(evidenceCollection.deletionRequestId, deletionRequestId));
+      return result?.count || 0;
+    } catch (error) {
+      console.error('Error getting evidence chain length:', error);
+      return 0;
+    }
+  }
+
+  // Transactional evidence collection methods for preventing race conditions
+  async getLastEvidenceInChainWithLock(deletionRequestId: string): Promise<EvidenceCollection | null> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Use SELECT FOR UPDATE to lock the row and prevent race conditions
+        const evidence = await tx
+          .select()
+          .from(evidenceCollection)
+          .where(eq(evidenceCollection.deletionRequestId, deletionRequestId))
+          .orderBy(desc(evidenceCollection.timestamp), desc(evidenceCollection.createdAt))
+          .limit(1)
+          .for('update'); // SELECT FOR UPDATE
+          
+        return evidence[0] || null;
+      });
+    } catch (error) {
+      console.error('Error getting last evidence with lock:', error);
+      return null;
+    }
+  }
+
+  async createEvidenceCollectionAtomic(
+    evidenceData: InsertEvidenceCollection, 
+    deletionRequestId: string
+  ): Promise<EvidenceCollection> {
+    return await db.transaction(async (tx) => {
+      // First, get the latest evidence with lock to prevent race conditions
+      const lastEvidence = await tx
+        .select()
+        .from(evidenceCollection)
+        .where(eq(evidenceCollection.deletionRequestId, deletionRequestId))
+        .orderBy(desc(evidenceCollection.timestamp), desc(evidenceCollection.createdAt))
+        .limit(1)
+        .for('update'); // SELECT FOR UPDATE to prevent concurrent insertions
+      
+      // Calculate chain position atomically
+      const chainPosition = lastEvidence.length > 0 
+        ? ((lastEvidence[0].legalMetadata as any)?.chain_position || 0) + 1 
+        : 1;
+      
+      // Update legal metadata with correct chain position
+      const updatedEvidenceData = {
+        ...evidenceData,
+        legalMetadata: {
+          ...(evidenceData.legalMetadata as any),
+          chain_position: chainPosition,
+          atomicity_ensured: true,
+          transaction_timestamp: new Date().toISOString()
+        }
+      };
+      
+      // Insert the new evidence record
+      const [newEvidence] = await tx
+        .insert(evidenceCollection)
+        .values(updatedEvidenceData)
+        .returning();
+      
+      return newEvidence;
+    });
+  }
+
+  // Legal Knowledge Base operations
+  async createLegalArticle(articleData: InsertLegalArticle): Promise<LegalArticle> {
+    const [article] = await db
+      .insert(legalArticles)
+      .values(articleData)
+      .returning();
+    return article;
+  }
+
+  async getLegalArticleById(id: string): Promise<LegalArticle | undefined> {
+    const [article] = await db
+      .select()
+      .from(legalArticles)
+      .where(eq(legalArticles.id, id));
+    return article;
+  }
+
+  async getLegalArticlesByViolationType(violationType: string): Promise<LegalArticle[]> {
+    const articles = await db
+      .select()
+      .from(legalArticles)
+      .where(and(
+        sql`${legalArticles.violationType} @> ARRAY[${violationType}]::text[]`,
+        eq(legalArticles.isActive, true)
+      ))
+      .orderBy(legalArticles.articleNumber);
+    return articles;
+  }
+
+  async getLegalArticlesByCategory(category: string): Promise<LegalArticle[]> {
+    const articles = await db
+      .select()
+      .from(legalArticles)
+      .where(and(
+        eq(legalArticles.category, category),
+        eq(legalArticles.isActive, true)
+      ))
+      .orderBy(legalArticles.articleNumber);
+    return articles;
+  }
+
+  async getAllLegalArticles(): Promise<LegalArticle[]> {
+    const articles = await db
+      .select()
+      .from(legalArticles)
+      .where(eq(legalArticles.isActive, true))
+      .orderBy(legalArticles.lawReference, legalArticles.articleNumber);
+    return articles;
+  }
+
+  async updateLegalArticle(id: string, updates: Partial<LegalArticle>): Promise<LegalArticle | undefined> {
+    const [article] = await db
+      .update(legalArticles)
+      .set({ 
+        ...updates, 
+        updatedAt: new Date() 
+      })
+      .where(eq(legalArticles.id, id))
+      .returning();
+    return article;
+  }
+
+  async deleteLegalArticle(id: string): Promise<boolean> {
+    try {
+      const [result] = await db
+        .update(legalArticles)
+        .set({ 
+          isActive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(legalArticles.id, id))
+        .returning();
+      return !!result;
+    } catch (error) {
+      console.error('Error deleting legal article:', error);
+      return false;
+    }
+  }
+
+  async getLegalArticlesByLawReference(lawReference: string): Promise<LegalArticle[]> {
+    const articles = await db
+      .select()
+      .from(legalArticles)
+      .where(and(
+        eq(legalArticles.lawReference, lawReference),
+        eq(legalArticles.isActive, true)
+      ))
+      .orderBy(legalArticles.articleNumber);
+    return articles;
+  }
+
+  async searchLegalArticles(searchTerm: string): Promise<LegalArticle[]> {
+    const articles = await db
+      .select()
+      .from(legalArticles)
+      .where(and(
+        sql`(
+          ${legalArticles.title} ILIKE ${`%${searchTerm}%`} OR 
+          ${legalArticles.fullText} ILIKE ${`%${searchTerm}%`} OR
+          ${legalArticles.articleNumber} ILIKE ${`%${searchTerm}%`} OR
+          ${legalArticles.legalBasis} ILIKE ${`%${searchTerm}%`}
+        )`,
+        eq(legalArticles.isActive, true)
+      ))
+      .orderBy(legalArticles.lawReference, legalArticles.articleNumber);
+    return articles;
+  }
+
   // Inbound emails
   async createInboundEmail(emailData: InsertInboundEmail): Promise<InboundEmail> {
     const [email] = await db
@@ -820,6 +1191,29 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(inboundEmails)
       .where(eq(inboundEmails.id, id));
+    return email;
+  }
+
+  async updateInboundEmailAnalysis(id: string, analysisData: {
+    responseType?: string;
+    extractedData?: any;
+    violations?: string[];
+    legitimacyScore?: number;
+    recommendations?: any;
+    analysisMetadata?: any;
+  }): Promise<InboundEmail | undefined> {
+    const [email] = await db
+      .update(inboundEmails)
+      .set({
+        responseType: analysisData.responseType,
+        extractedData: analysisData.extractedData,
+        violations: analysisData.violations,
+        legitimacyScore: analysisData.legitimacyScore,
+        recommendations: analysisData.recommendations,
+        analysisMetadata: analysisData.analysisMetadata,
+      })
+      .where(eq(inboundEmails.id, id))
+      .returning();
     return email;
   }
 
@@ -3868,6 +4262,337 @@ export class DatabaseStorage implements IStorage {
   }
   */
   // End of САЗПД modules implementations comment block
+
+  // ========================================
+  // CAMPAIGN MANAGEMENT MODULE IMPLEMENTATIONS
+  // ========================================
+
+  // Campaign operations (using deletion_requests as base entity)
+  async createCampaign(campaignData: InsertCampaign): Promise<DeletionRequest> {
+    const [campaign] = await db
+      .insert(deletionRequests)
+      .values(campaignData)
+      .returning();
+    return campaign;
+  }
+
+  async getCampaignById(id: string): Promise<DeletionRequest | undefined> {
+    const [campaign] = await db
+      .select()
+      .from(deletionRequests)
+      .where(eq(deletionRequests.id, id));
+    return campaign;
+  }
+
+  async getUserCampaigns(userId: string): Promise<DeletionRequest[]> {
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(eq(deletionRequests.userId, userId))
+      .orderBy(desc(deletionRequests.campaignStartedAt));
+  }
+
+  async getAllCampaigns(filters?: { 
+    campaignStatus?: string; 
+    escalationLevel?: number; 
+    isAutomated?: boolean;
+    automationPaused?: boolean;
+    completionRateMin?: number;
+    lastActionBefore?: Date;
+    nextActionDue?: boolean;
+  }): Promise<DeletionRequest[]> {
+    let query = db.select().from(deletionRequests);
+    const conditions = [];
+
+    if (filters?.campaignStatus) {
+      conditions.push(eq(deletionRequests.campaignStatus, filters.campaignStatus));
+    }
+    
+    if (filters?.escalationLevel !== undefined) {
+      conditions.push(eq(deletionRequests.escalationLevel, filters.escalationLevel));
+    }
+    
+    if (filters?.isAutomated !== undefined) {
+      conditions.push(eq(deletionRequests.isAutomated, filters.isAutomated));
+    }
+    
+    if (filters?.automationPaused !== undefined) {
+      conditions.push(eq(deletionRequests.automationPaused, filters.automationPaused));
+    }
+    
+    if (filters?.completionRateMin !== undefined) {
+      conditions.push(sql`${deletionRequests.completionRate} >= ${filters.completionRateMin}`);
+    }
+    
+    if (filters?.lastActionBefore) {
+      conditions.push(sql`${deletionRequests.lastActionAt} < ${filters.lastActionBefore}`);
+    }
+    
+    if (filters?.nextActionDue) {
+      conditions.push(sql`${deletionRequests.nextScheduledActionAt} <= NOW()`);
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    return query.orderBy(desc(deletionRequests.campaignStartedAt));
+  }
+
+  async updateCampaign(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined> {
+    const [campaign] = await db
+      .update(deletionRequests)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async updateCampaignStatus(id: string, status: string, milestone?: any): Promise<DeletionRequest | undefined> {
+    const updateData: any = {
+      campaignStatus: status,
+      lastActionAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    if (milestone) {
+      // Get current milestones and add new one
+      const current = await this.getCampaignById(id);
+      if (current) {
+        const currentMilestones = Array.isArray(current.milestones) ? current.milestones : [];
+        updateData.milestones = [...currentMilestones, milestone];
+      }
+    }
+
+    const [campaign] = await db
+      .update(deletionRequests)
+      .set(updateData)
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async updateCampaignMetrics(id: string, metrics: Record<string, any>): Promise<DeletionRequest | undefined> {
+    const current = await this.getCampaignById(id);
+    if (!current) return undefined;
+
+    const currentMetrics = current.campaignMetrics as any || {};
+    const updatedMetrics = { ...currentMetrics, ...metrics };
+
+    const [campaign] = await db
+      .update(deletionRequests)
+      .set({ 
+        campaignMetrics: updatedMetrics,
+        lastActionAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async updateCampaignProgress(
+    id: string, 
+    completionRate: number, 
+    nextAction?: string, 
+    nextActionAt?: Date
+  ): Promise<DeletionRequest | undefined> {
+    const updateData: any = {
+      completionRate,
+      lastActionAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    if (nextAction) {
+      updateData.nextScheduledAction = nextAction;
+    }
+    
+    if (nextActionAt) {
+      updateData.nextScheduledActionAt = nextActionAt;
+    }
+
+    const [campaign] = await db
+      .update(deletionRequests)
+      .set(updateData)
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async pauseCampaignAutomation(id: string, reason: string): Promise<DeletionRequest | undefined> {
+    const [campaign] = await db
+      .update(deletionRequests)
+      .set({
+        automationPaused: true,
+        automationPausedReason: reason,
+        lastActionAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async resumeCampaignAutomation(id: string): Promise<DeletionRequest | undefined> {
+    const [campaign] = await db
+      .update(deletionRequests)
+      .set({
+        automationPaused: false,
+        automationPausedReason: null,
+        lastActionAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(deletionRequests.id, id))
+      .returning();
+    return campaign;
+  }
+
+  // Campaign analytics and monitoring
+  async getCampaignStatistics(timeframe?: 'day' | 'week' | 'month'): Promise<{
+    totalCampaigns: number;
+    activeCampaigns: number;
+    completedCampaigns: number;
+    escalatedCampaigns: number;
+    averageCompletionTime: number;
+    successRate: number;
+    escalationRate: number;
+  }> {
+    // Calculate date range based on timeframe
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timeframe) {
+      case 'day':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(0); // All time
+    }
+
+    // Get campaigns in timeframe
+    const campaigns = await db
+      .select()
+      .from(deletionRequests)
+      .where(sql`${deletionRequests.campaignStartedAt} >= ${startDate}`);
+
+    const totalCampaigns = campaigns.length;
+    const activeCampaigns = campaigns.filter(c => 
+      ['started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action'].includes(c.campaignStatus || '')
+    ).length;
+    const completedCampaigns = campaigns.filter(c => c.campaignStatus === 'completed').length;
+    const escalatedCampaigns = campaigns.filter(c => c.campaignStatus === 'escalated').length;
+
+    // Calculate average completion time
+    const completedWithTime = campaigns.filter(c => 
+      c.campaignStatus === 'completed' && c.campaignStartedAt && c.completedAt
+    );
+    const averageCompletionTime = completedWithTime.length > 0 
+      ? completedWithTime.reduce((sum, c) => {
+          const start = new Date(c.campaignStartedAt!).getTime();
+          const end = new Date(c.completedAt!).getTime();
+          return sum + (end - start) / (1000 * 60 * 60 * 24); // days
+        }, 0) / completedWithTime.length
+      : 0;
+
+    const successRate = totalCampaigns > 0 ? (completedCampaigns / totalCampaigns) * 100 : 0;
+    const escalationRate = totalCampaigns > 0 ? (escalatedCampaigns / totalCampaigns) * 100 : 0;
+
+    return {
+      totalCampaigns,
+      activeCampaigns,
+      completedCampaigns,
+      escalatedCampaigns,
+      averageCompletionTime,
+      successRate,
+      escalationRate
+    };
+  }
+
+  async getCampaignsByOperator(operatorEmail: string): Promise<DeletionRequest[]> {
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(eq(deletionRequests.operatorEmail, operatorEmail))
+      .orderBy(desc(deletionRequests.campaignStartedAt));
+  }
+
+  async getOperatorComplianceMetrics(operatorEmail: string): Promise<{
+    totalCampaigns: number;
+    successfulCampaigns: number;
+    averageResponseTime: number;
+    complianceScore: number;
+  }> {
+    const campaigns = await this.getCampaignsByOperator(operatorEmail);
+    
+    const totalCampaigns = campaigns.length;
+    const successfulCampaigns = campaigns.filter(c => c.campaignStatus === 'completed').length;
+    
+    // Calculate average response time
+    const campaignsWithResponse = campaigns.filter(c => c.campaignStartedAt && c.lastInboundAt);
+    const averageResponseTime = campaignsWithResponse.length > 0
+      ? campaignsWithResponse.reduce((sum, c) => {
+          const start = new Date(c.campaignStartedAt!).getTime();
+          const response = new Date(c.lastInboundAt!).getTime();
+          return sum + (response - start) / (1000 * 60 * 60 * 24); // days
+        }, 0) / campaignsWithResponse.length
+      : 0;
+
+    const complianceScore = totalCampaigns > 0 ? (successfulCampaigns / totalCampaigns) * 100 : 0;
+
+    return {
+      totalCampaigns,
+      successfulCampaigns,
+      averageResponseTime,
+      complianceScore
+    };
+  }
+
+  // Campaign automation queries
+  async getCampaignsReadyForAction(): Promise<DeletionRequest[]> {
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(and(
+        eq(deletionRequests.isAutomated, true),
+        eq(deletionRequests.automationPaused, false),
+        sql`${deletionRequests.nextScheduledActionAt} <= NOW()`,
+        sql`${deletionRequests.campaignStatus} IN ('started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action')`
+      ))
+      .orderBy(deletionRequests.nextScheduledActionAt);
+  }
+
+  async getCampaignsRequiringEscalation(): Promise<DeletionRequest[]> {
+    const escalationThreshold = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
+    
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(and(
+        sql`${deletionRequests.campaignStartedAt} <= ${escalationThreshold}`,
+        sql`${deletionRequests.campaignStatus} IN ('awaiting_response', 'taking_action')`,
+        sql`${deletionRequests.escalationLevel} < 2`
+      ))
+      .orderBy(deletionRequests.campaignStartedAt);
+  }
+
+  async getStalledCampaigns(daysSinceLastAction: number): Promise<DeletionRequest[]> {
+    const stalledThreshold = new Date(Date.now() - daysSinceLastAction * 24 * 60 * 60 * 1000);
+    
+    return await db
+      .select()
+      .from(deletionRequests)
+      .where(and(
+        sql`${deletionRequests.lastActionAt} <= ${stalledThreshold}`,
+        sql`${deletionRequests.campaignStatus} IN ('started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action')`
+      ))
+      .orderBy(deletionRequests.lastActionAt);
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -6988,6 +7713,80 @@ export class MemStorage implements IStorage {
     throw new Error('DB storage required - getDeletionRequestByMessageId not supported in MemStorage. Use DatabaseStorage for production.');
   }
 
+  async getDeletionRequestById(id: string): Promise<DeletionRequest | undefined> {
+    throw new Error('DB storage required - getDeletionRequestById not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Evidence Collection operations (stub implementations for MemStorage)
+  async createEvidenceCollection(evidenceData: InsertEvidenceCollection): Promise<EvidenceCollection> {
+    throw new Error('DB storage required - createEvidenceCollection not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getEvidenceCollectionById(id: string): Promise<EvidenceCollection | undefined> {
+    throw new Error('DB storage required - getEvidenceCollectionById not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getEvidenceCollectionByRequestId(deletionRequestId: string): Promise<EvidenceCollection[]> {
+    throw new Error('DB storage required - getEvidenceCollectionByRequestId not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateEvidenceCollection(id: string, updates: Partial<EvidenceCollection>): Promise<EvidenceCollection | undefined> {
+    throw new Error('DB storage required - updateEvidenceCollection not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async verifyEvidenceChainIntegrity(deletionRequestId: string): Promise<boolean> {
+    throw new Error('DB storage required - verifyEvidenceChainIntegrity not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getEvidenceChainLength(deletionRequestId: string): Promise<number> {
+    throw new Error('DB storage required - getEvidenceChainLength not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getLastEvidenceInChainWithLock(deletionRequestId: string): Promise<EvidenceCollection | null> {
+    throw new Error('DB storage required - getLastEvidenceInChainWithLock not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async createEvidenceCollectionAtomic(evidenceData: InsertEvidenceCollection, deletionRequestId: string): Promise<EvidenceCollection> {
+    throw new Error('DB storage required - createEvidenceCollectionAtomic not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // Legal Knowledge Base operations (stub implementations for MemStorage)
+  async createLegalArticle(articleData: InsertLegalArticle): Promise<LegalArticle> {
+    throw new Error('DB storage required - createLegalArticle not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getLegalArticleById(id: string): Promise<LegalArticle | undefined> {
+    throw new Error('DB storage required - getLegalArticleById not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getLegalArticlesByViolationType(violationType: string): Promise<LegalArticle[]> {
+    throw new Error('DB storage required - getLegalArticlesByViolationType not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getLegalArticlesByCategory(category: string): Promise<LegalArticle[]> {
+    throw new Error('DB storage required - getLegalArticlesByCategory not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getAllLegalArticles(): Promise<LegalArticle[]> {
+    throw new Error('DB storage required - getAllLegalArticles not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateLegalArticle(id: string, updates: Partial<LegalArticle>): Promise<LegalArticle | undefined> {
+    throw new Error('DB storage required - updateLegalArticle not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async deleteLegalArticle(id: string): Promise<boolean> {
+    throw new Error('DB storage required - deleteLegalArticle not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getLegalArticlesByLawReference(lawReference: string): Promise<LegalArticle[]> {
+    throw new Error('DB storage required - getLegalArticlesByLawReference not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async searchLegalArticles(searchTerm: string): Promise<LegalArticle[]> {
+    throw new Error('DB storage required - searchLegalArticles not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
   // Inbound email operations (stub implementations for MemStorage)
   async createInboundEmail(emailData: InsertInboundEmail): Promise<InboundEmail> {
     throw new Error('DB storage required - createInboundEmail not supported in MemStorage. Use DatabaseStorage for production.');
@@ -6995,6 +7794,10 @@ export class MemStorage implements IStorage {
 
   async getInboundEmailById(id: string): Promise<InboundEmail | undefined> {
     throw new Error('DB storage required - getInboundEmailById not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateInboundEmailAnalysis(id: string, analysisData: any): Promise<InboundEmail | undefined> {
+    throw new Error('DB storage required - updateInboundEmailAnalysis not supported in MemStorage. Use DatabaseStorage for production.');
   }
 
   // ========================================

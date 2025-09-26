@@ -233,9 +233,409 @@ export const deletionRequests = pgTable("deletion_requests", {
   initialMessageId: varchar("initial_message_id"), // ID первого письма
   followUpMessageId: varchar("follow_up_message_id"), // ID повторного письма
   escalationMessageId: varchar("escalation_message_id"), // ID письма эскалации в Роскомнадзор
+  
+  // ====================
+  // DECISION ENGINE MODULE FIELDS
+  // ====================
+  
+  // Тип принятого автоматического решения
+  decisionType: varchar("decision_type"), // DecisionTypeEnum values
+  
+  // Обоснование принятого решения
+  decisionReason: text("decision_reason"), // Human-readable explanation
+  
+  // Метаданные решения (JSON)
+  decisionMetadata: jsonb("decision_metadata").default(sql`'{}'::jsonb`), // Decision context and parameters
+  // Структура decisionMetadata:
+  // {
+  //   triggeredByAnalysis: boolean,     // Решение на основе анализа ответа
+  //   analysisScore: number,            // legitimacyScore на момент решения
+  //   analysisViolations: string[],     // Violations на момент решения
+  //   triggerRules: string[],           // Какие правила сработали
+  //   manualOverride: boolean,          // Было ли ручное переопределение
+  //   overrideReason: string,           // Причина переопределения
+  //   originalDecision: string,         // Исходное автоматическое решение
+  //   executionTimestamp: string,       // Время выполнения решения
+  //   estimatedResolutionDays: number,  // Прогноз времени решения
+  //   escalationLevel: string,          // Уровень эскалации
+  //   aiAnalysisUsed: boolean,          // Использовался ли AI анализ
+  //   ruleConfidence: number            // Уверенность в принятом решении
+  // }
+  
+  // Флаг автоматической обработки
+  autoProcessed: boolean("auto_processed").default(false), // Было ли решение принято автоматически
+  
+  // Время принятия решения
+  decisionMadeAt: timestamp("decision_made_at"), // Когда было принято решение
+  
+  // Idempotency key для предотвращения дублирования решений (САЗПД критично)
+  decisionIdempotencyKey: varchar("decision_idempotency_key").unique(), // UUID для предотвращения дублирования решений
+  
+  // ID последнего связанного входящего письма
+  lastInboundEmailId: varchar("last_inbound_email_id").references(() => inboundEmails.id, { onDelete: "set null" }),
+  
+  // ====================
+  // CAMPAIGN MANAGEMENT MODULE FIELDS
+  // ====================
+  
+  // Статус кампании (жизненный цикл)
+  campaignStatus: varchar("campaign_status").default("started"), // started, documents_sent, awaiting_response, analyzing_response, taking_action, completed, escalated, failed
+  
+  // Метрики кампании (JSON)
+  campaignMetrics: jsonb("campaign_metrics").default(sql`'{
+    "documentsGenerated": 0,
+    "responsesReceived": 0,
+    "successfulResponses": 0,
+    "escalationAttempts": 0,
+    "totalInteractions": 0,
+    "averageResponseTime": null,
+    "complianceScore": 0
+  }'::jsonb`),
+  
+  // Вехи кампании (JSON array)
+  milestones: jsonb("milestones").default(sql`'[]'::jsonb`),
+  // Структура milestones:
+  // [
+  //   {
+  //     "type": "campaign_started",
+  //     "timestamp": "2023-12-01T10:00:00Z",
+  //     "status": "completed",
+  //     "metadata": {}
+  //   },
+  //   {
+  //     "type": "initial_document_sent",
+  //     "timestamp": "2023-12-01T10:05:00Z", 
+  //     "status": "completed",
+  //     "metadata": { "documentType": "INITIAL_REQUEST", "recipientEmail": "operator@example.com" }
+  //   }
+  // ]
+  
+  // Общее количество документов в кампании
+  totalDocuments: integer("total_documents").default(0),
+  
+  // Временные метки кампании
+  campaignStartedAt: timestamp("campaign_started_at"),
+  lastActionAt: timestamp("last_action_at"), // последнее действие в рамках кампании
+  
+  // Процент завершенности кампании (0-100)
+  completionRate: integer("completion_rate").default(0),
+  
+  // Уровень эскалации (0 = начальный уровень, 1 = повторное обращение, 2 = РКН, etc.)
+  escalationLevel: integer("escalation_level").default(0),
+  
+  // Планируемое следующее действие
+  nextScheduledAction: varchar("next_scheduled_action"), // "send_followup", "escalate_to_rkn", "close_campaign", etc.
+  nextScheduledActionAt: timestamp("next_scheduled_action_at"),
+  
+  // Автоматизация кампании
+  isAutomated: boolean("is_automated").default(true), // автоматическое выполнение действий
+  automationPaused: boolean("automation_paused").default(false), // приостановка автоматизации
+  automationPausedReason: text("automation_paused_reason"), // причина приостановки
+  
+  // Качество кампании и эффективность
+  campaignQualityScore: integer("campaign_quality_score").default(0), // 0-100 оценка качества ведения кампании
+  operatorComplianceHistory: jsonb("operator_compliance_history").default(sql`'{}'::jsonb`), // история взаимодействия с оператором
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ====================
+// DECISION ENGINE ENUMS
+// ====================
+
+/**
+ * Enum для типов автоматических решений Decision Engine
+ */
+export const DecisionTypeEnum = z.enum([
+  "AUTO_COMPLETE",           // Автоматическое завершение (положительный ответ + высокий score)
+  "ESCALATE_TO_RKN",        // Эскалация в Роскомнадзор (серьезные нарушения)
+  "REQUEST_CLARIFICATION",   // Запрос дополнительной информации
+  "SCHEDULE_FOLLOW_UP",      // Планирование повторного обращения
+  "IMMEDIATE_ESCALATION",    // Немедленная эскалация (критические нарушения)
+  "MANUAL_REVIEW_REQUIRED",  // Требуется ручная проверка
+  "EXTEND_DEADLINE",         // Продление срока ответа
+  "CLOSE_AS_RESOLVED",       // Закрытие как решенного
+  "PREPARE_LEGAL_ACTION"     // Подготовка правовых действий
+]);
+
+export type DecisionType = z.infer<typeof DecisionTypeEnum>;
+
+// ====================
+// RESPONSE ANALYSIS ENUMS
+// ====================
+
+/**
+ * Enum для детального типа ответа оператора (Response Analysis Module)
+ */
+export const ResponseTypeEnum = z.enum([
+  "POSITIVE_CONFIRMATION",  // Оператор подтвердил удаление данных
+  "REJECTION",             // Отказ в удалении с обоснованием
+  "PARTIAL_COMPLIANCE",    // Частичное выполнение требований
+  "NO_RESPONSE",          // Отсутствие ответа в срок
+  "CLARIFICATION_REQUEST", // Запрос уточняющей информации
+  "AUTO_GENERATED",       // Автоматический ответ
+  "UNRELATED",            // Сообщение не относится к запросу
+  "UNKNOWN"               // Тип не определен
+]);
+
+export type ResponseType = z.infer<typeof ResponseTypeEnum>;
+
+/**
+ * Enum для типов нарушений (Violation Detection)
+ */
+export const ViolationTypeEnum = z.enum([
+  "INVALID_LEGAL_BASIS",    // Неверное правовое обоснование
+  "EXCESSIVE_RETENTION",    // Чрезмерный срок хранения
+  "MISSING_INFORMATION",    // Недостаточная информация в ответе
+  "DELAY_VIOLATION",        // Нарушение сроков ответа
+  "PROCEDURAL_VIOLATION",   // Нарушение процедуры обработки
+  "PRIVACY_VIOLATION",      // Нарушение принципов обработки ПД
+  "CONSENT_VIOLATION",      // Нарушения в области согласий
+  "TRANSPARENCY_VIOLATION", // Нарушение принципа прозрачности
+  "SECURITY_VIOLATION"      // Нарушения в области безопасности
+]);
+
+export type ViolationType = z.infer<typeof ViolationTypeEnum>;
+
+// ====================
+// CAMPAIGN MANAGEMENT MODULE ENUMS
+// ====================
+
+/**
+ * Enum для статусов кампании (жизненный цикл Campaign Management Module)
+ */
+export const CampaignStatusEnum = z.enum([
+  "started",               // Кампания запущена
+  "documents_sent",        // Документы отправлены оператору
+  "awaiting_response",     // Ожидание ответа от оператора
+  "analyzing_response",    // Анализ полученного ответа
+  "taking_action",         // Выполнение действий на основе анализа
+  "completed",             // Кампания успешно завершена
+  "escalated",             // Кампания эскалирована в надзорные органы
+  "failed",                // Кампания завершена неудачно
+  "paused",                // Кампания приостановлена
+  "cancelled"              // Кампания отменена
+]);
+
+export type CampaignStatus = z.infer<typeof CampaignStatusEnum>;
+
+/**
+ * Enum для типов следующих действий в кампании
+ */
+export const NextActionEnum = z.enum([
+  "send_followup",         // Отправить повторное письмо
+  "escalate_to_rkn",       // Эскалировать в Роскомнадзор
+  "request_clarification", // Запросить уточнения
+  "close_campaign",        // Закрыть кампанию
+  "await_response",        // Ждать ответа
+  "analyze_response",      // Анализировать ответ
+  "schedule_reminder",     // Запланировать напоминание
+  "collect_evidence",      // Собрать дополнительные доказательства
+  "prepare_legal_action"   // Подготовить правовые действия
+]);
+
+export type NextAction = z.infer<typeof NextActionEnum>;
+
+/**
+ * Enum для типов вех кампании
+ */
+export const MilestoneTypeEnum = z.enum([
+  "campaign_started",        // Кампания запущена
+  "initial_document_sent",   // Начальный документ отправлен
+  "response_received",       // Получен ответ
+  "followup_sent",           // Отправлено повторное письмо
+  "escalation_initiated",    // Инициирована эскалация
+  "evidence_collected",      // Собраны доказательства
+  "decision_made",           // Принято решение
+  "campaign_completed",      // Кампания завершена
+  "deadline_reached",        // Достигнут дедлайн
+  "automation_paused",       // Автоматизация приостановлена
+  "manual_intervention"      // Ручное вмешательство
+]);
+
+export type MilestoneType = z.infer<typeof MilestoneTypeEnum>;
+
+// ====================
+// EVIDENCE COLLECTION MODULE ENUMS
+// ====================
+
+/**
+ * Enum для типов доказательств в Evidence Collection Module
+ */
+export const EvidenceTypeEnum = z.enum([
+  "EMAIL_RESPONSE",           // Ответ оператора по email
+  "VIOLATION_DETECTED",       // Обнаруженное нарушение ФЗ-152
+  "OPERATOR_REFUSAL",         // Отказ оператора в удалении данных
+  "LEGAL_BASIS_INVALID",      // Неверное правовое обоснование
+  "DELAY_VIOLATION_PROOF",    // Доказательство нарушения сроков
+  "EMAIL_HEADERS",            // Email headers для технического анализа
+  "TIMESTAMP_VERIFICATION",   // Подтверждение временных меток
+  "DECISION_ENGINE_ACTION",   // Действие системы принятия решений
+  "MANUAL_COLLECTION",        // Ручной сбор доказательств
+  "AUTO_ANALYSIS_RESULT"      // Результат автоматического анализа
+]);
+
+export type EvidenceType = z.infer<typeof EvidenceTypeEnum>;
+
+// Evidence collection table для криптографического сбора доказательств
+export const evidenceCollection = pgTable("evidence_collection", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  deletionRequestId: varchar("deletion_request_id").notNull().references(() => deletionRequests.id, { onDelete: "cascade" }),
+  evidenceType: varchar("evidence_type").notNull(), // EvidenceTypeEnum values
+  evidenceData: jsonb("evidence_data").notNull(), // Данные доказательства в JSON формате
+  
+  // Криптографические поля для обеспечения целостности
+  contentHash: varchar("content_hash").notNull(), // HMAC-SHA256 хэш содержимого доказательства
+  previousHash: varchar("previous_hash"), // Хэш предыдущего доказательства в цепочке (NULL только для genesis block)
+  hashChain: varchar("hash_chain").notNull(), // HMAC-SHA256 хэш всей цепочки до этого элемента
+  verificationSignature: varchar("verification_signature").notNull(), // HMAC-подпись для верификации целостности
+  
+  // Метаданные для верификации
+  digitalFingerprint: varchar("digital_fingerprint").notNull(), // Уникальная цифровая подпись
+  timestampHash: varchar("timestamp_hash").notNull(), // Хэш временной метки для защиты от подделки
+  
+  // Системная информация  
+  collectionSource: varchar("collection_source").notNull(), // "manual", "auto_analysis", "email_inbound", "decision_engine"
+  collectedBy: varchar("collected_by").notNull().default("system"), // ID пользователя или "system" для автоматического сбора
+  
+  // Верификация целостности
+  integrityStatus: varchar("integrity_status").default("verified"), // "verified", "tampered", "unknown"
+  verificationHash: varchar("verification_hash").notNull(), // Комплексный хэш для проверки всей записи
+  
+  // Метаданные для юридической значимости
+  legalMetadata: jsonb("legal_metadata").default(sql`'{}'::jsonb`), // Юридически значимая информация
+  // Структура legalMetadata:
+  // {
+  //   collection_timestamp: string,      // RFC3339 временная метка сбора
+  //   legal_basis_violated: string[],    // Нарушенные статьи ФЗ-152
+  //   evidence_classification: string,   // Классификация доказательства
+  //   chain_position: number,            // Позиция в цепочке доказательств
+  //   hash_algorithm: string,            // Используемый алгоритм хэширования
+  //   collection_method: string,         // Метод сбора доказательств
+  //   audit_trail_id: string,           // ID аудиторского следа
+  //   crypto_verification: object       // Криптографическая верификация
+  // }
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_evidence_collection_deletion_request").on(table.deletionRequestId),
+  index("IDX_evidence_collection_type").on(table.evidenceType),
+  index("IDX_evidence_collection_timestamp").on(table.timestamp),
+  index("IDX_evidence_collection_content_hash").on(table.contentHash),
+  index("IDX_evidence_collection_previous_hash").on(table.previousHash),
+  index("IDX_evidence_collection_chain").on(table.hashChain),
+  index("IDX_evidence_collection_source").on(table.collectionSource),
+  index("IDX_evidence_collection_integrity").on(table.integrityStatus),
+  // Уникальный индекс для предотвращения дублирования хэшей
+  index("IDX_evidence_collection_unique_hash").on(table.contentHash, table.timestampHash),
+  
+  // ===============================================
+  // КРИТИЧЕСКИЕ CONSTRAINTS ДЛЯ САЗПД МОДУЛЕЙ
+  // ===============================================
+  
+  // Уникальный индекс на (deletionRequestId, chain_position) для предотвращения race conditions
+  // Использует функциональный индекс для извлечения chain_position из JSONB
+  sql`CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "IDX_evidence_collection_unique_chain_position" ON "evidence_collection" ("deletion_request_id", (("legal_metadata"->>'chain_position')::integer))`,
+  
+  // Дополнительные индексы для производительности
+  index("IDX_evidence_collection_created_at").on(table.createdAt),
+  index("IDX_evidence_collection_verification_hash").on(table.verificationHash),
+  
+  // Функциональный индекс для быстрого поиска по chain_position
+  sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_evidence_collection_chain_position" ON "evidence_collection" ((("legal_metadata"->>'chain_position')::integer))`,
+]);
+
+// ====================
+// LEGAL KNOWLEDGE BASE MODULE
+// ====================
+
+// Legal articles table для базы правовых норм российского законодательства
+export const legalArticles = pgTable("legal_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  articleNumber: varchar("article_number").notNull(), // Номер статьи: "9", "14", "18", "19", "21"
+  title: varchar("title").notNull(), // Заголовок статьи
+  fullText: text("full_text").notNull(), // Полный текст статьи ФЗ-152
+  lawReference: varchar("law_reference").notNull().default("ФЗ-152"), // Ссылка на закон
+  category: varchar("category").notNull(), // Категория: "rights", "obligations", "violations", "procedures"
+  
+  // Связь с типами нарушений (массив для поддержки связи многие ко многим)
+  violationType: text("violation_type").array().notNull().default(sql`ARRAY[]::text[]`), // ViolationTypeEnum values
+  
+  // Правовые сроки и последствия
+  deadline: integer("deadline"), // Срок в днях (30 для ответа оператора, 60 для эскалации)
+  penalties: jsonb("penalties").default(sql`'{}'::jsonb`), // Штрафы и административная ответственность
+  // Структура penalties:
+  // {
+  //   "individual": { "min": 1000, "max": 3000, "currency": "RUB" },
+  //   "official": { "min": 10000, "max": 20000, "currency": "RUB" },
+  //   "legal_entity": { "min": 30000, "max": 100000, "currency": "RUB" },
+  //   "additional_sanctions": ["warning", "suspension", "license_revocation"]
+  // }
+  
+  // Правовые основания и процедуры
+  legalBasis: text("legal_basis"), // Правовые основания для применения статьи
+  procedures: jsonb("procedures").default(sql`'{}'::jsonb`), // Процедуры применения статьи
+  // Структура procedures:
+  // {
+  //   "notification_required": boolean,
+  //   "response_deadline_days": number,
+  //   "escalation_path": string[],
+  //   "required_documents": string[],
+  //   "operator_obligations": string[]
+  // }
+  
+  // Связь с документооборотом
+  documentTypes: text("document_types").array().notNull().default(sql`ARRAY[]::text[]`), // DocumentTypeEnum values для которых применима статья
+  
+  // Статус и актуализация
+  isActive: boolean("is_active").default(true), // Активна ли статья
+  effectiveFrom: timestamp("effective_from"), // Дата вступления в силу
+  effectiveUntil: timestamp("effective_until"), // Дата окончания действия (если есть)
+  lastUpdated: timestamp("last_updated").defaultNow(), // Последнее обновление правовой информации
+  
+  // Метаданные для юридической точности
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Дополнительные юридические метаданные
+  // Структура metadata:
+  // {
+  //   "source_url": string,              // Ссылка на официальный источник
+  //   "last_verification_date": string,  // Дата последней верификации текста
+  //   "legal_expert_verified": boolean,  // Проверено ли юристом
+  //   "amendment_history": object[],     // История изменений статьи
+  //   "related_articles": string[],      // Связанные статьи закона
+  //   "application_examples": string[],  // Примеры применения статьи
+  //   "court_practice": string[]         // Судебная практика по статье
+  // }
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Основные индексы для поиска
+  index("IDX_legal_articles_article_number").on(table.articleNumber),
+  index("IDX_legal_articles_law_reference").on(table.lawReference),
+  index("IDX_legal_articles_category").on(table.category),
+  index("IDX_legal_articles_active").on(table.isActive),
+  
+  // Индексы для массивов (GIN индексы для эффективного поиска)
+  index("IDX_legal_articles_violation_type_gin").using("gin", table.violationType),
+  index("IDX_legal_articles_document_types_gin").using("gin", table.documentTypes),
+  
+  // Индексы для временных полей
+  index("IDX_legal_articles_effective_from").on(table.effectiveFrom),
+  index("IDX_legal_articles_effective_until").on(table.effectiveUntil),
+  index("IDX_legal_articles_last_updated").on(table.lastUpdated),
+  
+  // Композитный индекс для активных статей по категории
+  index("IDX_legal_articles_active_category").on(table.isActive, table.category),
+  
+  // Композитный индекс для поиска по закону и номеру статьи
+  index("IDX_legal_articles_law_number").on(table.lawReference, table.articleNumber),
+  
+  // Уникальный составной индекс для предотвращения дублирования
+  sql`UNIQUE (law_reference, article_number)`,
+]);
 
 // Inbound emails table для обработки входящих писем от операторов ПД
 export const inboundEmails = pgTable("inbound_emails", {
@@ -245,17 +645,79 @@ export const inboundEmails = pgTable("inbound_emails", {
   subject: varchar("subject"),
   bodyText: text("body_text"),
   bodyHtml: text("body_html"),
-  parsedStatus: varchar("parsed_status").notNull(), // 'deleted', 'rejected', 'need_info', 'other'
+  parsedStatus: varchar("parsed_status").notNull(), // 'deleted', 'rejected', 'need_info', 'other' (legacy field)
   headers: jsonb("headers").default(sql`'{}'::jsonb`),
   inReplyTo: varchar("in_reply_to"),
   references: varchar("references"),
   xTrackId: varchar("x_track_id"),
   receivedAt: timestamp("received_at").notNull().defaultNow(),
+  
+  // ====================
+  // RESPONSE ANALYSIS MODULE FIELDS
+  // ====================
+  
+  // Детальный тип ответа (более точный чем parsedStatus)
+  responseType: varchar("response_type"), // ResponseTypeEnum values
+  
+  // Извлеченная ключевая информация из ответа
+  extractedData: jsonb("extracted_data").default(sql`'{}'::jsonb`), // Structured response data
+  // Структура extractedData:
+  // {
+  //   legal_basis: string[],           // Правовые основания
+  //   data_categories: string[],       // Категории обработанных данных
+  //   retention_period: string,        // Заявленный срок хранения
+  //   consent_info: object,            // Информация о согласиях
+  //   contact_person: string,          // Контактное лицо
+  //   response_language: string,       // Язык ответа (ru/en)
+  //   attachments: string[],           // Список приложений
+  //   cited_laws: string[],            // Ссылки на нормативные акты
+  //   processing_purposes: string[],   // Цели обработки данных
+  //   third_parties: string[],         // Передача третьим лицам
+  //   security_measures: string[],     // Меры безопасности
+  //   deletion_timeline: string        // Временные рамки удаления
+  // }
+  
+  // Обнаруженные нарушения
+  violations: text("violations").array().default(sql`ARRAY[]::text[]`), // ViolationTypeEnum values
+  
+  // Оценка правомерности ответа (0-100)
+  legitimacyScore: integer("legitimacy_score"), // Calculated legitimacy score
+  
+  // Рекомендации по дальнейшим действиям
+  recommendations: jsonb("recommendations").default(sql`'{}'::jsonb`), // AI-generated recommendations
+  // Структура recommendations:
+  // {
+  //   next_action: string,             // Рекомендуемое действие
+  //   escalation_level: string,        // Уровень эскалации
+  //   follow_up_required: boolean,     // Нужно ли повторное обращение
+  //   legal_advice_needed: boolean,    // Нужна ли юридическая консультация
+  //   estimated_resolution_days: number, // Оценка времени решения
+  //   confidence_level: number         // Уверенность в анализе (0-100)
+  // }
+  
+  // Метаданные анализа
+  analysisMetadata: jsonb("analysis_metadata").default(sql`'{}'::jsonb`), // Analysis tracking
+  // Структура analysisMetadata:
+  // {
+  //   analyzed_at: string,             // Время анализа
+  //   analysis_version: string,        // Версия алгоритма анализа
+  //   processing_time_ms: number,      // Время обработки
+  //   ai_model_used: string,           // Использованная AI модель
+  //   rule_matches: string[],          // Сработавшие правила
+  //   confidence_breakdown: object,    // Детализация уверенности
+  //   manual_review_required: boolean, // Требует ли ручной проверки
+  //   language_detected: string        // Определенный язык
+  // }
+  
 }, (table) => [
   index("IDX_inbound_emails_deletion_request").on(table.deletionRequestId),
   index("IDX_inbound_emails_operator").on(table.operatorEmail),
   index("IDX_inbound_emails_track_id").on(table.xTrackId),
   index("IDX_inbound_emails_received").on(table.receivedAt),
+  // Новые индексы для Response Analysis Module
+  index("IDX_inbound_emails_response_type").on(table.responseType),
+  index("IDX_inbound_emails_legitimacy_score").on(table.legitimacyScore),
+  index("IDX_inbound_emails_violations").on(table.violations),
 ]);
 
 // Operator action tokens для подтверждения действий операторов ПД
@@ -455,6 +917,40 @@ export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).
   updatedAt: true,
 });
 
+// Campaign-specific insert schema (extends deletion request)
+export const insertCampaignSchema = createInsertSchema(deletionRequests).omit({
+  id: true,
+  status: true,
+  sentAt: true,
+  responseReceived: true,
+  responseDetails: true,
+  completedAt: true,
+  followUpRequired: true,
+  followUpDate: true,
+  // Исключаем автогенерируемые поля 
+  firstSentAt: true,
+  followUpSentAt: true,
+  responseDeadlineAt: true,
+  followUpDueAt: true,
+  escalateDueAt: true,
+  buttonConfirmedAt: true,
+  lastInboundAt: true,
+  escalationSentAt: true,
+  initialMessageId: true,
+  followUpMessageId: true,
+  escalationMessageId: true,
+  // Исключаем автогенерируемые поля кампании
+  campaignMetrics: true,
+  milestones: true,
+  totalDocuments: true,
+  completionRate: true,
+  escalationLevel: true,
+  campaignQualityScore: true,
+  operatorComplianceHistory: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   read: true,
@@ -492,10 +988,22 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
 });
 
-// Insert schemas for new tables
+// Insert schemas for new tables  
 export const insertInboundEmailSchema = createInsertSchema(inboundEmails).omit({
   id: true,
   receivedAt: true, // defaultNow()
+  // Response Analysis Module fields are optional and can be updated later
+  responseType: true,
+  extractedData: true,  
+  violations: true,
+  legitimacyScore: true,
+  recommendations: true,
+  analysisMetadata: true,
+}).extend({
+  // Optional response analysis fields for updates
+  responseType: ResponseTypeEnum.optional(),
+  violations: z.array(ViolationTypeEnum).optional(),
+  legitimacyScore: z.number().int().min(0).max(100).optional(),
 });
 
 // Webhook payload validation schema for SendGrid Inbound Parse
@@ -516,6 +1024,29 @@ export const insertOperatorActionTokenSchema = createInsertSchema(operatorAction
   createdAt: true, // defaultNow()
 });
 
+export const insertEvidenceCollectionSchema = createInsertSchema(evidenceCollection).omit({
+  id: true,
+  integrityStatus: true, // автоматически устанавливается как "verified"
+  timestamp: true, // defaultNow()
+  createdAt: true, // defaultNow()
+  updatedAt: true, // defaultNow()
+});
+
+// Legal articles schemas
+export const insertLegalArticleSchema = createInsertSchema(legalArticles).omit({
+  id: true,
+  lawReference: true, // auto-generated default "ФЗ-152"
+  violationType: true, // auto-generated default empty array
+  penalties: true, // auto-generated default empty object
+  procedures: true, // auto-generated default empty object
+  documentTypes: true, // auto-generated default empty array
+  isActive: true, // auto-generated default true
+  lastUpdated: true, // defaultNow()
+  metadata: true, // auto-generated default empty object
+  createdAt: true, // defaultNow()
+  updatedAt: true, // defaultNow()
+});
+
 // Types
 export type UserAccount = typeof userAccounts.$inferSelect;
 export type InsertUserAccount = z.infer<typeof insertUserAccountSchema>;
@@ -529,6 +1060,7 @@ export type DataBrokerScan = typeof dataBrokerScans.$inferSelect;
 export type InsertDataBrokerScan = z.infer<typeof insertDataBrokerScanSchema>;
 export type DeletionRequest = typeof deletionRequests.$inferSelect;
 export type InsertDeletionRequest = z.infer<typeof insertDeletionRequestSchema>;
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
@@ -545,6 +1077,10 @@ export type InboundEmail = typeof inboundEmails.$inferSelect;
 export type InsertInboundEmail = z.infer<typeof insertInboundEmailSchema>;
 export type OperatorActionToken = typeof operatorActionTokens.$inferSelect;
 export type InsertOperatorActionToken = z.infer<typeof insertOperatorActionTokenSchema>;
+export type EvidenceCollection = typeof evidenceCollection.$inferSelect;
+export type InsertEvidenceCollection = z.infer<typeof insertEvidenceCollectionSchema>;
+export type LegalArticle = typeof legalArticles.$inferSelect;
+export type InsertLegalArticle = z.infer<typeof insertLegalArticleSchema>;
 
 // ====================
 // ACHIEVEMENTS SYSTEM
@@ -1224,3 +1760,59 @@ export type ReferralCode = typeof referralCodes.$inferSelect;
 export type InsertReferralCode = z.infer<typeof insertReferralCodeSchema>;
 export type Referral = typeof referrals.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
+
+// ====================
+// RESPONSE ANALYSIS MODULE TYPES
+// ====================
+
+/**
+ * Структура извлеченных данных из ответа оператора
+ */
+export interface ExtractedResponseData {
+  legal_basis?: string[];           // Правовые основания
+  data_categories?: string[];       // Категории обработанных данных
+  retention_period?: string;        // Заявленный срок хранения
+  consent_info?: {                  // Информация о согласиях
+    has_consent: boolean;
+    consent_source?: string;
+    withdrawal_procedure?: string;
+  };
+  contact_person?: string;          // Контактное лицо
+  response_language?: string;       // Язык ответа (ru/en)
+  attachments?: string[];           // Список приложений
+  cited_laws?: string[];            // Ссылки на нормативные акты
+  processing_purposes?: string[];   // Цели обработки данных
+  third_parties?: string[];         // Передача третьим лицам
+  security_measures?: string[];     // Меры безопасности
+  deletion_timeline?: string;       // Временные рамки удаления
+}
+
+/**
+ * Структура рекомендаций системы анализа
+ */
+export interface AnalysisRecommendations {
+  next_action: string;             // Рекомендуемое действие
+  escalation_level: 'low' | 'medium' | 'high' | 'critical'; // Уровень эскалации
+  follow_up_required: boolean;     // Нужно ли повторное обращение
+  legal_advice_needed: boolean;    // Нужна ли юридическая консультация
+  estimated_resolution_days: number; // Оценка времени решения
+  confidence_level: number;        // Уверенность в анализе (0-100)
+}
+
+/**
+ * Структура метаданных анализа
+ */
+export interface AnalysisMetadata {
+  analyzed_at: string;             // Время анализа
+  analysis_version: string;        // Версия алгоритма анализа
+  processing_time_ms: number;      // Время обработки
+  ai_model_used?: string;          // Использованная AI модель
+  rule_matches: string[];          // Сработавшие правила
+  confidence_breakdown: {          // Детализация уверенности
+    rule_based_confidence: number;
+    ai_confidence?: number;
+    combined_confidence: number;
+  };
+  manual_review_required: boolean; // Требует ли ручной проверки
+  language_detected: string;       // Определенный язык
+}
