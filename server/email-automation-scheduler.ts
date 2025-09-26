@@ -5,7 +5,7 @@ import { regulatorEscalationTemplate } from './templates/regulator-escalation';
 import { documentGenerator, type DocumentContext } from './document-generator';
 import type { DeletionRequest, DocumentType } from '@shared/schema';
 import { responseAnalyzer } from './response-analyzer';
-import { decisionEngine } from './decision-engine';
+import { DecisionEngine } from './decision-engine';
 
 /**
  * Email Automation Scheduler для автоматической отправки повторных писем

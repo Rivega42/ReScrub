@@ -164,7 +164,7 @@ export class CampaignManager {
   private constructor(storage: IStorage) {
     this.documentGenerator = DocumentGenerator.getInstance();
     this.responseAnalyzer = ResponseAnalyzer.getInstance(storage);
-    this.decisionEngine = DecisionEngine.getInstance();
+    this.decisionEngine = DecisionEngine.getInstance(storage);
     this.evidenceCollector = new EvidenceCollector(storage);
     this.legalKnowledgeBase = createLegalKnowledgeBase(storage);
   }
@@ -210,7 +210,7 @@ export class CampaignManager {
         nextScheduledActionAt: new Date(now.getTime() + 5 * 60 * 1000), // через 5 минут
         
         // Инициализируем первую веху
-        milestones: [{
+        milestones: JSON.stringify([{
           type: 'campaign_started',
           timestamp: now.toISOString(),
           status: 'completed',
@@ -219,7 +219,7 @@ export class CampaignManager {
             brokerName: deletionRequestData.brokerName,
             automated: autoStart
           }
-        }]
+        }])
       };
 
       // Создаем кампанию через storage
@@ -1096,4 +1096,4 @@ export class CampaignManager {
 }
 
 // Экспорт singleton instance
-export const campaignManager = CampaignManager.getInstance(storage);
+// Note: Instance will be created when first accessed in routes with proper storage

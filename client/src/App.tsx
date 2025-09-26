@@ -46,6 +46,10 @@ const AdminSecurityLogs = lazy(() => import("@/pages/AdminSecurityLogs"));
 const AdminSystemMonitoring = lazy(() => import("@/pages/AdminSystemMonitoring"));
 const AdminBlog = lazy(() => import("@/pages/AdminBlog"));
 
+// САЗПД страницы
+const AdminSAZPD = lazy(() => import("@/pages/admin-sazpd"));
+const TestingMethodology = lazy(() => import("@/pages/testing-methodology"));
+
 // Личный кабинет - страницы
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Requests = lazy(() => import("@/pages/Requests"));
@@ -193,6 +197,11 @@ function Router() {
           <Whitepaper />
         </Suspense>
       </Route>
+      <Route path="/testing-methodology">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <TestingMethodology />
+        </Suspense>
+      </Route>
       <Route path="/reports">
         <Suspense fallback={<PageLoadingFallback />}>
           <Reports />
@@ -323,6 +332,13 @@ function Router() {
         <AuthGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminBlog />
+          </Suspense>
+        </AuthGuard>
+      </Route>
+      <Route path="/admin/sazpd">
+        <AuthGuard fallback={<Login />}>
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSAZPD />
           </Suspense>
         </AuthGuard>
       </Route>

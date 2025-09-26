@@ -562,7 +562,6 @@ export interface IStorage {
   getAllOperatorProfiles(): Promise<OperatorProfile[]>;
   updateOperatorProfile(id: string, updates: Partial<OperatorProfile>): Promise<OperatorProfile | undefined>;
   deleteOperatorProfile(id: string): Promise<boolean>;
-  */
 
   // ========================================
   // DECISION ENGINE MODULE METHODS

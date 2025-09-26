@@ -62,7 +62,7 @@ import { JSDOM } from 'jsdom';
 // Response Analysis Module integration
 import { ResponseAnalyzer } from './response-analyzer';
 // Decision Engine Module integration
-import { decisionEngine } from './decision-engine';
+import { DecisionEngine } from './decision-engine';
 // Evidence Collection Module integration
 import { EvidenceCollector } from './evidence-collector';
 // Campaign Management Module integration
@@ -2399,7 +2399,7 @@ ${allPages.map(page => `  <url>
   // ========================================
 
   // Initialize Campaign Manager
-  const campaignManager = new CampaignManager(storage);
+  const campaignManager = CampaignManager.getInstance(storage);
 
   // Campaign automation background processing
   setInterval(async () => {
