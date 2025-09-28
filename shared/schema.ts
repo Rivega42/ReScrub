@@ -204,7 +204,7 @@ export const dataBrokerScans = pgTable("data_broker_scans", {
 });
 
 // Deletion requests to data brokers
-export const deletionRequests: ReturnType<typeof pgTable> = pgTable("deletion_requests", {
+export const deletionRequests = pgTable("deletion_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
   scanId: varchar("scan_id").references(() => dataBrokerScans.id, { onDelete: "cascade" }),
@@ -646,7 +646,7 @@ export const legalArticles = pgTable("legal_articles", {
 ]);
 
 // Inbound emails table для обработки входящих писем от операторов ПД
-export const inboundEmails: ReturnType<typeof pgTable> = pgTable("inbound_emails", {
+export const inboundEmails = pgTable("inbound_emails", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   deletionRequestId: varchar("deletion_request_id").notNull(), // Убираем ссылку чтобы избежать циклических зависимостей, будет связано через внешний ключ позже
   operatorEmail: varchar("operator_email").notNull(),
