@@ -4675,6 +4675,8 @@ export class DatabaseStorage implements IStorage {
     page: number;
     totalPages: number;
   }> {
+    console.log('🔍 getSAZPDLogs called with filters:', filters);
+    
     const page = filters?.page || 1;
     const limit = filters?.limit || 50;
     const offset = (page - 1) * limit;
@@ -4682,29 +4684,31 @@ export class DatabaseStorage implements IStorage {
     // Build WHERE conditions
     const conditions = [];
     const params: any[] = [];
+    
+    console.log('📊 Initial params array:', params);
 
     // САЗПД specific modules filter
     if (filters?.module && filters.module !== 'all') {
-      conditions.push(`metadata->>'module' = $${params.length + 1}`);
+      conditions.push(`target_data->>'module' = $${params.length + 1}`);
       params.push(filters.module);
     }
 
     // Map admin action levels to САЗПД levels
     if (filters?.level && filters.level !== 'all') {
-      conditions.push(`metadata->>'level' = $${params.length + 1}`);
+      conditions.push(`target_data->>'level' = $${params.length + 1}`);
       params.push(filters.level);
     }
 
     // Map admin action status to САЗПД status
     if (filters?.status && filters.status !== 'all') {
-      conditions.push(`metadata->>'status' = $${params.length + 1}`);
+      conditions.push(`target_data->>'status' = $${params.length + 1}`);
       params.push(filters.status);
     }
 
-    // Search in message or details
+    // Search in message or target data
     if (filters?.search) {
-      conditions.push(`(action_type ILIKE $${params.length + 1} OR details::text ILIKE $${params.length + 1})`);
-      params.push(`%${filters.search}%`);
+      conditions.push(`(action_type ILIKE $${params.length + 1} OR description ILIKE $${params.length + 2} OR target_data::text ILIKE $${params.length + 3})`);
+      params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
     }
 
     // Date filter
@@ -4717,10 +4721,14 @@ export class DatabaseStorage implements IStorage {
       params.push(date, nextDay);
     }
 
-    // Only САЗПД related actions
-    conditions.push(`target_type = 'sazpd'`);
+    // Only САЗПД related actions (hardcoded, no parameter needed)
+    conditions.push(`(target_type = 'sazpd_test_system' OR target_type = 'sazpd_module' OR action_type LIKE '%sazpd%' OR action_type LIKE '%SAZPD%')`);
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : 'WHERE 1=1';
+    
+    console.log('📝 Final conditions:', conditions);
+    console.log('📝 Final params before count:', params);
+    console.log('📝 WHERE clause:', whereClause);
 
     // Get total count
     const countQuery = `
@@ -4728,11 +4736,17 @@ export class DatabaseStorage implements IStorage {
       FROM admin_actions 
       ${whereClause}
     `;
+    
+    console.log('📊 Count query:', countQuery);
+    console.log('📊 Count params:', params);
 
     const countResult = await db.execute(sql.raw(countQuery, params));
     const total = parseInt(countResult.rows[0]?.total || '0');
 
-    // Get paginated logs
+    // Get paginated logs with fixed parameter approach
+    const baseParamCount = params.length;
+    const logsParams = [...params, limit, offset];
+    
     const logsQuery = `
       SELECT 
         id,
@@ -4740,8 +4754,9 @@ export class DatabaseStorage implements IStorage {
         action_type,
         target_type,
         target_id,
-        details,
-        metadata,
+        target_data,
+        changes,
+        description,
         session_id,
         ip_address,
         user_agent,
@@ -4749,27 +4764,35 @@ export class DatabaseStorage implements IStorage {
       FROM admin_actions 
       ${whereClause}
       ORDER BY created_at DESC 
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+      LIMIT $${baseParamCount + 1} OFFSET $${baseParamCount + 2}
     `;
+    
+    console.log('📝 Final SQL:', logsQuery);
+    console.log('📝 Parameters:', logsParams);
+    console.log('📝 Base params count:', baseParamCount, '| Limit param: $', baseParamCount + 1, '| Offset param: $', baseParamCount + 2);
+    console.log('📝 Actual values - Limit:', logsParams[baseParamCount], '| Offset:', logsParams[baseParamCount + 1]);
 
-    params.push(limit, offset);
-
-    const logsResult = await db.execute(sql.raw(logsQuery, params));
+    const logsResult = await db.execute(sql.raw(logsQuery, logsParams));
 
     // Transform to САЗПД log format
     const logs = logsResult.rows.map((row: any) => {
-      const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
-      const details = typeof row.details === 'string' ? JSON.parse(row.details) : row.details;
+      const targetData = typeof row.target_data === 'string' ? JSON.parse(row.target_data) : row.target_data;
+      const changes = typeof row.changes === 'string' ? JSON.parse(row.changes) : row.changes;
       
       return {
         id: row.id,
         timestamp: row.created_at,
-        module: metadata?.module || 'system',
-        level: metadata?.level || 'info',
-        message: row.action_type,
-        requestId: metadata?.requestId || row.target_id,
-        status: metadata?.status || 'success',
-        details: details || {}
+        module: targetData?.module || 'sazpd',
+        level: targetData?.level || 'info',
+        message: row.description || row.action_type,
+        requestId: targetData?.requestId || row.target_id,
+        status: targetData?.status || 'success',
+        details: { 
+          actionType: row.action_type,
+          targetType: row.target_type,
+          targetData: targetData || {},
+          changes: changes || {}
+        }
       };
     });
 

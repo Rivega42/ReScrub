@@ -85,22 +85,28 @@ function isEmailAuthenticated(req: any, res: any, next: any) {
   res.status(401).json({ message: "Unauthorized" });
 }
 
-// Admin authentication middleware
+// Admin authentication middleware (supports both OAuth and email auth)
 async function isAdmin(req: any, res: any, next: any) {
-  if (!req.session?.userId) {
+  // Support both OAuth (req.user) and email auth (req.session.userId)
+  const userId = req.user?.id || req.session?.userId;
+  
+  if (!userId) {
+    console.log('🚫 isAdmin: No userId found (OAuth or email auth)');
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
   
   try {
-    const userAccount = await storage.getUserAccountById(req.session.userId);
+    const userAccount = await storage.getUserAccountById(userId);
     if (!userAccount || !userAccount.isAdmin) {
+      console.log('🚫 isAdmin: User not admin:', { userId, isAdmin: userAccount?.isAdmin });
       return res.status(403).json({ success: false, message: "Доступ запрещен. Требуются права администратора." });
     }
     
+    console.log('✅ isAdmin: Admin access granted:', { userId, email: userAccount.email });
     req.adminUser = userAccount;
     next();
   } catch (error) {
-    console.error('Admin auth error:', error);
+    console.error('❌ isAdmin: Admin auth error:', error);
     res.status(500).json({ success: false, message: "Ошибка сервера" });
   }
 }
@@ -8313,6 +8319,10 @@ ${allPages.map(page => `  <url>
 
   // САЗПД Logs endpoint with admin authentication, pagination, and Zod validation
   app.get('/api/sazpd/logs', isAdmin, async (req: any, res) => {
+    console.log('🔍 GET /api/sazpd/logs - Request received');
+    console.log('🔍 Query params:', req.query);
+    console.log('🔍 Admin user:', req.adminUser ? { id: req.adminUser.id, email: req.adminUser.email } : 'undefined');
+    
     try {
       // Zod schema for query parameters validation
       const querySchema = z.object({
@@ -8320,7 +8330,7 @@ ${allPages.map(page => `  <url>
         level: z.enum(['all', 'info', 'warning', 'error', 'critical']).optional().default('all'),
         status: z.enum(['all', 'success', 'failed', 'processing']).optional().default('all'),
         search: z.string().max(200).optional(),
-        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')).transform(val => val === '' ? undefined : val),
         page: z.coerce.number().int().min(1).max(1000).optional().default(1),
         limit: z.coerce.number().int().min(5).max(100).optional().default(50)
       });
