@@ -70,7 +70,7 @@ async function upsertUser(
 
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
-  app.use(getSession());
+  // Session is already configured in server/index.ts
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -129,6 +129,7 @@ export async function setupAuth(app: Express) {
   });
 }
 
+// OAuth-based authentication for Replit integration
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
@@ -156,4 +157,12 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
+};
+
+// Email-based authentication for login/password system
+export const isEmailAuthenticated: RequestHandler = (req, res, next) => {
+  if (!req.session?.userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+  next();
 };
