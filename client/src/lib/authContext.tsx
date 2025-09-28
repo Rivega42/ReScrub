@@ -61,8 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       try {
-        const response = await apiRequest('POST', '/api/auth/login', { email, password });
-        const data = await response.json();
+        const data = await apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
         
         if (!data.success) {
           throw new Error(data.message || 'Ошибка входа');
@@ -102,8 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       try {
-        const response = await apiRequest('POST', '/api/auth/register', { email, password });
-        const data = await response.json();
+        const data = await apiRequest('/api/auth/register', { method: 'POST', body: { email, password } });
         
         if (!data.success) {
           throw new Error(data.message || 'Ошибка регистрации');
@@ -137,8 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/auth/logout');
-      const data = await response.json();
+      const data = await apiRequest('/api/auth/logout', { method: 'POST' });
       return data;
     },
     onSuccess: () => {
@@ -150,8 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Email verification mutation
   const verifyEmailMutation = useMutation({
     mutationFn: async ({ email, token }: { email: string; token: string }) => {
-      const response = await apiRequest('POST', '/api/auth/verify-email', { email, token });
-      const data = await response.json();
+      const data = await apiRequest('/api/auth/verify-email', { method: 'POST', body: { email, token } });
       
       if (!data.success) {
         throw new Error(data.message || 'Ошибка подтверждения email');
