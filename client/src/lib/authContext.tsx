@@ -233,3 +233,39 @@ export function AuthGuard({
 
   return <>{children}</>;
 }
+
+// Admin guard component for admin-only pages
+export function AdminGuard({ 
+  children, 
+  fallback 
+}: { 
+  children: React.ReactNode; 
+  fallback?: React.ReactNode; 
+}) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return fallback || <div>Unauthorized</div>;
+  }
+
+  if (!user?.isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Доступ запрещен</h1>
+          <p className="text-muted-foreground">У вас нет прав администратора</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}

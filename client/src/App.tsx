@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth, AuthGuard } from "@/lib/authContext";
+import { AuthProvider, useAuth, AuthGuard, AdminGuard } from "@/lib/authContext";
 import { Suspense, lazy } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -287,67 +287,67 @@ function Router() {
       
       {/* Protected Admin routes */}
       <Route path="/admin">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminDashboard />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/users">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminUsers />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/data-brokers">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminDataBrokers />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/email-templates">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminEmailTemplates />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/security">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminSecurityLogs />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/monitoring">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminSystemMonitoring />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/blog">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminBlog />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin/sazpd">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminSAZPD />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       <Route path="/admin-setup">
-        <AuthGuard fallback={<Login />}>
+        <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>
             <AdminSetup />
           </Suspense>
-        </AuthGuard>
+        </AdminGuard>
       </Route>
       
       {/* Protected app routes */}
