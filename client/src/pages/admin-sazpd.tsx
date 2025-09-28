@@ -743,12 +743,12 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.modules.responseAnalyzer.enabled}
+                checked={settings.modules?.responseAnalyzer?.enabled || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     modules: {
                       ...settings.modules,
-                      responseAnalyzer: { ...settings.modules.responseAnalyzer, enabled: checked }
+                      responseAnalyzer: { ...settings.modules?.responseAnalyzer, enabled: checked }
                     }
                   })
                 }
@@ -767,12 +767,12 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.modules.decisionEngine.enabled}
+                checked={settings.modules?.decisionEngine?.enabled || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     modules: {
                       ...settings.modules,
-                      decisionEngine: { ...settings.modules.decisionEngine, enabled: checked }
+                      decisionEngine: { ...settings.modules?.decisionEngine, enabled: checked }
                     }
                   })
                 }
@@ -791,12 +791,12 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.modules.evidenceCollector.enabled}
+                checked={settings.modules?.evidenceCollector?.enabled || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     modules: {
                       ...settings.modules,
-                      evidenceCollector: { ...settings.modules.evidenceCollector, enabled: checked }
+                      evidenceCollector: { ...settings.modules?.evidenceCollector, enabled: checked }
                     }
                   })
                 }
@@ -815,12 +815,12 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.modules.campaignManager.enabled}
+                checked={settings.modules?.campaignManager?.enabled || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     modules: {
                       ...settings.modules,
-                      campaignManager: { ...settings.modules.campaignManager, enabled: checked }
+                      campaignManager: { ...settings.modules?.campaignManager, enabled: checked }
                     }
                   })
                 }
@@ -839,12 +839,12 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.modules.emailAutomation.enabled}
+                checked={settings.modules?.emailAutomation?.enabled || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     modules: {
                       ...settings.modules,
-                      emailAutomation: { ...settings.modules.emailAutomation, enabled: checked }
+                      emailAutomation: { ...settings.modules?.emailAutomation, enabled: checked }
                     }
                   })
                 }
@@ -863,12 +863,12 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.modules.cryptoValidator.enabled}
+                checked={settings.modules?.cryptoValidator?.enabled || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     modules: {
                       ...settings.modules,
-                      cryptoValidator: { ...settings.modules.cryptoValidator, enabled: checked }
+                      cryptoValidator: { ...settings.modules?.cryptoValidator, enabled: checked }
                     }
                   })
                 }
@@ -894,7 +894,7 @@ export default function AdminSAZPD() {
                 </div>
               </div>
               <Switch
-                checked={settings.compliance.fz152Mode}
+                checked={settings.compliance?.fz152Mode || false}
                 onCheckedChange={(checked) => 
                   updateSettingsMutation.mutate({
                     compliance: { ...settings.compliance, fz152Mode: checked }
@@ -910,7 +910,7 @@ export default function AdminSAZPD() {
                 <Input
                   id="retention-days"
                   type="number"
-                  value={settings.compliance.dataRetentionDays}
+                  value={settings.compliance?.dataRetentionDays || 30}
                   onChange={(e) => 
                     updateSettingsMutation.mutate({
                       compliance: { 
@@ -928,7 +928,7 @@ export default function AdminSAZPD() {
                 <Input
                   id="escalation-hours"
                   type="number"
-                  value={settings.compliance.autoEscalationHours}
+                  value={settings.compliance?.autoEscalationHours || 72}
                   onChange={(e) => 
                     updateSettingsMutation.mutate({
                       compliance: { 
