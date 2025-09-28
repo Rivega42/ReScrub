@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Play,
   Pause,
-  Settings
+  Settings,
+  Shield
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import Header from '../components/Header';
@@ -82,6 +83,10 @@ export default function AdminDashboard() {
   
   const handleSystemSettings = () => {
     alert('Функция настроек системы в разработке');
+  };
+  
+  const handleSAZPD = () => {
+    setLocation('/admin/sazpd');
   };
 
   // Format uptime
@@ -389,7 +394,7 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <Button variant="outline" className="h-20 flex-col" onClick={handleManageUsers} data-testid="button-manage-users">
                     <Users className="h-6 w-6 mb-2" />
                     Управление пользователями
@@ -405,6 +410,10 @@ export default function AdminDashboard() {
                   <Button variant="outline" className="h-20 flex-col" onClick={handleSystemMonitor} data-testid="button-system-monitor">
                     <Server className="h-6 w-6 mb-2" />
                     Мониторинг системы
+                  </Button>
+                  <Button variant="outline" className="h-20 flex-col" onClick={handleSAZPD} data-testid="button-sazpd">
+                    <Shield className="h-6 w-6 mb-2" />
+                    САЗПД
                   </Button>
                 </div>
               </CardContent>
