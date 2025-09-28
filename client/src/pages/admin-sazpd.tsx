@@ -149,7 +149,7 @@ export default function AdminSAZPD() {
   const { data: testSession, isLoading: testSessionLoading, refetch: refetchTestSession } = useQuery({
     queryKey: ['/api/admin/sazpd/test/status'],
     queryFn: () => apiRequest('/api/admin/sazpd/test/status'),
-    refetchInterval: testSession?.status === 'running' ? 2000 : false // Обновляем каждые 2 секунды во время тестирования
+    refetchInterval: 2000 // Обновляем каждые 2 секунды
   });
 
   // Получение результатов тестов

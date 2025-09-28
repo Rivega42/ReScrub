@@ -262,7 +262,7 @@ export default function AdminBlog() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(articles as any)?.filter((a: BlogArticle) => a.status === 'published').length || 0}
+              {Array.isArray(articles) ? articles.filter((a: BlogArticle) => a.status === 'published').length : 0}
             </div>
           </CardContent>
         </Card>
@@ -319,7 +319,7 @@ export default function AdminBlog() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(articles as any)?.map((article: BlogArticle) => (
+                  {Array.isArray(articles) ? articles.map((article: BlogArticle) => (
                     <TableRow key={article.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
@@ -411,11 +411,11 @@ export default function AdminBlog() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : null}
                 </TableBody>
               </Table>
 
-              {!(articles as any)?.length && (
+              {!Array.isArray(articles) || articles.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Статьи не найдены</p>

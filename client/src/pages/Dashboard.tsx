@@ -616,7 +616,11 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {deletionRequests.slice(0, 5).map((request: DeletionRequest) => {
-                      const config = statusConfig[request.status];
+                      const config = statusConfig[request.status] || { 
+                        label: request.status, 
+                        color: 'secondary', 
+                        icon: FileText 
+                      };
                       const IconComponent = config.icon;
                       
                       return (
