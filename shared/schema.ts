@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -203,7 +204,7 @@ export const dataBrokerScans = pgTable("data_broker_scans", {
 });
 
 // Deletion requests to data brokers
-export const deletionRequests = pgTable("deletion_requests", {
+export const deletionRequests: ReturnType<typeof pgTable> = pgTable("deletion_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
   scanId: varchar("scan_id").references(() => dataBrokerScans.id, { onDelete: "cascade" }),
@@ -271,8 +272,8 @@ export const deletionRequests = pgTable("deletion_requests", {
   // Idempotency key для предотвращения дублирования решений (САЗПД критично)
   decisionIdempotencyKey: varchar("decision_idempotency_key").unique(), // UUID для предотвращения дублирования решений
   
-  // ID последнего связанного входящего письма
-  lastInboundEmailId: varchar("last_inbound_email_id").references(() => inboundEmails.id, { onDelete: "set null" }),
+  // ID последнего связанного входящего письма - убираем ссылку чтобы избежать циклических зависимостей
+  lastInboundEmailId: varchar("last_inbound_email_id"), // будет связано с inboundEmails.id через внешний ключ позже
   
   // ====================
   // CAMPAIGN MANAGEMENT MODULE FIELDS
@@ -331,6 +332,13 @@ export const deletionRequests = pgTable("deletion_requests", {
   isAutomated: boolean("is_automated").default(true), // автоматическое выполнение действий
   automationPaused: boolean("automation_paused").default(false), // приостановка автоматизации
   automationPausedReason: text("automation_paused_reason"), // причина приостановки
+  automationPauseReason: text("automation_pause_reason"), // альтернативное поле для причины приостановки
+  
+  // Дополнительные поля для организации и правовых оснований
+  organizationName: varchar("organization_name"), // название организации-оператора
+  organizationAddress: text("organization_address"), // адрес организации
+  legalBasis: text("legal_basis"), // правовое основание обработки
+  responseDeadline: timestamp("response_deadline"), // крайний срок ответа (альтернатива responseDeadlineAt)
   
   // Качество кампании и эффективность
   campaignQualityScore: integer("campaign_quality_score").default(0), // 0-100 оценка качества ведения кампании
@@ -638,9 +646,9 @@ export const legalArticles = pgTable("legal_articles", {
 ]);
 
 // Inbound emails table для обработки входящих писем от операторов ПД
-export const inboundEmails = pgTable("inbound_emails", {
+export const inboundEmails: ReturnType<typeof pgTable> = pgTable("inbound_emails", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  deletionRequestId: varchar("deletion_request_id").notNull().references(() => deletionRequests.id, { onDelete: "cascade" }),
+  deletionRequestId: varchar("deletion_request_id").notNull(), // Убираем ссылку чтобы избежать циклических зависимостей, будет связано через внешний ключ позже
   operatorEmail: varchar("operator_email").notNull(),
   subject: varchar("subject"),
   bodyText: text("body_text"),
@@ -1816,3 +1824,144 @@ export interface AnalysisMetadata {
   manual_review_required: boolean; // Требует ли ручной проверки
   language_detected: string;       // Определенный язык
 }
+
+// ========================================
+// DECISION ENGINE TABLES
+// ========================================
+
+// Decision rules для системы принятия решений
+export const decisionRules = pgTable("decision_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  condition: jsonb("condition").notNull(), // Условие срабатывания правила
+  decisionType: varchar("decision_type").notNull(), // DecisionType enum
+  confidence: integer("confidence").notNull(), // 0-100
+  escalationLevel: varchar("escalation_level").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  estimatedDays: integer("estimated_days").notNull(),
+  autoExecute: boolean("auto_execute").default(false),
+  reason: text("reason").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_decision_rules_type").on(table.decisionType),
+  index("IDX_decision_rules_active").on(table.isActive),
+]);
+
+// Evidence events для сбора доказательств
+export const evidenceEvents = pgTable("evidence_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: varchar("campaign_id").notNull(),
+  requestId: varchar("request_id").notNull(),
+  eventType: varchar("event_type").notNull(), // 'DECISION_ENGINE_ACTION', 'EMAIL_SENT', etc.
+  evidenceData: jsonb("evidence_data").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  integrity: varchar("integrity"), // Hash for integrity verification
+  chainPosition: integer("chain_position"), // Position in evidence chain
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_evidence_events_campaign").on(table.campaignId),
+  index("IDX_evidence_events_request").on(table.requestId),
+  index("IDX_evidence_events_type").on(table.eventType),
+  index("IDX_evidence_events_timestamp").on(table.timestamp),
+]);
+
+// Evidence daily seals для ежедневного запечатывания доказательств
+export const evidenceDailySeals = pgTable("evidence_daily_seals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: date("date").notNull().unique(),
+  sealHash: varchar("seal_hash").notNull(), // Daily integrity seal
+  eventCount: integer("event_count").notNull(),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_evidence_seals_date").on(table.date),
+]);
+
+// Legal norms справочник правовых норм
+export const legalNorms = pgTable("legal_norms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code").notNull().unique(), // Код нормы (например, "152FZ_Article9")
+  title: varchar("title").notNull(),
+  description: text("description"),
+  category: varchar("category").notNull(), // 'FEDERAL_LAW', 'REGULATION', etc.
+  jurisdiction: varchar("jurisdiction").notNull().default("RU"),
+  effectiveFrom: date("effective_from"),
+  effectiveUntil: date("effective_until"),
+  isActive: boolean("is_active").default(true),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_legal_norms_code").on(table.code),
+  index("IDX_legal_norms_category").on(table.category),
+  index("IDX_legal_norms_active").on(table.isActive),
+]);
+
+// Operator profiles профили операторов ПД
+export const operatorProfiles = pgTable("operator_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operatorName: varchar("operator_name").notNull().unique(),
+  domain: varchar("domain"), // Домен оператора
+  complianceLevel: varchar("compliance_level").default("UNKNOWN"), // 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'
+  responseTimeAverage: integer("response_time_average"), // В днях
+  preferredContactMethod: varchar("preferred_contact_method"), // 'EMAIL', 'PHONE', 'POSTAL'
+  legalContactInfo: jsonb("legal_contact_info").default(sql`'{}'::jsonb`),
+  knownViolations: text("known_violations").array().default(sql`ARRAY[]::text[]`),
+  successfulDeletions: integer("successful_deletions").default(0),
+  totalRequests: integer("total_requests").default(0),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_operator_profiles_name").on(table.operatorName),
+  index("IDX_operator_profiles_domain").on(table.domain),
+  index("IDX_operator_profiles_compliance").on(table.complianceLevel),
+]);
+
+// ========================================
+// DRIZZLE-ZOD SCHEMAS FOR NEW TABLES
+// ========================================
+
+// DecisionRule schemas
+export const insertDecisionRuleSchema = createInsertSchema(decisionRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDecisionRule = z.infer<typeof insertDecisionRuleSchema>;
+export type DecisionRule = typeof decisionRules.$inferSelect;
+
+// EvidenceEvent schemas  
+export const insertEvidenceEventSchema = createInsertSchema(evidenceEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertEvidenceEvent = z.infer<typeof insertEvidenceEventSchema>;
+export type EvidenceEvent = typeof evidenceEvents.$inferSelect;
+
+// EvidenceDailySeal schemas
+export const insertEvidenceDailySealSchema = createInsertSchema(evidenceDailySeals).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertEvidenceDailySeal = z.infer<typeof insertEvidenceDailySealSchema>;
+export type EvidenceDailySeal = typeof evidenceDailySeals.$inferSelect;
+
+// LegalNorm schemas
+export const insertLegalNormSchema = createInsertSchema(legalNorms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertLegalNorm = z.infer<typeof insertLegalNormSchema>;
+export type LegalNorm = typeof legalNorms.$inferSelect;
+
+// OperatorProfile schemas
+export const insertOperatorProfileSchema = createInsertSchema(operatorProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertOperatorProfile = z.infer<typeof insertOperatorProfileSchema>;
+export type OperatorProfile = typeof operatorProfiles.$inferSelect;

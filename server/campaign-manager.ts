@@ -812,203 +812,6 @@ export class CampaignManager {
     }
   }
 
-  // ========================================
-  // PRIVATE HELPER METHODS
-  // ========================================
-
-  /**
-   * Расчет процента завершенности на основе статуса
-   */
-  private calculateCompletionRate(status: CampaignStatus): number {
-    const statusRates: Record<CampaignStatus, number> = {
-      'started': 10,
-      'documents_sent': 30,
-      'awaiting_response': 50,
-      'analyzing_response': 70,
-      'taking_action': 80,
-      'completed': 100,
-      'escalated': 100,
-      'failed': 0,
-      'paused': 0,
-      'cancelled': 0
-    };
-    
-    return statusRates[status] || 0;
-  }
-
-  /**
-   * Планирование следующего действия для кампании
-   */
-  private async planNextAction(
-    campaign: DeletionRequest,
-    newStatus?: CampaignStatus
-  ): Promise<{ action: NextAction; scheduledAt: Date; reason: string } | null> {
-    const currentStatus = newStatus || campaign.campaignStatus as CampaignStatus;
-    const now = new Date();
-
-    switch (currentStatus) {
-      case 'started':
-        return {
-          action: 'send_followup', // начальный документ
-          scheduledAt: new Date(now.getTime() + 5 * 60 * 1000), // через 5 минут
-          reason: 'Send initial deletion request document'
-        };
-
-      case 'documents_sent':
-        return {
-          action: 'await_response',
-          scheduledAt: new Date(now.getTime() + this.DEFAULT_RESPONSE_DEADLINE_DAYS * 24 * 60 * 60 * 1000),
-          reason: 'Wait for operator response within legal deadline'
-        };
-
-      case 'awaiting_response':
-        // Проверяем, не истек ли срок ответа
-        const responseDeadline = campaign.responseDeadlineAt || new Date(now.getTime() + this.DEFAULT_RESPONSE_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
-        if (now > responseDeadline) {
-          return {
-            action: 'send_followup',
-            scheduledAt: new Date(now.getTime() + 1 * 60 * 60 * 1000), // через час
-            reason: 'Response deadline exceeded, send follow-up'
-          };
-        }
-        break;
-
-      case 'analyzing_response':
-        return {
-          action: 'analyze_response',
-          scheduledAt: new Date(now.getTime() + 10 * 60 * 1000), // через 10 минут
-          reason: 'Analyze received response for compliance'
-        };
-
-      case 'taking_action':
-        return {
-          action: 'collect_evidence',
-          scheduledAt: new Date(now.getTime() + 30 * 60 * 1000), // через 30 минут
-          reason: 'Collect evidence and determine next steps'
-        };
-    }
-
-    return null;
-  }
-
-  /**
-   * Получение описания вехи
-   */
-  private getMilestoneDescription(milestoneType: string): string {
-    const descriptions: Record<string, string> = {
-      'campaign_started': 'Кампания запущена',
-      'initial_document_sent': 'Отправлен начальный документ',
-      'response_received': 'Получен ответ от оператора',
-      'followup_sent': 'Отправлено повторное обращение',
-      'escalation_initiated': 'Инициирована эскалация',
-      'evidence_collected': 'Собраны доказательства',
-      'decision_made': 'Принято решение',
-      'campaign_completed': 'Кампания завершена',
-      'deadline_reached': 'Достигнут дедлайн',
-      'automation_paused': 'Автоматизация приостановлена',
-      'manual_intervention': 'Ручное вмешательство'
-    };
-    
-    return descriptions[milestoneType] || milestoneType;
-  }
-
-  /**
-   * Расчет недельных тенденций
-   */
-  private calculateWeeklyTrends(campaigns: DeletionRequest[]): any[] {
-    const weeks: any[] = [];
-    const now = new Date();
-    
-    for (let i = 7; i >= 0; i--) {
-      const weekStart = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      const weekCampaigns = campaigns.filter(c => {
-        const createdAt = c.campaignStartedAt ? new Date(c.campaignStartedAt) : new Date(c.createdAt);
-        return createdAt >= weekStart && createdAt < weekEnd;
-      });
-      
-      weeks.push({
-        week: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
-        started: weekCampaigns.length,
-        completed: weekCampaigns.filter(c => c.campaignStatus === 'completed').length,
-        escalated: weekCampaigns.filter(c => c.campaignStatus === 'escalated').length
-      });
-    }
-    
-    return weeks;
-  }
-
-  /**
-   * Выявление общих проблем
-   */
-  private identifyCommonIssues(campaigns: DeletionRequest[]): string[] {
-    const issues: string[] = [];
-    
-    const failedCampaigns = campaigns.filter(c => c.campaignStatus === 'failed').length;
-    const escalatedCampaigns = campaigns.filter(c => c.campaignStatus === 'escalated').length;
-    const stalledCampaigns = campaigns.filter(c => {
-      const lastAction = c.lastActionAt ? new Date(c.lastActionAt) : new Date(c.createdAt);
-      const daysSinceAction = (Date.now() - lastAction.getTime()) / (1000 * 60 * 60 * 24);
-      return daysSinceAction > 45 && ['awaiting_response', 'taking_action'].includes(c.campaignStatus || '');
-    }).length;
-
-    if (failedCampaigns > campaigns.length * 0.1) {
-      issues.push('High failure rate detected');
-    }
-    
-    if (escalatedCampaigns > campaigns.length * 0.2) {
-      issues.push('High escalation rate - operators not complying');
-    }
-    
-    if (stalledCampaigns > 0) {
-      issues.push('Some campaigns are stalled without progress');
-    }
-
-    return issues;
-  }
-
-  /**
-   * Прогнозирование дат завершения
-   */
-  private predictCompletionDates(activeCampaigns: DeletionRequest[], averageCompletionTime: number): Record<string, Date> {
-    const predictions: Record<string, Date> = {};
-    
-    activeCampaigns.forEach(campaign => {
-      const startDate = campaign.campaignStartedAt ? new Date(campaign.campaignStartedAt) : new Date(campaign.createdAt);
-      const predictedCompletion = new Date(startDate.getTime() + averageCompletionTime * 24 * 60 * 60 * 1000);
-      predictions[campaign.id] = predictedCompletion;
-    });
-    
-    return predictions;
-  }
-
-  /**
-   * Выявление факторов риска
-   */
-  private identifyRiskFactors(campaigns: DeletionRequest[], operatorStats: Record<string, any>): string[] {
-    const risks: string[] = [];
-    
-    // Проверяем операторов с низким уровнем соответствия
-    const lowComplianceOperators = Object.entries(operatorStats)
-      .filter(([_, stats]: [string, any]) => stats.complianceScore < 30)
-      .length;
-    
-    if (lowComplianceOperators > 0) {
-      risks.push(`${lowComplianceOperators} operators with very low compliance rates`);
-    }
-
-    // Проверяем количество активных кампаний
-    const activeCampaigns = campaigns.filter(c => 
-      ['started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action'].includes(c.campaignStatus || '')
-    ).length;
-    
-    if (activeCampaigns > 50) {
-      risks.push('High number of active campaigns may require additional resources');
-    }
-
-    return risks;
-  }
 
   // ========================================
   // ACTION EXECUTION METHODS
@@ -1366,6 +1169,159 @@ export class CampaignManager {
     const weekStart = new Date(year, month, day - date.getDay());
     
     return `${weekStart.getFullYear()}-W${Math.ceil((weekStart.getTime() - new Date(weekStart.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))}`;
+  }
+
+  /**
+   * Выявление факторов риска
+   */
+  private identifyRiskFactors(campaigns: DeletionRequest[], operatorStats: Record<string, any>): string[] {
+    const risks: string[] = [];
+    
+    // Проверяем операторов с низким уровнем соответствия
+    const lowComplianceOperators = Object.entries(operatorStats)
+      .filter(([_, stats]: [string, any]) => stats.complianceScore < 30)
+      .length;
+    
+    if (lowComplianceOperators > 0) {
+      risks.push(`${lowComplianceOperators} operators with very low compliance rates`);
+    }
+
+    // Проверяем количество активных кампаний
+    const activeCampaigns = campaigns.filter(c => 
+      ['started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action'].includes(c.campaignStatus || '')
+    ).length;
+    
+    if (activeCampaigns > 50) {
+      risks.push('High number of active campaigns may require additional resources');
+    }
+
+    return risks;
+  }
+
+  /**
+   * Приостановка автоматизации кампании
+   */
+  async pauseCampaignAutomation(campaignId: string, reason?: string): Promise<DeletionRequest | null> {
+    try {
+      console.log(`⏸️ Pausing campaign automation for: ${campaignId}, reason: ${reason || 'Manual request'}`);
+      
+      // Получаем кампанию
+      const campaign = await storage.getDeletionRequestById(campaignId);
+      if (!campaign) {
+        console.error(`Campaign not found: ${campaignId}`);
+        return null;
+      }
+
+      // Обновляем статус автоматизации
+      const updatedCampaign = await storage.updateDeletionRequest(campaignId, {
+        automationPaused: true,
+        automationPauseReason: reason || 'Manual request',
+        automationPausedAt: new Date(),
+        nextScheduledAction: null,
+        nextScheduledActionAt: null,
+        lastActionAt: new Date()
+      });
+
+      if (updatedCampaign) {
+        // Записываем веху о приостановке автоматизации
+        await this.recordMilestone(campaignId, 'automation_paused', {
+          reason: reason || 'Manual request',
+          pausedAt: new Date().toISOString()
+        });
+
+        console.log(`✅ Campaign automation paused: ${campaignId}`);
+      }
+
+      return updatedCampaign;
+    } catch (error) {
+      console.error(`❌ Error pausing campaign automation for ${campaignId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Возобновление автоматизации кампании
+   */
+  async resumeCampaignAutomation(campaignId: string): Promise<DeletionRequest | null> {
+    try {
+      console.log(`▶️ Resuming campaign automation for: ${campaignId}`);
+      
+      // Получаем кампанию
+      const campaign = await storage.getDeletionRequestById(campaignId);
+      if (!campaign) {
+        console.error(`Campaign not found: ${campaignId}`);
+        return null;
+      }
+
+      if (!campaign.automationPaused) {
+        console.log(`Campaign automation is already active: ${campaignId}`);
+        return campaign;
+      }
+
+      // Определяем следующее действие на основе текущего статуса
+      let nextAction: NextAction = 'await_response';
+      let nextScheduledAt = new Date();
+      
+      // Логика определения следующего действия
+      switch (campaign.campaignStatus) {
+        case 'started':
+          nextAction = 'send_followup';
+          nextScheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Через 24 часа
+          break;
+        case 'documents_sent':
+          nextAction = 'await_response';
+          nextScheduledAt = new Date(Date.now() + this.DEFAULT_RESPONSE_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+          break;
+        case 'awaiting_response':
+          // Проверяем не прошел ли дедлайн
+          const responseDeadline = campaign.responseDeadline;
+          if (responseDeadline && new Date() > new Date(responseDeadline)) {
+            nextAction = 'send_followup';
+            nextScheduledAt = new Date(Date.now() + 60 * 60 * 1000); // Через час
+          } else {
+            nextAction = 'await_response';
+            nextScheduledAt = responseDeadline ? new Date(responseDeadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          }
+          break;
+        case 'analyzing_response':
+          nextAction = 'analyze_response';
+          nextScheduledAt = new Date(Date.now() + 60 * 60 * 1000); // Через час
+          break;
+        case 'taking_action':
+          nextAction = 'collect_evidence';
+          nextScheduledAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // Через 2 часа
+          break;
+        default:
+          nextAction = 'await_response';
+          nextScheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // Через 24 часа
+      }
+
+      // Обновляем статус автоматизации
+      const updatedCampaign = await storage.updateDeletionRequest(campaignId, {
+        automationPaused: false,
+        automationPauseReason: null,
+        automationPausedAt: null,
+        nextScheduledAction: nextAction,
+        nextScheduledActionAt: nextScheduledAt,
+        lastActionAt: new Date()
+      });
+
+      if (updatedCampaign) {
+        // Записываем веху о возобновлении автоматизации
+        await this.recordMilestone(campaignId, 'automation_resumed', {
+          resumedAt: new Date().toISOString(),
+          nextAction: nextAction,
+          nextScheduledAt: nextScheduledAt.toISOString()
+        });
+
+        console.log(`✅ Campaign automation resumed: ${campaignId}, next action: ${nextAction} at ${nextScheduledAt.toISOString()}`);
+      }
+
+      return updatedCampaign;
+    } catch (error) {
+      console.error(`❌ Error resuming campaign automation for ${campaignId}:`, error);
+      return null;
+    }
   }
 }
 

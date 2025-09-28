@@ -21,7 +21,7 @@ import {
   operatorActionTokens,
   evidenceCollection,
   insertEvidenceCollectionSchema,
-  evidenceTypeEnum,
+  EvidenceTypeEnum,
   insertCampaignSchema,
   CampaignStatusEnum,
   NextActionEnum,
@@ -1889,6 +1889,7 @@ ${allPages.map(page => `  <url>
   // Initialize Evidence Collector and Response Analyzer
   const evidenceCollector = new EvidenceCollector(storage);
   const responseAnalyzer = ResponseAnalyzer.getInstance(storage);
+  const decisionEngine = DecisionEngine.getInstance(storage);
 
   // Manually collect evidence for a deletion request
   app.post('/api/evidence/collect/:requestId', isEmailAuthenticated, async (req, res) => {
@@ -8305,6 +8306,246 @@ ${allPages.map(page => `  <url>
         return 'Общие документы';
     }
   }
+
+  // ========================================
+  // САЗПД ADMIN API ENDPOINTS
+  // ========================================
+
+  // САЗПД Logs endpoint with admin authentication, pagination, and Zod validation
+  app.get('/api/sazpd/logs', isAdmin, async (req: any, res) => {
+    try {
+      // Zod schema for query parameters validation
+      const querySchema = z.object({
+        module: z.enum(['all', 'response-analyzer', 'decision-engine', 'evidence-collector', 'campaign-manager', 'email-automation', 'crypto-validator']).optional().default('all'),
+        level: z.enum(['all', 'info', 'warning', 'error', 'critical']).optional().default('all'),
+        status: z.enum(['all', 'success', 'failed', 'processing']).optional().default('all'),
+        search: z.string().max(200).optional(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        page: z.coerce.number().int().min(1).max(1000).optional().default(1),
+        limit: z.coerce.number().int().min(5).max(100).optional().default(50)
+      });
+
+      const validatedQuery = querySchema.parse(req.query);
+
+      // Get САЗПД logs using storage
+      const logsResult = await storage.getSAZPDLogs({
+        module: validatedQuery.module === 'all' ? undefined : validatedQuery.module,
+        level: validatedQuery.level === 'all' ? undefined : validatedQuery.level,
+        status: validatedQuery.status === 'all' ? undefined : validatedQuery.status,
+        search: validatedQuery.search,
+        date: validatedQuery.date,
+        page: validatedQuery.page,
+        limit: validatedQuery.limit
+      });
+
+      // Log admin action for audit trail
+      await storage.logSAZPDAction({
+        adminId: req.adminUser.id,
+        module: 'email-automation',
+        actionType: 'VIEW_SAZPD_LOGS',
+        level: 'info',
+        message: `Admin viewed САЗПД logs (page ${validatedQuery.page}, filters: ${JSON.stringify(validatedQuery)})`,
+        status: 'success',
+        details: {
+          page: validatedQuery.page,
+          limit: validatedQuery.limit,
+          filters: validatedQuery
+        },
+        sessionId: req.session.id,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+
+      res.json({
+        success: true,
+        data: logsResult
+      });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Некорректные параметры запроса логов САЗПД',
+          details: error.errors
+        });
+      }
+
+      console.error('Error fetching САЗПД logs:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения логов САЗПД'
+      });
+    }
+  });
+
+  // САЗПД Metrics endpoint for admin panel
+  app.get('/api/sazpd/metrics', isAdmin, async (req: any, res) => {
+    try {
+      // Get САЗПД metrics using storage
+      const metrics = await storage.getSAZPDMetrics();
+
+      // Get operator statistics
+      const operatorStats = await storage.getSAZPDOperatorStats();
+
+      // Get САЗПД settings
+      const settings = await storage.getSAZPDSettings();
+
+      // Log admin action for audit trail
+      await storage.logSAZPDAction({
+        adminId: req.adminUser.id,
+        module: 'email-automation',
+        actionType: 'VIEW_SAZPD_METRICS',
+        level: 'info',
+        message: 'Admin viewed САЗПД metrics and statistics',
+        status: 'success',
+        details: {
+          metricsRequested: new Date().toISOString()
+        },
+        sessionId: req.session.id,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+
+      res.json({
+        success: true,
+        data: {
+          metrics,
+          operatorStats,
+          settings: {
+            modules: settings.modules,
+            compliance: settings.compliance
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching САЗПД metrics:', error);
+      
+      // Log the error as САЗПД action
+      try {
+        await storage.logSAZPDAction({
+          adminId: req.adminUser?.id || 'unknown',
+          module: 'email-automation',
+          actionType: 'VIEW_SAZPD_METRICS_ERROR',
+          level: 'error',
+          message: 'Error fetching САЗПД metrics',
+          status: 'failed',
+          details: {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          },
+          sessionId: req.session?.id,
+          ipAddress: req.adminIp,
+          userAgent: req.adminUserAgent
+        });
+      } catch (logError) {
+        console.error('Failed to log САЗПД error:', logError);
+      }
+
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения метрик САЗПД'
+      });
+    }
+  });
+
+  // САЗПД Settings endpoint (GET and PUT)
+  app.get('/api/sazpd/settings', isAdmin, async (req: any, res) => {
+    try {
+      const settings = await storage.getSAZPDSettings();
+
+      // Log admin action
+      await storage.logSAZPDAction({
+        adminId: req.adminUser.id,
+        module: 'email-automation',
+        actionType: 'VIEW_SAZPD_SETTINGS',
+        level: 'info',
+        message: 'Admin viewed САЗПД settings',
+        status: 'success',
+        sessionId: req.session.id,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+
+      res.json({
+        success: true,
+        data: settings
+      });
+    } catch (error) {
+      console.error('Error fetching САЗПД settings:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка получения настроек САЗПД'
+      });
+    }
+  });
+
+  app.put('/api/sazpd/settings', isAdmin, async (req: any, res) => {
+    try {
+      const settingsSchema = z.object({
+        modules: z.object({
+          responseAnalyzer: z.object({ enabled: z.boolean(), interval: z.number() }).optional(),
+          decisionEngine: z.object({ enabled: z.boolean(), autoDecisionThreshold: z.number() }).optional(),
+          evidenceCollector: z.object({ enabled: z.boolean(), retentionDays: z.number() }).optional(),
+          campaignManager: z.object({ enabled: z.boolean(), maxCampaigns: z.number() }).optional(),
+          emailAutomation: z.object({ enabled: z.boolean(), followUpHours: z.number() }).optional(),
+          cryptoValidator: z.object({ enabled: z.boolean(), strictMode: z.boolean() }).optional()
+        }).optional(),
+        compliance: z.object({
+          fz152Mode: z.boolean().optional(),
+          dataRetentionDays: z.number().optional(),
+          autoEscalationHours: z.number().optional(),
+          operatorResponseTimeout: z.number().optional()
+        }).optional()
+      });
+
+      const validatedSettings = settingsSchema.parse(req.body);
+      const updatedSettings = await storage.updateSAZPDSettings(validatedSettings);
+
+      // Log admin action for audit trail
+      await storage.logSAZPDAction({
+        adminId: req.adminUser.id,
+        module: 'email-automation',
+        actionType: 'UPDATE_SAZPD_SETTINGS',
+        level: 'warning',
+        message: 'Admin updated САЗПД settings',
+        status: 'success',
+        details: {
+          changes: validatedSettings,
+          timestamp: new Date().toISOString()
+        },
+        sessionId: req.session.id,
+        ipAddress: req.adminIp,
+        userAgent: req.adminUserAgent
+      });
+
+      res.json({
+        success: true,
+        data: updatedSettings
+      });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Некорректные настройки САЗПД',
+          details: error.errors
+        });
+      }
+
+      console.error('Error updating САЗПД settings:', error);
+      res.status(500).json({
+        success: false,
+        error: 'INTERNAL_ERROR',
+        message: 'Ошибка обновления настроек САЗПД'
+      });
+    }
+  });
 
   // Public health check
   app.get("/api/health", (req, res) => {

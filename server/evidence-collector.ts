@@ -448,9 +448,11 @@ export class EvidenceCollector {
       }
 
       // Сортируем по времени создания и берем последнее
-      return evidenceList.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )[0];
+      return evidenceList.sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      })[0];
     } catch (error) {
       console.error('Error getting last evidence in chain:', error);
       return null;
@@ -619,9 +621,11 @@ export class EvidenceCollector {
       }
 
       // Сортируем по времени создания
-      const sortedEvidence = evidenceList.sort((a, b) => 
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
+      const sortedEvidence = evidenceList.sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return aTime - bTime;
+      });
 
       // Проверяем каждое доказательство
       const verificationResults: IntegrityVerificationResult[] = [];
@@ -676,7 +680,7 @@ export class EvidenceCollector {
       sourceId: inboundEmail.id,
       emailHeaders: inboundEmail.headers as Record<string, any>,
       violationType: inboundEmail.violations as ViolationType[],
-      originalTimestamp: new Date(inboundEmail.receivedAt),
+      originalTimestamp: inboundEmail.receivedAt ? new Date(inboundEmail.receivedAt) : new Date(),
       collectionTimestamp: new Date()
     };
 
@@ -746,6 +750,79 @@ export class EvidenceCollector {
     });
 
     return Array.from(legalBasis);
+  }
+
+  /**
+   * Алиас для verifyEvidenceIntegrity - проверка целостности конкретного доказательства
+   */
+  async verifyIntegrity(evidenceId: string): Promise<boolean> {
+    try {
+      const result = await this.verifyEvidenceIntegrity(evidenceId);
+      return result.isValid;
+    } catch (error) {
+      console.error(`Error verifying evidence integrity for ${evidenceId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Получение юридической значимости типа доказательства
+   */
+  getLegalSignificance(evidenceType: string): number {
+    // Оценка юридической значимости различных типов доказательств (1-100)
+    const significanceMap: Record<string, number> = {
+      'EMAIL_RESPONSE': 85,      // Прямой ответ оператора - высокая значимость
+      'VIOLATION_DETECTED': 90,  // Обнаруженные нарушения - очень высокая значимость
+      'OPERATOR_REFUSAL': 95,    // Отказ оператора - критическая значимость
+      'LEGAL_BASIS_INVALID': 80, // Неверное правовое основание - высокая значимость
+      'CONSENT_VIOLATION': 88,   // Нарушения согласий - очень высокая значимость
+      'PROCEDURAL_VIOLATION': 75, // Процедурные нарушения - средне-высокая значимость
+      'SYSTEM_LOG': 60,          // Системные логи - средняя значимость
+      'MANUAL_ENTRY': 50         // Ручной ввод - базовая значимость
+    };
+
+    return significanceMap[evidenceType] || 50; // По умолчанию базовая значимость
+  }
+
+  /**
+   * Получение хэша всей цепочки доказательств для запроса на удаление
+   */
+  async hashChain(deletionRequestId: string): Promise<string> {
+    try {
+      // Получаем все доказательства для данного запроса, отсортированные по времени
+      const evidenceList = await this.storage.getEvidenceCollectionByRequestId(deletionRequestId);
+      
+      if (!evidenceList || evidenceList.length === 0) {
+        // Если нет доказательств, возвращаем хэш пустой цепочки
+        return crypto.createHmac(this.hashAlgorithm, this.serverSecret)
+                     .update('empty_evidence_chain', 'utf8')
+                     .digest('hex');
+      }
+
+      // Сортируем по времени создания для корректной последовательности
+      const sortedEvidence = evidenceList.sort((a, b) => {
+        const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return aTime - bTime;
+      });
+
+      // Строим итоговый хэш цепочки из всех элементов
+      let chainHash = '';
+      for (const evidence of sortedEvidence) {
+        const evidenceHash = evidence.contentHash + (evidence.previousHash || '') + evidence.timestampHash;
+        chainHash = crypto.createHmac(this.hashAlgorithm, this.serverSecret)
+                          .update(chainHash + evidenceHash, 'utf8')
+                          .digest('hex');
+      }
+
+      return chainHash;
+    } catch (error) {
+      console.error(`Error generating hash chain for request ${deletionRequestId}:`, error);
+      // В случае ошибки возвращаем уникальный хэш ошибки
+      return crypto.createHmac(this.hashAlgorithm, this.serverSecret)
+                   .update(`error_hash_chain_${deletionRequestId}_${Date.now()}`, 'utf8')
+                   .digest('hex');
+    }
   }
 }
 

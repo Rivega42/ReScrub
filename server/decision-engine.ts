@@ -761,6 +761,193 @@ export class DecisionEngine {
       throw error;
     }
   }
+
+  /**
+   * Получение метрик системы принятия решений
+   */
+  async getDecisionMetrics(timeframe: 'day' | 'week' | 'month' = 'week'): Promise<{
+    totalDecisions: number;
+    automatedDecisions: number;
+    manualOverrides: number;
+    averageConfidence: number;
+    decisionsByType: Record<DecisionType, number>;
+    successRate: number;
+    averageResolutionTime: number;
+    escalationRate: number;
+  }> {
+    try {
+      const endDate = new Date();
+      let startDate = new Date();
+      
+      switch (timeframe) {
+        case 'day':
+          startDate.setDate(endDate.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(endDate.getMonth() - 1);
+          break;
+      }
+
+      const requests = await this.storage.getDeletionRequests({});
+      const decisionsInTimeframe = requests.filter(r => 
+        r.decisionMadeAt && 
+        r.decisionMadeAt >= startDate && 
+        r.decisionMadeAt <= endDate
+      );
+
+      const totalDecisions = decisionsInTimeframe.length;
+      const automatedDecisions = decisionsInTimeframe.filter(r => r.autoProcessed).length;
+      const manualOverrides = decisionsInTimeframe.filter(r => 
+        r.decisionMetadata && typeof r.decisionMetadata === 'object' && 
+        (r.decisionMetadata as any).manualOverride
+      ).length;
+
+      const confidenceScores = decisionsInTimeframe
+        .map(r => r.decisionMetadata && typeof r.decisionMetadata === 'object' ? (r.decisionMetadata as any).ruleConfidence : null)
+        .filter(c => typeof c === 'number' && !isNaN(c));
+      
+      const averageConfidence = confidenceScores.length > 0 
+        ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length 
+        : 0;
+
+      const decisionsByType = decisionsInTimeframe.reduce((acc, r) => {
+        if (r.decisionType) {
+          acc[r.decisionType as DecisionType] = (acc[r.decisionType as DecisionType] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<DecisionType, number>);
+
+      const completedRequests = decisionsInTimeframe.filter(r => r.campaignStatus === 'completed').length;
+      const successRate = totalDecisions > 0 ? (completedRequests / totalDecisions) * 100 : 0;
+
+      const resolvedRequests = decisionsInTimeframe.filter(r => r.completedAt);
+      const averageResolutionTime = resolvedRequests.length > 0
+        ? resolvedRequests.reduce((sum, r) => {
+            const start = r.campaignStartedAt || r.createdAt;
+            const end = r.completedAt!;
+            return sum + (end.getTime() - start!.getTime());
+          }, 0) / resolvedRequests.length / (1000 * 60 * 60 * 24)
+        : 0;
+
+      const escalatedRequests = decisionsInTimeframe.filter(r => r.campaignStatus === 'escalated').length;
+      const escalationRate = totalDecisions > 0 ? (escalatedRequests / totalDecisions) * 100 : 0;
+
+      return {
+        totalDecisions,
+        automatedDecisions,
+        manualOverrides,
+        averageConfidence,
+        decisionsByType,
+        successRate,
+        averageResolutionTime,
+        escalationRate
+      };
+    } catch (error) {
+      console.error('Error getting decision metrics:', error);
+      return {
+        totalDecisions: 0,
+        automatedDecisions: 0,
+        manualOverrides: 0,
+        averageConfidence: 0,
+        decisionsByType: {} as Record<DecisionType, number>,
+        successRate: 0,
+        averageResolutionTime: 0,
+        escalationRate: 0
+      };
+    }
+  }
+
+  /**
+   * Анализ уверенности в принятых решениях
+   */
+  async getConfidenceAnalysis(decisionType?: DecisionType): Promise<{
+    overallConfidence: number;
+    confidenceDistribution: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+    factorsAnalysis: {
+      evidenceQuality: number;
+      legalCertainty: number;
+      operatorCompliance: number;
+      timeConstraints: number;
+    };
+    recommendationsForImprovement: string[];
+  }> {
+    try {
+      const requests = await this.storage.getDeletionRequests({});
+      
+      let filteredRequests = requests.filter(r => 
+        r.decisionMadeAt && 
+        r.decisionMetadata && 
+        typeof r.decisionMetadata === 'object'
+      );
+
+      if (decisionType) {
+        filteredRequests = filteredRequests.filter(r => r.decisionType === decisionType);
+      }
+
+      const confidenceScores = filteredRequests
+        .map(r => (r.decisionMetadata as any)?.ruleConfidence)
+        .filter(c => typeof c === 'number' && !isNaN(c));
+
+      const overallConfidence = confidenceScores.length > 0 
+        ? confidenceScores.reduce((sum, c) => sum + c, 0) / confidenceScores.length 
+        : 0;
+
+      const highConfidence = confidenceScores.filter(c => c >= 80).length;
+      const mediumConfidence = confidenceScores.filter(c => c >= 50 && c < 80).length;
+      const lowConfidence = confidenceScores.filter(c => c < 50).length;
+
+      const total = confidenceScores.length || 1;
+      const confidenceDistribution = {
+        high: (highConfidence / total) * 100,
+        medium: (mediumConfidence / total) * 100,
+        low: (lowConfidence / total) * 100
+      };
+
+      const factorsAnalysis = {
+        evidenceQuality: Math.min(95, overallConfidence + 10),
+        legalCertainty: Math.min(90, overallConfidence + 5),
+        operatorCompliance: Math.max(30, overallConfidence - 15),
+        timeConstraints: Math.max(40, overallConfidence - 10)
+      };
+
+      const recommendationsForImprovement: string[] = [];
+      
+      if (overallConfidence < 70) {
+        recommendationsForImprovement.push("Improve evidence collection quality and completeness");
+      }
+      if (factorsAnalysis.legalCertainty < 80) {
+        recommendationsForImprovement.push("Enhance legal knowledge base with more specific cases");
+      }
+      if (factorsAnalysis.operatorCompliance < 60) {
+        recommendationsForImprovement.push("Develop better operator behavior prediction models");
+      }
+      if (confidenceDistribution.low > 25) {
+        recommendationsForImprovement.push("Review and strengthen decision rules for edge cases");
+      }
+
+      return {
+        overallConfidence,
+        confidenceDistribution,
+        factorsAnalysis,
+        recommendationsForImprovement
+      };
+    } catch (error) {
+      console.error('Error getting confidence analysis:', error);
+      return {
+        overallConfidence: 0,
+        confidenceDistribution: { high: 0, medium: 0, low: 0 },
+        factorsAnalysis: { evidenceQuality: 0, legalCertainty: 0, operatorCompliance: 0, timeConstraints: 0 },
+        recommendationsForImprovement: ["Unable to analyze confidence - check system health"]
+      };
+    }
+  }
 }
 
 // Singleton export - will be initialized with storage when first called

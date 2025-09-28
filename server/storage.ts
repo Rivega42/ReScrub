@@ -100,7 +100,7 @@ import {
   type InsertEvidenceCollection,
   type LegalArticle,
   type InsertLegalArticle,
-  // САЗПД modules types - temporarily disabled
+  // САЗПД modules types - temporarily disabled (using DeletionRequest as Campaign entity)
   // type Campaign,
   // type InsertCampaign,
   // type DecisionRule,
@@ -482,7 +482,7 @@ export interface IStorage {
   // ========================================
   
   // Campaign operations (using deletion_requests as the base entity)
-  createCampaign(campaignData: InsertCampaign): Promise<DeletionRequest>;
+  createCampaign(campaignData: InsertDeletionRequest): Promise<DeletionRequest>;
   getCampaignById(id: string): Promise<DeletionRequest | undefined>;
   getUserCampaigns(userId: string): Promise<DeletionRequest[]>;
   getAllCampaigns(filters?: { 
@@ -590,6 +590,70 @@ export interface IStorage {
     averageConfidence: number;
     escalationRate: number;
   }>;
+
+  // ========================================
+  // САЗПД SYSTEM METHODS
+  // ========================================
+
+  // SAZPD Logs operations
+  getSAZPDLogs(filters?: {
+    module?: string;
+    level?: string;
+    status?: string;
+    search?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    logs: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>;
+
+  // SAZPD Metrics operations  
+  getSAZPDMetrics(): Promise<{
+    totalRequests: number;
+    processedRequests: number;
+    automatedDecisions: number;
+    manualEscalations: number;
+    evidenceCollections: number;
+    cryptoValidations: number;
+    complianceScore: number;
+    operatorResponseTime: number;
+    violationsDetected: number;
+  }>;
+
+  // SAZPD Settings operations
+  getSAZPDSettings(): Promise<any>;
+  updateSAZPDSettings(settings: any): Promise<any>;
+
+  // SAZPD Operator Statistics
+  getSAZPDOperatorStats(): Promise<{
+    operatorId: string;
+    name: string;
+    totalResponses: number;
+    successRate: number;
+    avgResponseTime: number;
+    violationsCount: number;
+    lastActivity: string;
+    complianceScore: number;
+  }[]>;
+
+  // SAZPD Admin Action Logging (specialized for САЗПД)
+  logSAZPDAction(actionData: {
+    adminId: string;
+    module: 'response-analyzer' | 'decision-engine' | 'evidence-collector' | 'campaign-manager' | 'email-automation' | 'crypto-validator';
+    actionType: string;
+    level: 'info' | 'warning' | 'error' | 'critical';
+    message: string;
+    requestId?: string;
+    status: 'success' | 'failed' | 'processing';
+    details?: Record<string, any>;
+    sessionId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4592,6 +4656,328 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(deletionRequests.lastActionAt);
   }
+
+  // ========================================
+  // САЗПД SYSTEM METHODS IMPLEMENTATION
+  // ========================================
+
+  async getSAZPDLogs(filters?: {
+    module?: string;
+    level?: string;
+    status?: string;
+    search?: string;
+    date?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    logs: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 50;
+    const offset = (page - 1) * limit;
+
+    // Build WHERE conditions
+    const conditions = [];
+    const params: any[] = [];
+
+    // САЗПД specific modules filter
+    if (filters?.module && filters.module !== 'all') {
+      conditions.push(`metadata->>'module' = $${params.length + 1}`);
+      params.push(filters.module);
+    }
+
+    // Map admin action levels to САЗПД levels
+    if (filters?.level && filters.level !== 'all') {
+      conditions.push(`metadata->>'level' = $${params.length + 1}`);
+      params.push(filters.level);
+    }
+
+    // Map admin action status to САЗПД status
+    if (filters?.status && filters.status !== 'all') {
+      conditions.push(`metadata->>'status' = $${params.length + 1}`);
+      params.push(filters.status);
+    }
+
+    // Search in message or details
+    if (filters?.search) {
+      conditions.push(`(action_type ILIKE $${params.length + 1} OR details::text ILIKE $${params.length + 1})`);
+      params.push(`%${filters.search}%`);
+    }
+
+    // Date filter
+    if (filters?.date) {
+      const date = new Date(filters.date);
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      conditions.push(`created_at >= $${params.length + 1} AND created_at < $${params.length + 2}`);
+      params.push(date, nextDay);
+    }
+
+    // Only САЗПД related actions
+    conditions.push(`target_type = 'sazpd'`);
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM admin_actions 
+      ${whereClause}
+    `;
+
+    const countResult = await db.execute(sql.raw(countQuery, params));
+    const total = parseInt(countResult.rows[0]?.total || '0');
+
+    // Get paginated logs
+    const logsQuery = `
+      SELECT 
+        id,
+        admin_id,
+        action_type,
+        target_type,
+        target_id,
+        details,
+        metadata,
+        session_id,
+        ip_address,
+        user_agent,
+        created_at
+      FROM admin_actions 
+      ${whereClause}
+      ORDER BY created_at DESC 
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+
+    params.push(limit, offset);
+
+    const logsResult = await db.execute(sql.raw(logsQuery, params));
+
+    // Transform to САЗПД log format
+    const logs = logsResult.rows.map((row: any) => {
+      const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+      const details = typeof row.details === 'string' ? JSON.parse(row.details) : row.details;
+      
+      return {
+        id: row.id,
+        timestamp: row.created_at,
+        module: metadata?.module || 'system',
+        level: metadata?.level || 'info',
+        message: row.action_type,
+        requestId: metadata?.requestId || row.target_id,
+        status: metadata?.status || 'success',
+        details: details || {}
+      };
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      logs,
+      total,
+      page,
+      totalPages
+    };
+  }
+
+  async getSAZPDMetrics(): Promise<{
+    totalRequests: number;
+    processedRequests: number;
+    automatedDecisions: number;
+    manualEscalations: number;
+    evidenceCollections: number;
+    cryptoValidations: number;
+    complianceScore: number;
+    operatorResponseTime: number;
+    violationsDetected: number;
+  }> {
+    // Get metrics from deletion_requests and related tables
+    const [
+      totalRequestsResult,
+      processedRequestsResult,
+      escalatedRequestsResult,
+      evidenceCollectionsResult,
+      inboundEmailsResult,
+      violationsResult
+    ] = await Promise.all([
+      // Total deletion requests
+      db.execute(sql`SELECT COUNT(*) as count FROM deletion_requests`),
+      
+      // Processed requests (completed or with responses)
+      db.execute(sql`
+        SELECT COUNT(*) as count 
+        FROM deletion_requests 
+        WHERE status IN ('completed', 'operator_confirmed', 'rejected')
+      `),
+      
+      // Escalated requests
+      db.execute(sql`
+        SELECT COUNT(*) as count 
+        FROM deletion_requests 
+        WHERE status = 'escalated' OR escalation_level > 0
+      `),
+      
+      // Evidence collections
+      db.execute(sql`SELECT COUNT(*) as count FROM evidence_collection`),
+      
+      // Inbound emails with analysis
+      db.execute(sql`
+        SELECT 
+          COUNT(*) as total,
+          AVG(EXTRACT(EPOCH FROM (received_at - created_at))) / 3600 as avg_response_hours
+        FROM inbound_emails ie
+        JOIN deletion_requests dr ON ie.deletion_request_id = dr.id
+      `),
+      
+      // Violations detected from inbound emails
+      db.execute(sql`
+        SELECT COUNT(*) as count 
+        FROM inbound_emails 
+        WHERE violations IS NOT NULL AND array_length(violations, 1) > 0
+      `)
+    ]);
+
+    const totalRequests = parseInt(totalRequestsResult.rows[0]?.count || '0');
+    const processedRequests = parseInt(processedRequestsResult.rows[0]?.count || '0');
+    const escalatedRequests = parseInt(escalatedRequestsResult.rows[0]?.count || '0');
+    const evidenceCollections = parseInt(evidenceCollectionsResult.rows[0]?.count || '0');
+    const violationsDetected = parseInt(violationsResult.rows[0]?.count || '0');
+    
+    const emailStats = inboundEmailsResult.rows[0];
+    const avgResponseHours = parseFloat(emailStats?.avg_response_hours || '0');
+
+    // Calculate automated decisions (requests processed without manual escalation)
+    const automatedDecisions = Math.max(0, processedRequests - escalatedRequests);
+    
+    // Calculate compliance score based on response times and violation rates
+    const responseTimeScore = avgResponseHours > 0 ? Math.max(0, 100 - (avgResponseHours * 2)) : 100;
+    const violationScore = totalRequests > 0 ? Math.max(0, 100 - ((violationsDetected / totalRequests) * 100)) : 100;
+    const complianceScore = Math.round((responseTimeScore + violationScore) / 2);
+
+    // Crypto validations (all evidence collections have crypto validation)
+    const cryptoValidations = evidenceCollections;
+
+    return {
+      totalRequests,
+      processedRequests,
+      automatedDecisions,
+      manualEscalations: escalatedRequests,
+      evidenceCollections,
+      cryptoValidations,
+      complianceScore,
+      operatorResponseTime: avgResponseHours,
+      violationsDetected
+    };
+  }
+
+  async getSAZPDSettings(): Promise<any> {
+    // САЗПД settings are stored in platform_secrets or environment variables
+    // Return default settings structure
+    return {
+      modules: {
+        responseAnalyzer: { enabled: true, interval: 3600000 }, // 1 hour
+        decisionEngine: { enabled: true, autoDecisionThreshold: 80 },
+        evidenceCollector: { enabled: true, retentionDays: 365 },
+        campaignManager: { enabled: true, maxCampaigns: 1000 },
+        emailAutomation: { enabled: true, followUpHours: 72 },
+        cryptoValidator: { enabled: true, strictMode: true }
+      },
+      compliance: {
+        fz152Mode: true,
+        dataRetentionDays: 365,
+        autoEscalationHours: 72,
+        operatorResponseTimeout: 30 * 24 // 30 days in hours
+      }
+    };
+  }
+
+  async updateSAZPDSettings(settings: any): Promise<any> {
+    // In production, this would update platform_secrets or configuration
+    // For now, just return the updated settings
+    return settings;
+  }
+
+  async getSAZPDOperatorStats(): Promise<{
+    operatorId: string;
+    name: string;
+    totalResponses: number;
+    successRate: number;
+    avgResponseTime: number;
+    violationsCount: number;
+    lastActivity: string;
+    complianceScore: number;
+  }[]> {
+    // Get operator statistics from inbound_emails and deletion_requests
+    const result = await db.execute(sql`
+      SELECT 
+        ie.operator_email as operator_id,
+        ie.operator_email as name,
+        COUNT(*) as total_responses,
+        COUNT(CASE WHEN ie.response_type = 'POSITIVE_CONFIRMATION' THEN 1 END) as successful_responses,
+        AVG(EXTRACT(EPOCH FROM (ie.received_at - dr.first_sent_at))) / 3600 as avg_response_hours,
+        SUM(array_length(ie.violations, 1)) as violations_count,
+        MAX(ie.received_at) as last_activity
+      FROM inbound_emails ie
+      JOIN deletion_requests dr ON ie.deletion_request_id = dr.id
+      GROUP BY ie.operator_email
+      ORDER BY total_responses DESC
+    `);
+
+    return result.rows.map((row: any) => {
+      const totalResponses = parseInt(row.total_responses || '0');
+      const successfulResponses = parseInt(row.successful_responses || '0');
+      const violationsCount = parseInt(row.violations_count || '0');
+      const avgResponseHours = parseFloat(row.avg_response_hours || '0');
+      
+      const successRate = totalResponses > 0 ? (successfulResponses / totalResponses) * 100 : 0;
+      const complianceScore = Math.max(0, 100 - (violationsCount * 10) - Math.min(50, avgResponseHours));
+      
+      return {
+        operatorId: row.operator_id,
+        name: row.name,
+        totalResponses,
+        successRate: Math.round(successRate),
+        avgResponseTime: Math.round(avgResponseHours),
+        violationsCount,
+        lastActivity: row.last_activity,
+        complianceScore: Math.round(complianceScore)
+      };
+    });
+  }
+
+  async logSAZPDAction(actionData: {
+    adminId: string;
+    module: 'response-analyzer' | 'decision-engine' | 'evidence-collector' | 'campaign-manager' | 'email-automation' | 'crypto-validator';
+    actionType: string;
+    level: 'info' | 'warning' | 'error' | 'critical';
+    message: string;
+    requestId?: string;
+    status: 'success' | 'failed' | 'processing';
+    details?: Record<string, any>;
+    sessionId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    await this.logAdminAction({
+      adminId: actionData.adminId,
+      actionType: actionData.actionType,
+      targetType: 'sazpd',
+      targetId: actionData.requestId,
+      details: actionData.details || {},
+      metadata: {
+        module: actionData.module,
+        level: actionData.level,
+        message: actionData.message,
+        status: actionData.status
+      },
+      sessionId: actionData.sessionId,
+      ipAddress: actionData.ipAddress,
+      userAgent: actionData.userAgent
+    });
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -7841,6 +8227,99 @@ export class MemStorage implements IStorage {
 
   async getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]> {
     throw new Error('Two-stage email system - getDeletionRequestsRequiringEscalation not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  // ========================================
+  // CAMPAIGN OPERATIONS STUBS (Missing methods)
+  // ========================================
+
+  async createCampaign(campaignData: InsertDeletionRequest): Promise<DeletionRequest> {
+    throw new Error('Campaign operations - createCampaign not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getCampaignById(id: string): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - getCampaignById not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getUserCampaigns(userId: string): Promise<DeletionRequest[]> {
+    throw new Error('Campaign operations - getUserCampaigns not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getAllCampaigns(filters?: { 
+    campaignStatus?: string; 
+    escalationLevel?: number; 
+    priority?: string; 
+    organizationName?: string; 
+    nextAction?: string 
+  }): Promise<DeletionRequest[]> {
+    throw new Error('Campaign operations - getAllCampaigns not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateCampaign(id: string, updates: Partial<DeletionRequest>): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - updateCampaign not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateCampaignStatus(id: string, status: string, milestone?: any): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - updateCampaignStatus not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateCampaignMetrics(id: string, metrics: Record<string, any>): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - updateCampaignMetrics not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async updateCampaignProgress(
+    id: string, 
+    completionRate: number, 
+    nextAction?: string, 
+    nextActionAt?: Date
+  ): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - updateCampaignProgress not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async pauseCampaignAutomation(id: string, reason: string): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - pauseCampaignAutomation not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async resumeCampaignAutomation(id: string): Promise<DeletionRequest | undefined> {
+    throw new Error('Campaign operations - resumeCampaignAutomation not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getCampaignStatistics(timeframe?: 'day' | 'week' | 'month'): Promise<{
+    totalCampaigns: number;
+    activeCampaigns: number;
+    completedCampaigns: number;
+    escalatedCampaigns: number;
+    averageCompletionTime: number;
+    successRate: number;
+    escalationRate: number;
+    weeklyTrends: any[];
+  }> {
+    throw new Error('Campaign operations - getCampaignStatistics not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getCampaignsByOperator(operatorEmail: string): Promise<DeletionRequest[]> {
+    throw new Error('Campaign operations - getCampaignsByOperator not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getOperatorComplianceMetrics(operatorEmail: string): Promise<{
+    totalCampaigns: number;
+    successfulCampaigns: number;
+    averageResponseTime: number;
+    complianceScore: number;
+  }> {
+    throw new Error('Campaign operations - getOperatorComplianceMetrics not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getCampaignsReadyForAction(): Promise<DeletionRequest[]> {
+    throw new Error('Campaign operations - getCampaignsReadyForAction not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getCampaignsRequiringEscalation(): Promise<DeletionRequest[]> {
+    throw new Error('Campaign operations - getCampaignsRequiringEscalation not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getStalledCampaigns(daysSinceLastAction: number): Promise<DeletionRequest[]> {
+    throw new Error('Campaign operations - getStalledCampaigns not supported in MemStorage. Use DatabaseStorage for production.');
   }
 }
 
