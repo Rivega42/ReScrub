@@ -17,7 +17,10 @@ import type {
   DocumentType,
   ResponseType,
   ViolationType,
-  EvidenceType
+  EvidenceType,
+  ResponseTypeEnum,
+  ViolationTypeEnum,
+  DocumentTypeEnum
 } from '@shared/schema';
 
 /**
@@ -560,8 +563,11 @@ export class CampaignManager {
       const commonIssues = this.identifyCommonIssues(allCampaigns);
 
       // Прогнозы завершения для активных кампаний
+      const activeCampaignsList = allCampaigns.filter(c => 
+        ['started', 'documents_sent', 'awaiting_response', 'analyzing_response', 'taking_action'].includes(c.campaignStatus || '')
+      );
       const predictedCompletionDates = this.predictCompletionDates(
-        allCampaigns.filter(c => activeCampaigns > 0),
+        activeCampaignsList,
         averageCompletionTime
       );
 
@@ -674,8 +680,14 @@ export class CampaignManager {
         case 'analyze_response':
           result = await this.executeAnalyzeResponse(campaign);
           break;
+        case 'schedule_reminder':
+          result = await this.executeScheduleReminder(campaign);
+          break;
         case 'collect_evidence':
           result = await this.executeCollectEvidence(campaign);
+          break;
+        case 'prepare_legal_action':
+          result = await this.executePrepareLegalAction(campaign);
           break;
         default:
           return {
@@ -1092,6 +1104,268 @@ export class CampaignManager {
         metadata: { action: 'evidence_collection' }
       }
     );
+  }
+
+  private async executeScheduleReminder(campaign: DeletionRequest): Promise<CampaignProgressResult> {
+    console.log(`⏰ Scheduling reminder for campaign: ${campaign.id}`);
+    
+    return await this.updateCampaignProgress(
+      campaign.id,
+      'awaiting_response',
+      {
+        type: 'deadline_reached',
+        metadata: { action: 'reminder_scheduled' }
+      }
+    );
+  }
+
+  private async executePrepareLegalAction(campaign: DeletionRequest): Promise<CampaignProgressResult> {
+    console.log(`⚖️ Preparing legal action for campaign: ${campaign.id}`);
+    
+    return await this.updateCampaignProgress(
+      campaign.id,
+      'escalated',
+      {
+        type: 'escalation_initiated',
+        metadata: { action: 'legal_action_prepared' }
+      }
+    );
+  }
+
+  /**
+   * Обработка автоматизированных кампаний
+   * Этот метод вызывается регулярно для выполнения запланированных действий
+   */
+  async processAutomatedCampaigns(): Promise<void> {
+    try {
+      console.log('🔄 Processing automated campaigns...');
+      
+      // Получаем все кампании с запланированными действиями
+      const campaigns = await storage.getDeletionRequests();
+      const now = new Date();
+      
+      const campaignsToProcess = campaigns.filter(campaign => 
+        campaign.isAutomated && 
+        !campaign.automationPaused &&
+        campaign.nextScheduledActionAt &&
+        new Date(campaign.nextScheduledActionAt) <= now
+      );
+      
+      console.log(`📊 Found ${campaignsToProcess.length} campaigns ready for processing`);
+      
+      for (const campaign of campaignsToProcess) {
+        try {
+          console.log(`⚡ Processing campaign: ${campaign.id}, action: ${campaign.nextScheduledAction}`);
+          
+          const result = await this.executeNextAction(campaign.id);
+          
+          if (result.success) {
+            console.log(`✅ Campaign ${campaign.id} processed successfully`);
+          } else {
+            console.error(`❌ Failed to process campaign ${campaign.id}:`, result.error);
+          }
+        } catch (error) {
+          console.error(`❌ Error processing campaign ${campaign.id}:`, error);
+        }
+      }
+      
+      console.log('✅ Automated campaign processing completed');
+    } catch (error) {
+      console.error('❌ Error in automated campaign processing:', error);
+    }
+  }
+
+  // ========================================
+  // HELPER METHODS
+  // ========================================
+
+  /**
+   * Получение описания вехи
+   */
+  private getMilestoneDescription(milestoneType: string): string {
+    const descriptions: Record<string, string> = {
+      'campaign_started': 'Кампания запущена',
+      'initial_document_sent': 'Начальный документ отправлен',
+      'response_received': 'Получен ответ оператора',
+      'followup_sent': 'Отправлено повторное письмо',
+      'escalation_initiated': 'Инициирована эскалация',
+      'evidence_collected': 'Собраны доказательства',
+      'decision_made': 'Принято решение',
+      'campaign_completed': 'Кампания завершена',
+      'deadline_reached': 'Достигнут дедлайн',
+      'automation_paused': 'Автоматизация приостановлена',
+      'manual_intervention': 'Требуется ручное вмешательство'
+    };
+    
+    return descriptions[milestoneType] || `Неизвестная веха: ${milestoneType}`;
+  }
+
+  /**
+   * Расчет процента завершенности на основе статуса
+   */
+  private calculateCompletionRate(status: CampaignStatus): number {
+    const completionRates: Record<CampaignStatus, number> = {
+      'started': 10,
+      'documents_sent': 25,
+      'awaiting_response': 40,
+      'analyzing_response': 60,
+      'taking_action': 80,
+      'completed': 100,
+      'escalated': 90,
+      'failed': 0,
+      'paused': 0,
+      'cancelled': 0
+    };
+    
+    return completionRates[status] || 0;
+  }
+
+  /**
+   * Планирование следующего действия
+   */
+  private async planNextAction(campaign: DeletionRequest, currentStatus?: CampaignStatus): Promise<{
+    action: NextAction;
+    scheduledAt: Date;
+    reason: string;
+  } | null> {
+    const status = currentStatus || campaign.campaignStatus as CampaignStatus;
+    const now = new Date();
+    
+    switch (status) {
+      case 'started':
+        return {
+          action: 'send_followup',
+          scheduledAt: new Date(now.getTime() + 5 * 60 * 1000), // через 5 минут
+          reason: 'Initial document sending'
+        };
+        
+      case 'documents_sent':
+        return {
+          action: 'await_response',
+          scheduledAt: new Date(now.getTime() + this.DEFAULT_RESPONSE_DEADLINE_DAYS * 24 * 60 * 60 * 1000),
+          reason: 'Waiting for operator response'
+        };
+        
+      case 'awaiting_response':
+        // Проверяем истек ли срок ответа
+        const responseDeadline = campaign.nextScheduledActionAt || new Date(now.getTime() + this.DEFAULT_RESPONSE_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+        if (new Date() > new Date(responseDeadline)) {
+          return {
+            action: 'send_followup',
+            scheduledAt: now,
+            reason: 'Response deadline expired'
+          };
+        }
+        return null;
+        
+      case 'analyzing_response':
+        return {
+          action: 'analyze_response',
+          scheduledAt: new Date(now.getTime() + 1 * 60 * 1000), // через минуту
+          reason: 'Analysis required'
+        };
+        
+      case 'taking_action':
+        return {
+          action: 'collect_evidence',
+          scheduledAt: new Date(now.getTime() + 2 * 60 * 1000), // через 2 минуты
+          reason: 'Evidence collection needed'
+        };
+        
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Расчет недельных трендов
+   */
+  private calculateWeeklyTrends(campaigns: DeletionRequest[]): {
+    week: string;
+    started: number;
+    completed: number;
+    escalated: number;
+  }[] {
+    const trends: Record<string, { started: number; completed: number; escalated: number }> = {};
+    
+    campaigns.forEach(campaign => {
+      if (campaign.campaignStartedAt) {
+        const week = this.getWeekKey(new Date(campaign.campaignStartedAt));
+        if (!trends[week]) {
+          trends[week] = { started: 0, completed: 0, escalated: 0 };
+        }
+        trends[week].started++;
+        
+        if (campaign.campaignStatus === 'completed') {
+          trends[week].completed++;
+        } else if (campaign.campaignStatus === 'escalated') {
+          trends[week].escalated++;
+        }
+      }
+    });
+    
+    return Object.entries(trends).map(([week, data]) => ({
+      week,
+      ...data
+    })).sort((a, b) => a.week.localeCompare(b.week));
+  }
+
+  /**
+   * Определение общих проблем
+   */
+  private identifyCommonIssues(campaigns: DeletionRequest[]): string[] {
+    const issues: string[] = [];
+    
+    const failedCampaigns = campaigns.filter(c => c.campaignStatus === 'failed').length;
+    const pausedCampaigns = campaigns.filter(c => c.automationPaused).length;
+    const longRunning = campaigns.filter(c => {
+      if (!c.campaignStartedAt) return false;
+      const daysSinceStart = (Date.now() - new Date(c.campaignStartedAt).getTime()) / (1000 * 60 * 60 * 24);
+      return daysSinceStart > 90; // более 90 дней
+    }).length;
+    
+    if (failedCampaigns > 0) {
+      issues.push(`${failedCampaigns} failed campaigns need attention`);
+    }
+    
+    if (pausedCampaigns > 0) {
+      issues.push(`${pausedCampaigns} campaigns have paused automation`);
+    }
+    
+    if (longRunning > 0) {
+      issues.push(`${longRunning} campaigns running longer than 90 days`);
+    }
+    
+    return issues;
+  }
+
+  /**
+   * Прогнозирование дат завершения
+   */
+  private predictCompletionDates(activeCampaigns: DeletionRequest[], averageCompletionDays: number): Record<string, Date> {
+    const predictions: Record<string, Date> = {};
+    
+    activeCampaigns.forEach(campaign => {
+      if (campaign.campaignStartedAt) {
+        const startDate = new Date(campaign.campaignStartedAt);
+        const predictedEnd = new Date(startDate.getTime() + averageCompletionDays * 24 * 60 * 60 * 1000);
+        predictions[campaign.id] = predictedEnd;
+      }
+    });
+    
+    return predictions;
+  }
+
+  /**
+   * Определение ключа недели
+   */
+  private getWeekKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const weekStart = new Date(year, month, day - date.getDay());
+    
+    return `${weekStart.getFullYear()}-W${Math.ceil((weekStart.getTime() - new Date(weekStart.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))}`;
   }
 }
 

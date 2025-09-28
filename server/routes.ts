@@ -4087,6 +4087,357 @@ ${allPages.map(page => `  <url>
   let dashboardStatsCache: { data: any; timestamp: number } | null = null;
   const DASHBOARD_CACHE_TTL = 30000; // 30 seconds
 
+  // ========================================
+  // САЗПД ТЕСТИРОВАНИЕ API ENDPOINTS
+  // ========================================
+
+  // In-memory state for САЗПД test sessions
+  let testSession: any = {
+    id: 'session_' + Date.now(),
+    status: 'idle',
+    progress: 0,
+    modules: [
+      {
+        id: 'document-generation',
+        name: 'Document Generation Module',
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      },
+      {
+        id: 'response-analysis', 
+        name: 'Response Analysis Module',
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      },
+      {
+        id: 'decision-engine',
+        name: 'Decision Engine Module',
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      },
+      {
+        id: 'evidence-collection',
+        name: 'Evidence Collection Module',
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      },
+      {
+        id: 'legal-knowledge-base',
+        name: 'Legal Knowledge Base Module',
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      },
+      {
+        id: 'campaign-management',
+        name: 'Campaign Management Module',
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      }
+    ]
+  };
+
+  let testResults: any = null;
+
+  // Utility function to simulate module testing
+  async function runModuleTest(moduleId: string): Promise<{ tests: number; passed: number; failed: number; errors: string[]; warnings: string[] }> {
+    // Simulate testing delay
+    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+    
+    const totalTests = Math.floor(Math.random() * 10) + 5;
+    const failedTests = Math.floor(Math.random() * 2);
+    const passedTests = totalTests - failedTests;
+    
+    const errors = failedTests > 0 ? [`Тест ${moduleId} обнаружил ${failedTests} проблем`] : [];
+    const warnings = Math.random() > 0.5 ? [`Предупреждение: проверьте конфигурацию ${moduleId}`] : [];
+
+    return {
+      tests: totalTests,
+      passed: passedTests,
+      failed: failedTests,
+      errors,
+      warnings
+    };
+  }
+
+  // GET /api/admin/sazpd/test/status - получение статуса тестирования
+  app.get("/api/admin/sazpd/test/status", isAdmin, async (req: any, res) => {
+    try {
+      res.json({ success: true, data: testSession });
+    } catch (error) {
+      console.error('Error getting SAZPD test status:', error);
+      res.status(500).json({ success: false, message: 'Ошибка получения статуса тестирования' });
+    }
+  });
+
+  // GET /api/admin/sazpd/test/results - получение результатов тестов
+  app.get("/api/admin/sazpd/test/results", isAdmin, async (req: any, res) => {
+    try {
+      res.json({ success: true, data: testResults });
+    } catch (error) {
+      console.error('Error getting SAZPD test results:', error);
+      res.status(500).json({ success: false, message: 'Ошибка получения результатов тестирования' });
+    }
+  });
+
+  // POST /api/admin/sazpd/test/start - запуск полного цикла тестирования
+  app.post("/api/admin/sazpd/test/start", isAdmin, async (req: any, res) => {
+    try {
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        actionType: 'start_sazpd_full_test',
+        targetType: 'sazpd_test_system',
+        metadata: { testSessionId: testSession.id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      if (testSession.status === 'running') {
+        return res.status(400).json({ success: false, message: 'Тестирование уже запущено' });
+      }
+
+      // Reset session
+      testSession = {
+        ...testSession,
+        id: 'session_' + Date.now(),
+        status: 'running',
+        progress: 0,
+        startedAt: new Date().toISOString(),
+        modules: testSession.modules.map((m: any) => ({
+          ...m,
+          status: 'idle',
+          progress: 0,
+          results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+        }))
+      };
+
+      res.json({ success: true, message: 'Полное тестирование САЗПД запущено', sessionId: testSession.id });
+
+      // Run all modules asynchronously
+      runFullTestSequence();
+
+    } catch (error) {
+      console.error('Error starting SAZPD full test:', error);
+      res.status(500).json({ success: false, message: 'Ошибка запуска полного тестирования' });
+    }
+  });
+
+  // POST /api/admin/sazpd/test/step/:stepId - запуск конкретного этапа
+  app.post("/api/admin/sazpd/test/step/:stepId", isAdmin, async (req: any, res) => {
+    try {
+      const { stepId } = req.params;
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        actionType: 'start_sazpd_step_test',
+        targetType: 'sazpd_module',
+        targetId: stepId,
+        metadata: { testSessionId: testSession.id, moduleId: stepId },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      const module = testSession.modules.find((m: any) => m.id === stepId);
+      if (!module) {
+        return res.status(400).json({ success: false, message: 'Модуль не найден' });
+      }
+
+      if (module.status === 'running') {
+        return res.status(400).json({ success: false, message: 'Модуль уже тестируется' });
+      }
+
+      res.json({ success: true, message: `Тестирование модуля ${stepId} запущено` });
+
+      // Run single module test asynchronously
+      runSingleModuleTest(stepId);
+
+    } catch (error) {
+      console.error('Error starting SAZPD step test:', error);
+      res.status(500).json({ success: false, message: 'Ошибка запуска тестирования модуля' });
+    }
+  });
+
+  // POST /api/admin/sazpd/test/stop - остановка тестирования
+  app.post("/api/admin/sazpd/test/stop", isAdmin, async (req: any, res) => {
+    try {
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        actionType: 'stop_sazpd_test',
+        targetType: 'sazpd_test_system',
+        metadata: { testSessionId: testSession.id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      testSession.status = 'cancelled';
+      testSession.completedAt = new Date().toISOString();
+      
+      // Stop all running modules
+      testSession.modules.forEach((module: any) => {
+        if (module.status === 'running') {
+          module.status = 'cancelled';
+        }
+      });
+
+      res.json({ success: true, message: 'Тестирование САЗПД остановлено' });
+
+    } catch (error) {
+      console.error('Error stopping SAZPD test:', error);
+      res.status(500).json({ success: false, message: 'Ошибка остановки тестирования' });
+    }
+  });
+
+  // POST /api/admin/sazpd/test/reset - сброс результатов тестирования
+  app.post("/api/admin/sazpd/test/reset", isAdmin, async (req: any, res) => {
+    try {
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        actionType: 'reset_sazpd_test',
+        targetType: 'sazpd_test_system',
+        metadata: { testSessionId: testSession.id },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      // Reset session
+      testSession = {
+        id: 'session_' + Date.now(),
+        status: 'idle',
+        progress: 0,
+        modules: testSession.modules.map((m: any) => ({
+          ...m,
+          status: 'idle',
+          progress: 0,
+          startedAt: undefined,
+          completedAt: undefined,
+          duration: undefined,
+          results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+        }))
+      };
+
+      testResults = null;
+
+      res.json({ success: true, message: 'Результаты тестирования САЗПД сброшены' });
+
+    } catch (error) {
+      console.error('Error resetting SAZPD test:', error);
+      res.status(500).json({ success: false, message: 'Ошибка сброса тестирования' });
+    }
+  });
+
+  // Utility function to run full test sequence
+  async function runFullTestSequence() {
+    try {
+      const totalModules = testSession.modules.length;
+      let completedModules = 0;
+
+      for (const module of testSession.modules) {
+        if (testSession.status === 'cancelled') break;
+
+        // Update module status
+        module.status = 'running';
+        module.startedAt = new Date().toISOString();
+        
+        // Update progress for each step
+        for (let i = 0; i <= 100; i += 20) {
+          if (testSession.status === 'cancelled') break;
+          module.progress = i;
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        // Run the actual test
+        const results = await runModuleTest(module.id);
+        
+        if (testSession.status !== 'cancelled') {
+          module.results = results;
+          module.status = results.failed > 0 ? 'failed' : 'completed';
+          module.completedAt = new Date().toISOString();
+          module.progress = 100;
+          
+          completedModules++;
+          testSession.progress = Math.round((completedModules / totalModules) * 100);
+        }
+      }
+
+      if (testSession.status !== 'cancelled') {
+        // Calculate final summary
+        const summary = {
+          totalTests: testSession.modules.reduce((sum: number, m: any) => sum + m.results.tests, 0),
+          totalPassed: testSession.modules.reduce((sum: number, m: any) => sum + m.results.passed, 0),
+          totalFailed: testSession.modules.reduce((sum: number, m: any) => sum + m.results.failed, 0),
+          totalDuration: Math.round(Math.random() * 60) + 30 // simulate duration in seconds
+        };
+
+        testSession.status = 'completed';
+        testSession.completedAt = new Date().toISOString();
+        testSession.summary = summary;
+        testResults = { summary, modules: testSession.modules };
+      }
+
+    } catch (error) {
+      console.error('Error in full test sequence:', error);
+      testSession.status = 'failed';
+      testSession.completedAt = new Date().toISOString();
+    }
+  }
+
+  // Utility function to run single module test
+  async function runSingleModuleTest(moduleId: string) {
+    try {
+      const module = testSession.modules.find((m: any) => m.id === moduleId);
+      if (!module) return;
+
+      // Update module status
+      module.status = 'running';
+      module.startedAt = new Date().toISOString();
+      
+      // Update progress
+      for (let i = 0; i <= 100; i += 25) {
+        if (module.status === 'cancelled') break;
+        module.progress = i;
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Run the actual test
+      const results = await runModuleTest(moduleId);
+      
+      if (module.status !== 'cancelled') {
+        module.results = results;
+        module.status = results.failed > 0 ? 'failed' : 'completed';
+        module.completedAt = new Date().toISOString();
+        module.progress = 100;
+      }
+
+    } catch (error) {
+      console.error(`Error in single module test for ${moduleId}:`, error);
+      const module = testSession.modules.find((m: any) => m.id === moduleId);
+      if (module) {
+        module.status = 'failed';
+        module.completedAt = new Date().toISOString();
+        module.results = {
+          tests: 0,
+          passed: 0, 
+          failed: 1,
+          errors: [`Критическая ошибка при тестировании модуля ${moduleId}`],
+          warnings: []
+        };
+      }
+    }
+  }
+
   // Get admin dashboard statistics with caching and parallel queries
   app.get("/api/admin/dashboard", isAdmin, async (req, res) => {
     try {

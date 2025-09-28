@@ -12,9 +12,43 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp } from "lucide-react";
+import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+// Типы данных для САЗПД тестирования
+interface SAZPDTestModule {
+  id: string;
+  name: string;
+  description: string;
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  progress: number;
+  duration?: number;
+  startedAt?: string;
+  completedAt?: string;
+  results?: {
+    tests: number;
+    passed: number;
+    failed: number;
+    errors: string[];
+    warnings: string[];
+  };
+}
+
+interface SAZPDTestSession {
+  id: string;
+  status: 'idle' | 'running' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  startedAt?: string;
+  completedAt?: string;
+  modules: SAZPDTestModule[];
+  summary?: {
+    totalTests: number;
+    totalPassed: number;
+    totalFailed: number;
+    totalDuration: number;
+  };
+}
 
 // Типы данных для САЗПД админ панели
 interface SAZPDLog {
@@ -76,6 +110,10 @@ export default function AdminSAZPD() {
     status: 'all',
     search: ''
   });
+  
+  // Состояние для САЗПД тестирования
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [testPollingInterval, setTestPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Получение логов САЗПД
   const { data: logs = [], isLoading: logsLoading, refetch: refetchLogs } = useQuery({
@@ -107,6 +145,20 @@ export default function AdminSAZPD() {
     queryFn: () => apiRequest('/api/sazpd/operator-stats')
   });
 
+  // Получение статуса САЗПД тестирования
+  const { data: testSession, isLoading: testSessionLoading, refetch: refetchTestSession } = useQuery({
+    queryKey: ['/api/admin/sazpd/test/status'],
+    queryFn: () => apiRequest('/api/admin/sazpd/test/status'),
+    refetchInterval: testSession?.status === 'running' ? 2000 : false // Обновляем каждые 2 секунды во время тестирования
+  });
+
+  // Получение результатов тестов
+  const { data: testResults } = useQuery({
+    queryKey: ['/api/admin/sazpd/test/results'],
+    queryFn: () => apiRequest('/api/admin/sazpd/test/results'),
+    enabled: testSession?.status === 'completed'
+  });
+
   // Мутация для обновления настроек
   const updateSettingsMutation = useMutation({
     mutationFn: (newSettings: Partial<SAZPDSettings>) => 
@@ -127,6 +179,40 @@ export default function AdminSAZPD() {
       a.href = url;
       a.download = `sazpd-logs-${format(new Date(), 'yyyy-MM-dd')}.json`;
       a.click();
+    }
+  });
+
+  // Запуск полного цикла САЗПД тестирования
+  const startFullTestMutation = useMutation({
+    mutationFn: () => apiRequest('/api/admin/sazpd/test/start', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sazpd/test/status'] });
+    }
+  });
+
+  // Запуск конкретного этапа тестирования
+  const startStepTestMutation = useMutation({
+    mutationFn: (stepId: string) => 
+      apiRequest(`/api/admin/sazpd/test/step/${stepId}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sazpd/test/status'] });
+    }
+  });
+
+  // Остановка тестирования
+  const stopTestMutation = useMutation({
+    mutationFn: () => apiRequest('/api/admin/sazpd/test/stop', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sazpd/test/status'] });
+    }
+  });
+
+  // Сброс результатов тестирования
+  const resetTestMutation = useMutation({
+    mutationFn: () => apiRequest('/api/admin/sazpd/test/reset', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sazpd/test/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/sazpd/test/results'] });
     }
   });
 
@@ -354,6 +440,283 @@ export default function AdminSAZPD() {
             </table>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderSAZPDTesting = () => {
+    if (testSessionLoading) return <div>Загрузка статуса тестирования...</div>;
+
+    const modules = [
+      {
+        id: 'document-generation',
+        name: 'Document Generation Module',
+        description: 'Генерация документов на основе пользовательских запросов',
+        icon: FileText
+      },
+      {
+        id: 'response-analysis',
+        name: 'Response Analysis Module', 
+        description: 'Анализ ответов операторов на предмет соответствия ФЗ-152',
+        icon: Shield
+      },
+      {
+        id: 'decision-engine',
+        name: 'Decision Engine Module',
+        description: 'Автоматическое принятие решений на основе анализа',
+        icon: Zap
+      },
+      {
+        id: 'evidence-collection',
+        name: 'Evidence Collection Module',
+        description: 'Сбор и сохранение доказательств для соблюдения ФЗ-152',
+        icon: Database
+      },
+      {
+        id: 'legal-knowledge-base',
+        name: 'Legal Knowledge Base Module',
+        description: 'База знаний правовых норм и прецедентов',
+        icon: CheckCircle
+      },
+      {
+        id: 'campaign-management',
+        name: 'Campaign Management Module',
+        description: 'Управление кампаниями и процессами удаления данных',
+        icon: Activity
+      }
+    ];
+
+    const getModuleStatus = (moduleId: string) => {
+      return testSession?.modules?.find(m => m.id === moduleId) || {
+        status: 'idle',
+        progress: 0,
+        results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
+      };
+    };
+
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'running': return 'text-blue-600';
+        case 'completed': return 'text-green-600';
+        case 'failed': return 'text-red-600';
+        default: return 'text-gray-500';
+      }
+    };
+
+    const getStatusBadge = (status: string) => {
+      switch (status) {
+        case 'running': return <Badge className="bg-blue-100 text-blue-700">Выполняется</Badge>;
+        case 'completed': return <Badge className="bg-green-100 text-green-700">Завершено</Badge>;
+        case 'failed': return <Badge className="bg-red-100 text-red-700">Ошибка</Badge>;
+        default: return <Badge variant="outline">Ожидание</Badge>;
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Заголовок и общие управления */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              САЗПД Тестирование
+            </CardTitle>
+            <CardDescription>
+              Комплексное тестирование всех модулей системы автоматизированной защиты персональных данных
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => startFullTestMutation.mutate()}
+                  disabled={testSession?.status === 'running' || startFullTestMutation.isPending}
+                  data-testid="button-start-full-test"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Запустить все этапы
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => stopTestMutation.mutate()}
+                  disabled={testSession?.status !== 'running' || stopTestMutation.isPending}
+                  data-testid="button-stop-test"
+                >
+                  <Pause className="h-4 w-4 mr-2" />
+                  Остановить
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => resetTestMutation.mutate()}
+                  disabled={testSession?.status === 'running' || resetTestMutation.isPending}
+                  data-testid="button-reset-test"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Сбросить
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {testSession?.status && (
+                  <div className="text-sm">
+                    Статус: {getStatusBadge(testSession.status)}
+                  </div>
+                )}
+                
+                {testSession?.status === 'running' && (
+                  <div className="text-sm text-muted-foreground">
+                    Прогресс: {testSession.progress}%
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Общий прогресс-бар */}
+            {testSession?.status === 'running' && (
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${testSession.progress}%` }}
+                ></div>
+              </div>
+            )}
+
+            {/* Сводка результатов */}
+            {testSession?.summary && (
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold">{testSession.summary.totalTests}</div>
+                  <div className="text-sm text-muted-foreground">Всего тестов</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{testSession.summary.totalPassed}</div>
+                  <div className="text-sm text-muted-foreground">Пройдено</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{testSession.summary.totalFailed}</div>
+                  <div className="text-sm text-muted-foreground">Провалено</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">{testSession.summary.totalDuration}с</div>
+                  <div className="text-sm text-muted-foreground">Длительность</div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Модули тестирования */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {modules.map((module) => {
+            const moduleStatus = getModuleStatus(module.id);
+            const IconComponent = module.icon;
+            
+            return (
+              <Card key={module.id} data-testid={`test-module-${module.id}`}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <IconComponent className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <CardTitle className="text-base">{module.name}</CardTitle>
+                        <CardDescription className="text-sm">
+                          {module.description}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    {getStatusBadge(moduleStatus.status)}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-3">
+                  {/* Прогресс модуля */}
+                  {moduleStatus.progress > 0 && (
+                    <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div 
+                        className={`h-1 rounded-full transition-all duration-300 ${
+                          moduleStatus.status === 'failed' ? 'bg-red-500' :
+                          moduleStatus.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${moduleStatus.progress}%` }}
+                      ></div>
+                    </div>
+                  )}
+
+                  {/* Результаты тестов модуля */}
+                  {moduleStatus.results && moduleStatus.results.tests > 0 && (
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold">{moduleStatus.results.tests}</div>
+                        <div className="text-muted-foreground">Тестов</div>
+                      </div>
+                      <div className="text-center text-green-600">
+                        <div className="font-semibold">{moduleStatus.results.passed}</div>
+                        <div className="text-muted-foreground">✓</div>
+                      </div>
+                      <div className="text-center text-red-600">
+                        <div className="font-semibold">{moduleStatus.results.failed}</div>
+                        <div className="text-muted-foreground">✗</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Кнопка запуска отдельного модуля */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => startStepTestMutation.mutate(module.id)}
+                    disabled={testSession?.status === 'running' || startStepTestMutation.isPending}
+                    data-testid={`button-test-${module.id}`}
+                  >
+                    <Play className="h-3 w-3 mr-2" />
+                    Запустить этап
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Логи тестирования */}
+        {testSession && (testSession.status === 'running' || testSession.status === 'completed') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Логи тестирования</CardTitle>
+              <CardDescription>
+                Детальная информация о процессе выполнения тестов
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-auto">
+                {testSession.modules?.map((module) => (
+                  module.results?.errors?.length > 0 || module.results?.warnings?.length > 0 ? (
+                    <div key={module.id} className="border rounded p-3 space-y-2">
+                      <div className="font-medium flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        {module.name}
+                      </div>
+                      
+                      {module.results.errors.map((error, idx) => (
+                        <div key={idx} className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                          ❌ {error}
+                        </div>
+                      ))}
+                      
+                      {module.results.warnings.map((warning, idx) => (
+                        <div key={idx} className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
+                          ⚠️ {warning}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   };
@@ -656,10 +1019,14 @@ export default function AdminSAZPD() {
       </div>
 
       <Tabs defaultValue="metrics" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="metrics" data-testid="tab-metrics">
             <Activity className="h-4 w-4 mr-2" />
             Метрики
+          </TabsTrigger>
+          <TabsTrigger value="testing" data-testid="tab-testing">
+            <Play className="h-4 w-4 mr-2" />
+            САЗПД Тестирование
           </TabsTrigger>
           <TabsTrigger value="logs" data-testid="tab-logs">
             <Filter className="h-4 w-4 mr-2" />
@@ -701,6 +1068,10 @@ export default function AdminSAZPD() {
               {renderLogsTable()}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="testing" className="space-y-6">
+          {renderSAZPDTesting()}
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
