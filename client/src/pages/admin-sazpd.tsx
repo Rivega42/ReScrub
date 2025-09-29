@@ -903,20 +903,23 @@ export default function AdminSAZPD() {
 
     return (
       <div className="space-y-6">
+        {/* Response Analyzer Module */}
         <Card>
           <CardHeader>
-            <CardTitle>Настройки модулей САЗПД</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Анализатор ответов
+            </CardTitle>
             <CardDescription>
-              Конфигурация работы модулей системы автоматизированной защиты персональных данных
+              Автоматический анализ ответов на запросы удаления данных и оценка соответствия ФЗ-152
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Анализатор ответов */}
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Анализатор ответов</Label>
+                <Label className="text-base">Включить модуль</Label>
                 <div className="text-sm text-muted-foreground">
-                  Автоматический анализ ответов на запросы удаления данных
+                  Активировать автоматический анализ ответов операторов
                 </div>
               </div>
               <Switch
@@ -933,14 +936,55 @@ export default function AdminSAZPD() {
               />
             </div>
 
-            <Separator />
+            {settings.modules?.responseAnalyzer?.enabled && (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="analyzer-interval">Интервал анализа (минуты)</Label>
+                  <Input
+                    id="analyzer-interval"
+                    type="number"
+                    min="5"
+                    max="1440"
+                    value={settings.modules?.responseAnalyzer?.interval || 30}
+                    onChange={(e) => 
+                      updateSettingsMutation.mutate({
+                        modules: {
+                          ...settings.modules,
+                          responseAnalyzer: { 
+                            ...settings.modules?.responseAnalyzer, 
+                            interval: parseInt(e.target.value) 
+                          }
+                        }
+                      })
+                    }
+                    data-testid="input-analyzer-interval"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Как часто запускать автоматический анализ (5-1440 минут)
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Движок решений */}
+        {/* Decision Engine Module */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Движок решений
+            </CardTitle>
+            <CardDescription>
+              Автоматическое принятие решений на основе анализа ответов и правовых норм
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Движок решений</Label>
+                <Label className="text-base">Включить модуль</Label>
                 <div className="text-sm text-muted-foreground">
-                  Автоматическое принятие решений на основе анализа
+                  Активировать автоматическое принятие решений
                 </div>
               </div>
               <Switch
@@ -957,14 +1001,55 @@ export default function AdminSAZPD() {
               />
             </div>
 
-            <Separator />
+            {settings.modules?.decisionEngine?.enabled && (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="decision-threshold">Порог уверенности (%)</Label>
+                  <Input
+                    id="decision-threshold"
+                    type="number"
+                    min="50"
+                    max="100"
+                    value={settings.modules?.decisionEngine?.autoDecisionThreshold || 85}
+                    onChange={(e) => 
+                      updateSettingsMutation.mutate({
+                        modules: {
+                          ...settings.modules,
+                          decisionEngine: { 
+                            ...settings.modules?.decisionEngine, 
+                            autoDecisionThreshold: parseInt(e.target.value) 
+                          }
+                        }
+                      })
+                    }
+                    data-testid="input-decision-threshold"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Минимальный уровень уверенности для автоматического принятия решения (50-100%)
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Сборщик доказательств */}
+        {/* Evidence Collector Module */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Сборщик доказательств
+            </CardTitle>
+            <CardDescription>
+              Сбор и сохранение доказательств соблюдения ФЗ-152 с криптографической защитой
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Сборщик доказательств</Label>
+                <Label className="text-base">Включить модуль</Label>
                 <div className="text-sm text-muted-foreground">
-                  Сбор и сохранение доказательств для соблюдения ФЗ-152
+                  Активировать сбор доказательств соответствия
                 </div>
               </div>
               <Switch
@@ -981,14 +1066,55 @@ export default function AdminSAZPD() {
               />
             </div>
 
-            <Separator />
+            {settings.modules?.evidenceCollector?.enabled && (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="evidence-retention">Срок хранения доказательств (дни)</Label>
+                  <Input
+                    id="evidence-retention"
+                    type="number"
+                    min="30"
+                    max="3650"
+                    value={settings.modules?.evidenceCollector?.retentionDays || 1095}
+                    onChange={(e) => 
+                      updateSettingsMutation.mutate({
+                        modules: {
+                          ...settings.modules,
+                          evidenceCollector: { 
+                            ...settings.modules?.evidenceCollector, 
+                            retentionDays: parseInt(e.target.value) 
+                          }
+                        }
+                      })
+                    }
+                    data-testid="input-evidence-retention"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Срок хранения криптографических доказательств (30-3650 дней, рекомендуется 3 года)
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Менеджер кампаний */}
+        {/* Campaign Manager Module */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Менеджер кампаний
+            </CardTitle>
+            <CardDescription>
+              Управление кампаниями удаления данных и координация процессов
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Менеджер кампаний</Label>
+                <Label className="text-base">Включить модуль</Label>
                 <div className="text-sm text-muted-foreground">
-                  Управление кампаниями и процессами удаления данных
+                  Активировать управление кампаниями удаления
                 </div>
               </div>
               <Switch
@@ -1005,14 +1131,55 @@ export default function AdminSAZPD() {
               />
             </div>
 
-            <Separator />
+            {settings.modules?.campaignManager?.enabled && (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="max-campaigns">Максимальное количество кампаний</Label>
+                  <Input
+                    id="max-campaigns"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={settings.modules?.campaignManager?.maxCampaigns || 50}
+                    onChange={(e) => 
+                      updateSettingsMutation.mutate({
+                        modules: {
+                          ...settings.modules,
+                          campaignManager: { 
+                            ...settings.modules?.campaignManager, 
+                            maxCampaigns: parseInt(e.target.value) 
+                          }
+                        }
+                      })
+                    }
+                    data-testid="input-max-campaigns"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Максимальное количество одновременно активных кампаний (1-1000)
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Email автоматизация */}
+        {/* Email Automation Module */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Email автоматизация
+            </CardTitle>
+            <CardDescription>
+              Автоматическая отправка повторных запросов и уведомлений операторам
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Email автоматизация</Label>
+                <Label className="text-base">Включить модуль</Label>
                 <div className="text-sm text-muted-foreground">
-                  Автоматическая отправка повторных запросов и уведомлений
+                  Активировать автоматическую email рассылку
                 </div>
               </div>
               <Switch
@@ -1029,14 +1196,55 @@ export default function AdminSAZPD() {
               />
             </div>
 
-            <Separator />
+            {settings.modules?.emailAutomation?.enabled && (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="followup-hours">Интервал повторных запросов (часы)</Label>
+                  <Input
+                    id="followup-hours"
+                    type="number"
+                    min="1"
+                    max="720"
+                    value={settings.modules?.emailAutomation?.followUpHours || 48}
+                    onChange={(e) => 
+                      updateSettingsMutation.mutate({
+                        modules: {
+                          ...settings.modules,
+                          emailAutomation: { 
+                            ...settings.modules?.emailAutomation, 
+                            followUpHours: parseInt(e.target.value) 
+                          }
+                        }
+                      })
+                    }
+                    data-testid="input-followup-hours"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Через сколько часов отправлять повторный запрос (1-720 часов)
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            {/* Крипто-валидатор */}
+        {/* Crypto Validator Module */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Крипто-валидатор
+            </CardTitle>
+            <CardDescription>
+              Проверка криптографических подписей и сертификатов для обеспечения доказательной базы
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-base">Крипто-валидатор</Label>
+                <Label className="text-base">Включить модуль</Label>
                 <div className="text-sm text-muted-foreground">
-                  Проверка криптографических подписей и сертификатов
+                  Активировать криптографическую проверку
                 </div>
               </div>
               <Switch
@@ -1052,14 +1260,46 @@ export default function AdminSAZPD() {
                 data-testid="switch-crypto-validator"
               />
             </div>
+
+            {settings.modules?.cryptoValidator?.enabled && (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Строгий режим</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Требовать проверку всех криптографических подписей
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.modules?.cryptoValidator?.strictMode || false}
+                    onCheckedChange={(checked) => 
+                      updateSettingsMutation.mutate({
+                        modules: {
+                          ...settings.modules,
+                          cryptoValidator: { 
+                            ...settings.modules?.cryptoValidator, 
+                            strictMode: checked 
+                          }
+                        }
+                      })
+                    }
+                    data-testid="switch-crypto-strict-mode"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
+        {/* Compliance Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Настройки соответствия ФЗ-152</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Настройки соответствия ФЗ-152
+            </CardTitle>
             <CardDescription>
-              Параметры обеспечения соответствия требованиям федерального закона
+              Расширенные параметры обеспечения соответствия требованиям федерального закона
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1081,12 +1321,14 @@ export default function AdminSAZPD() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="retention-days">Срок хранения данных (дни)</Label>
                 <Input
                   id="retention-days"
                   type="number"
+                  min="1"
+                  max="3650"
                   value={settings.compliance?.dataRetentionDays || 30}
                   onChange={(e) => 
                     updateSettingsMutation.mutate({
@@ -1098,6 +1340,9 @@ export default function AdminSAZPD() {
                   }
                   data-testid="input-retention-days"
                 />
+                <div className="text-xs text-muted-foreground">
+                  Общий срок хранения персональных данных (1-3650 дней)
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -1105,6 +1350,8 @@ export default function AdminSAZPD() {
                 <Input
                   id="escalation-hours"
                   type="number"
+                  min="1"
+                  max="720"
                   value={settings.compliance?.autoEscalationHours || 72}
                   onChange={(e) => 
                     updateSettingsMutation.mutate({
@@ -1116,6 +1363,32 @@ export default function AdminSAZPD() {
                   }
                   data-testid="input-escalation-hours"
                 />
+                <div className="text-xs text-muted-foreground">
+                  Автоматическая эскалация при отсутствии ответа (1-720 часов)
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="response-timeout">Таймаут ответа оператора (часы)</Label>
+                <Input
+                  id="response-timeout"
+                  type="number"
+                  min="1"
+                  max="168"
+                  value={settings.compliance?.operatorResponseTimeout || 24}
+                  onChange={(e) => 
+                    updateSettingsMutation.mutate({
+                      compliance: { 
+                        ...settings.compliance, 
+                        operatorResponseTimeout: parseInt(e.target.value) 
+                      }
+                    })
+                  }
+                  data-testid="input-response-timeout"
+                />
+                <div className="text-xs text-muted-foreground">
+                  Максимальное время ожидания ответа от оператора (1-168 часов)
+                </div>
               </div>
             </div>
           </CardContent>
