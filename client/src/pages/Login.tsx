@@ -310,7 +310,7 @@ export default function Login() {
             alt="Защита персональных данных" 
             width={1408}
             height={768}
-            fetchPriority="high"
+            fetchpriority="high"
             decoding="async"
             className="w-full max-w-lg h-auto object-contain filter drop-shadow-lg opacity-80"
           />

@@ -1,0 +1,22 @@
+Refused to load the stylesheet 'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600&display=swap' because it violates the following Content Security Policy directive: "style-src 'self' 'unsafe-inline' injections.adguard.org". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback.
+
+/login:70 Refused to load the stylesheet 'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600&display=swap' because it violates the following Content Security Policy directive: "style-src 'self' 'unsafe-inline' injections.adguard.org". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback.
+
+chunk-RPCDYKBN.js?v=0e3c5e79:521 Warning: React does not recognize the `fetchPriority` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `fetchpriority` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at img
+    at div
+    at div
+    at div
+    at Login (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/src/pages/Login.tsx:60:27)
+    at Route (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e3c5e79:323:16)
+    at Switch (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0e3c5e79:379:17)
+    at Router (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/src/App.tsx?t=1759132991376&v=JEyMuWha826-N-UeRLGQ5:225:42)
+    at Provider (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=0e3c5e79:38:15)
+    at TooltipProvider (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=0e3c5e79:64:5)
+    at AuthProvider (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/src/lib/authContext.tsx:22:32)
+    at QueryClientProvider (https://a04ed9f3-5b51-4e8f-845f-0499cb4dda2a-00-33mqkvi3ghtr7.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=0e3c5e79:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=0e3c5e79:521
+sazpd:1 Refused to load the stylesheet 'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600&display=swap' because it violates the following Content Security Policy directive: "style-src 'self' 'unsafe-inline' injections.adguard.org". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback.
+
+sazpd:1 Refused to load the stylesheet 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' because it violates the following Content Security Policy directive: "style-src 'self' 'unsafe-inline' injections.adguard.org". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback.
