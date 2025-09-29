@@ -598,7 +598,12 @@ export default function Requests() {
                     </TableHeader>
                     <TableBody>
                       {filteredRequests.map((request) => {
-                        const statusInfo = statusConfig[request.status];
+                        const statusInfo = statusConfig[request.status] || {
+                          label: 'Неизвестно',
+                          color: 'secondary' as const,
+                          icon: Clock,
+                          description: 'Неизвестный статус'
+                        };
                         const IconComponent = statusInfo.icon;
                         
                         return (
