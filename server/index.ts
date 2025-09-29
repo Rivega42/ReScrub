@@ -20,7 +20,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Required for Tailwind
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"], // Required for Tailwind + Google Fonts
       scriptSrc: process.env.NODE_ENV === 'development' 
         ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://replit.com", "https://mc.yandex.ru", "https://mc.yandex.com"] // Dev: allow Vite HMR, Replit banner + Yandex Metrika
         : ["'self'", "https://replit.com", "https://mc.yandex.ru", "https://mc.yandex.com", "https://yastatic.net"], // Prod: + Yandex Metrika
