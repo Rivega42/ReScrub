@@ -4707,7 +4707,10 @@ export class DatabaseStorage implements IStorage {
 
     // Search in message or target data
     if (filters?.search) {
-      conditions.push(`(action_type ILIKE $${params.length + 1} OR description ILIKE $${params.length + 2} OR target_data::text ILIKE $${params.length + 3})`);
+      const searchParam1 = params.length + 1;
+      const searchParam2 = params.length + 2;
+      const searchParam3 = params.length + 3;
+      conditions.push(`(action_type ILIKE $${searchParam1} OR description ILIKE $${searchParam2} OR target_data::text ILIKE $${searchParam3})`);
       params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
     }
 
@@ -4717,7 +4720,9 @@ export class DatabaseStorage implements IStorage {
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
       
-      conditions.push(`created_at >= $${params.length + 1} AND created_at < $${params.length + 2}`);
+      const dateParam1 = params.length + 1;
+      const dateParam2 = params.length + 2;
+      conditions.push(`created_at >= $${dateParam1} AND created_at < $${dateParam2}`);
       params.push(date, nextDay);
     }
 
@@ -4743,11 +4748,9 @@ export class DatabaseStorage implements IStorage {
     const countResult = await db.execute(sql.raw(countQuery, params));
     const total = parseInt(countResult.rows[0]?.total || '0');
 
-    // Get paginated logs with fixed parameter approach
-    const baseParamCount = params.length;
-    const logsParams = [...params, limit, offset];
-    
-    const logsQuery = `
+    // Get paginated logs with simplified parameter approach
+    // Build final SQL with consistent parameter numbering
+    let finalSql = `
       SELECT 
         id,
         admin_id,
@@ -4764,15 +4767,16 @@ export class DatabaseStorage implements IStorage {
       FROM admin_actions 
       ${whereClause}
       ORDER BY created_at DESC 
-      LIMIT $${baseParamCount + 1} OFFSET $${baseParamCount + 2}
     `;
     
-    console.log('📝 Final SQL:', logsQuery);
-    console.log('📝 Parameters:', logsParams);
-    console.log('📝 Base params count:', baseParamCount, '| Limit param: $', baseParamCount + 1, '| Offset param: $', baseParamCount + 2);
-    console.log('📝 Actual values - Limit:', logsParams[baseParamCount], '| Offset:', logsParams[baseParamCount + 1]);
+    // Add LIMIT and OFFSET as literals to avoid parameter confusion
+    finalSql += ` LIMIT ${limit} OFFSET ${offset}`;
+    
+    console.log('📝 Final SQL (literals):', finalSql);
+    console.log('📝 WHERE params:', params);
+    console.log('📝 Literal values - Limit:', limit, '| Offset:', offset);
 
-    const logsResult = await db.execute(sql.raw(logsQuery, logsParams));
+    const logsResult = await db.execute(sql.raw(finalSql, params));
 
     // Transform to САЗПД log format
     const logs = logsResult.rows.map((row: any) => {

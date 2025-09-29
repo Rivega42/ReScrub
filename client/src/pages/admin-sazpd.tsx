@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,6 +104,17 @@ interface OperatorStats {
 }
 
 export default function AdminSAZPD() {
+  const [location] = useLocation();
+  
+  // Определяем активную вкладку из URL
+  const getActiveTabFromUrl = () => {
+    if (location.includes('/logs')) return 'logs';
+    if (location.includes('/testing')) return 'testing';
+    if (location.includes('/settings')) return 'settings';
+    if (location.includes('/operators')) return 'operators';
+    return 'metrics'; // По умолчанию
+  };
+
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [logFilter, setLogFilter] = useState({
     module: 'all',
@@ -116,7 +128,7 @@ export default function AdminSAZPD() {
   const [testPollingInterval, setTestPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Получение логов САЗПД
-  const { data: logs = [], isLoading: logsLoading, refetch: refetchLogs } = useQuery({
+  const { data: logsResponse, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
     queryKey: ['/api/sazpd/logs', logFilter, selectedDate],
     queryFn: () => apiRequest(`/api/sazpd/logs?${new URLSearchParams({
       module: logFilter.module,
@@ -126,6 +138,9 @@ export default function AdminSAZPD() {
       date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''
     })}`)
   });
+
+  // Извлекаем массив логов из ответа API
+  const logs = logsResponse?.data?.logs || [];
 
   // Получение метрик САЗПД
   const { data: metrics, isLoading: metricsLoading } = useQuery({
@@ -1018,7 +1033,7 @@ export default function AdminSAZPD() {
         </div>
       </div>
 
-      <Tabs defaultValue="metrics" className="space-y-6">
+      <Tabs value={getActiveTabFromUrl()} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="metrics" data-testid="tab-metrics">
             <Activity className="h-4 w-4 mr-2" />
