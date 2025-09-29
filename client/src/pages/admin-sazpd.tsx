@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText, Eye, ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText, Eye, ChevronDown, ChevronUp, Copy, BookOpen, FileCheck, Square, CheckSquare, X, Wifi, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -1464,61 +1464,531 @@ export default function AdminSAZPD() {
     );
   };
 
-  // Helper function to get troubleshooting recommendations based on log
-  const getTroubleshootingRecommendations = (log: SAZPDLog): string[] => {
-    const recommendations: string[] = [];
-    
-    // Base recommendations by level
-    if (log.level === 'error' || log.level === 'critical') {
-      if (log.module === 'response-analyzer') {
-        recommendations.push('Проверьте настройки интервала анализа в конфигурации модуля');
-        recommendations.push('Убедитесь, что модуль активирован в настройках');
-        recommendations.push('Проверьте подключение к базе данных и доступность API');
-      } else if (log.module === 'decision-engine') {
-        recommendations.push('Проверьте корректность настройки порога уверенности (50-100%)');
-        recommendations.push('Убедитесь, что EVIDENCE_SERVER_SECRET настроен (32+ символов)');
-        recommendations.push('Проверьте импорт и инициализацию модуля в коде');
-      } else if (log.module === 'evidence-collector') {
-        recommendations.push('Проверьте настройки срока хранения доказательств');
-        recommendations.push('Убедитесь в достаточном месте на диске для сохранения данных');
-        recommendations.push('Проверьте разрешения файловой системы');
-      } else if (log.module === 'email-automation') {
-        recommendations.push('Проверьте настройки SMTP и API ключи для Mailganer');
-        recommendations.push('Убедитесь в правильности настройки интервала отправки');
-        recommendations.push('Проверьте подключение к email сервису');
-      }
-      
-      // Common critical error recommendations
-      if (log.level === 'critical') {
-        recommendations.push('КРИТИЧНО: Немедленно обратитесь к системному администратору');
-        recommendations.push('Рассмотрите возможность временного отключения модуля');
-        recommendations.push('Проверьте системные ресурсы (CPU, память, диск)');
-      }
-    } else if (log.level === 'warning') {
-      recommendations.push('Мониторьте ситуацию - возможно потребуется вмешательство');
-      recommendations.push('Проверьте соответствие настроек требованиям ФЗ-152');
+  // Enhanced troubleshooting system with guided workflows
+  interface TroubleshootingStep {
+    id: string;
+    title: string;
+    description: string;
+    actions: Array<{
+      type: 'check' | 'command' | 'config' | 'verify';
+      label: string;
+      details?: string;
+      completed?: boolean;
+    }>;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+  }
+
+  interface TroubleshootingWorkflow {
+    id: string;
+    title: string;
+    description: string;
+    estimatedTime: string;
+    steps: TroubleshootingStep[];
+    category: 'connection' | 'configuration' | 'performance' | 'security' | 'compliance';
+  }
+
+  // Comprehensive troubleshooting workflows
+  const getTroubleshootingWorkflows = (log: SAZPDLog): TroubleshootingWorkflow[] => {
+    const workflows: TroubleshootingWorkflow[] = [];
+
+    // Database connection issues
+    if (log.message.includes('database') || log.message.includes('DB') || log.message.includes('connection')) {
+      workflows.push({
+        id: 'db-connection-fix',
+        title: 'Устранение проблем подключения к базе данных',
+        description: 'Пошаговое устранение проблем с PostgreSQL подключением',
+        estimatedTime: '5-10 минут',
+        category: 'connection',
+        steps: [
+          {
+            id: 'check-db-status',
+            title: 'Проверка статуса базы данных',
+            description: 'Убедимся, что PostgreSQL сервер доступен',
+            severity: 'high',
+            actions: [
+              { type: 'verify', label: 'Проверить переменную DATABASE_URL', details: 'Убедитесь, что переменная окружения корректно настроена' },
+              { type: 'command', label: 'Тестовое подключение к БД', details: 'psql $DATABASE_URL -c "SELECT 1"' },
+              { type: 'check', label: 'Проверить логи PostgreSQL', details: 'Поищите ошибки в системных логах' }
+            ]
+          },
+          {
+            id: 'validate-credentials',
+            title: 'Проверка учетных данных',
+            description: 'Убедимся в корректности credentials для БД',
+            severity: 'medium',
+            actions: [
+              { type: 'config', label: 'Проверить права пользователя БД', details: 'GRANT ALL PRIVILEGES ON DATABASE rescrub TO user' },
+              { type: 'verify', label: 'Проверить SSL настройки', details: 'Убедитесь в корректности SSL конфигурации' },
+              { type: 'check', label: 'Тестировать connection pool', details: 'Проверить настройки пула соединений' }
+            ]
+          },
+          {
+            id: 'restart-services',
+            title: 'Перезапуск сервисов',
+            description: 'Перезапуск для применения изменений',
+            severity: 'low',
+            actions: [
+              { type: 'command', label: 'Перезапустить приложение', details: 'npm run dev или systemctl restart rescrub' },
+              { type: 'verify', label: 'Проверить восстановление подключения', details: 'Мониторинг логов на протяжении 2-3 минут' }
+            ]
+          }
+        ]
+      });
     }
 
-    // Context-specific recommendations based on message content
-    if (log.message.includes('timeout')) {
-      recommendations.push('Увеличьте таймауты в настройках модуля');
-      recommendations.push('Проверьте скорость сетевого подключения');
+    // Module configuration issues
+    if (log.module === 'decision-engine' || log.message.includes('EVIDENCE_SERVER_SECRET')) {
+      workflows.push({
+        id: 'decision-engine-config',
+        title: 'Настройка Decision Engine модуля',
+        description: 'Пошаговая настройка модуля принятия решений',
+        estimatedTime: '10-15 минут',
+        category: 'configuration',
+        steps: [
+          {
+            id: 'validate-secret',
+            title: 'Проверка EVIDENCE_SERVER_SECRET',
+            description: 'Убедимся в корректности криптографического ключа',
+            severity: 'critical',
+            actions: [
+              { type: 'verify', label: 'Проверить длину ключа', details: 'Минимум 32 символа для безопасности' },
+              { type: 'command', label: 'Сгенерировать новый ключ', details: 'openssl rand -hex 32' },
+              { type: 'config', label: 'Обновить переменную окружения', details: 'export EVIDENCE_SERVER_SECRET=новый_ключ' }
+            ]
+          },
+          {
+            id: 'configure-thresholds',
+            title: 'Настройка порогов принятия решений',
+            description: 'Оптимизация параметров модуля',
+            severity: 'medium',
+            actions: [
+              { type: 'config', label: 'Установить порог уверенности', details: 'Рекомендуется 75-85% для баланса точности' },
+              { type: 'verify', label: 'Проверить интервалы анализа', details: 'Оптимальный интервал: 30-60 секунд' },
+              { type: 'check', label: 'Тестировать принятие решений', details: 'Запустить тестовый анализ' }
+            ]
+          }
+        ]
+      });
     }
-    if (log.message.includes('database') || log.message.includes('DB')) {
-      recommendations.push('Проверьте подключение к базе данных PostgreSQL');
-      recommendations.push('Убедитесь в корректности DATABASE_URL');
+
+    // Email automation issues
+    if (log.module === 'email-automation' || log.message.includes('SMTP') || log.message.includes('Mailganer')) {
+      workflows.push({
+        id: 'email-automation-fix',
+        title: 'Устранение проблем email автоматизации',
+        description: 'Диагностика и настройка Mailganer интеграции',
+        estimatedTime: '15-20 минут',
+        category: 'configuration',
+        steps: [
+          {
+            id: 'check-mailganer-config',
+            title: 'Проверка конфигурации Mailganer',
+            description: 'Убедимся в корректности API настроек',
+            severity: 'high',
+            actions: [
+              { type: 'verify', label: 'Проверить MAILGANER_API_KEY', details: 'Убедитесь, что ключ действителен' },
+              { type: 'config', label: 'Проверить MAILGANER_HOST', details: 'Должен быть: https://api.samotpravil.com' },
+              { type: 'command', label: 'Тестовое подключение', details: 'curl -H "Authorization: Bearer $MAILGANER_API_KEY" $MAILGANER_HOST/status' }
+            ]
+          },
+          {
+            id: 'test-email-sending',
+            title: 'Тестирование отправки email',
+            description: 'Проверим функциональность отправки',
+            severity: 'medium',
+            actions: [
+              { type: 'check', label: 'Отправить тестовое письмо', details: 'Использовать API тестирования' },
+              { type: 'verify', label: 'Проверить delivery статус', details: 'Мониторинг webhook уведомлений' },
+              { type: 'config', label: 'Настроить retry политику', details: 'Оптимизировать повторные попытки' }
+            ]
+          }
+        ]
+      });
     }
-    if (log.message.includes('API') || log.message.includes('HTTP')) {
-      recommendations.push('Проверьте доступность внешних API сервисов');
-      recommendations.push('Убедитесь в корректности API ключей и токенов');
+
+    // Performance issues
+    if (log.message.includes('timeout') || log.message.includes('slow') || log.message.includes('performance')) {
+      workflows.push({
+        id: 'performance-optimization',
+        title: 'Оптимизация производительности системы',
+        description: 'Устранение проблем с производительностью',
+        estimatedTime: '20-30 минут',
+        category: 'performance',
+        steps: [
+          {
+            id: 'analyze-system-resources',
+            title: 'Анализ системных ресурсов',
+            description: 'Проверим загрузку CPU, памяти и диска',
+            severity: 'high',
+            actions: [
+              { type: 'command', label: 'Проверить загрузку CPU', details: 'top -p $(pgrep node)' },
+              { type: 'command', label: 'Проверить использование памяти', details: 'free -h && ps aux | grep node' },
+              { type: 'command', label: 'Проверить дисковое пространство', details: 'df -h' }
+            ]
+          },
+          {
+            id: 'optimize-queries',
+            title: 'Оптимизация запросов к БД',
+            description: 'Улучшим производительность запросов',
+            severity: 'medium',
+            actions: [
+              { type: 'check', label: 'Анализ медленных запросов', details: 'Включить логирование медленных запросов PostgreSQL' },
+              { type: 'config', label: 'Оптимизировать индексы', details: 'Создать индексы для часто используемых полей' },
+              { type: 'verify', label: 'Тестировать улучшения', details: 'Измерить время ответа после оптимизаций' }
+            ]
+          }
+        ]
+      });
     }
+
+    // Critical system errors
+    if (log.level === 'critical') {
+      workflows.push({
+        id: 'critical-system-recovery',
+        title: 'КРИТИЧЕСКОЕ: Восстановление системы',
+        description: 'Аварийные процедуры для критических ошибок',
+        estimatedTime: '30-60 минут',
+        category: 'security',
+        steps: [
+          {
+            id: 'immediate-assessment',
+            title: 'Немедленная оценка ущерба',
+            description: 'Определяем масштаб проблемы',
+            severity: 'critical',
+            actions: [
+              { type: 'check', label: 'Проверить целостность данных', details: 'Убедиться в отсутствии потери данных' },
+              { type: 'verify', label: 'Оценить доступность сервисов', details: 'Проверить все критические функции' },
+              { type: 'config', label: 'Активировать аварийный режим', details: 'Переключиться на резервные системы при необходимости' }
+            ]
+          },
+          {
+            id: 'containment-procedure',
+            title: 'Процедуры сдерживания',
+            description: 'Предотвращение распространения проблемы',
+            severity: 'critical',
+            actions: [
+              { type: 'command', label: 'Изолировать проблемный модуль', details: 'Временно отключить модуль до устранения' },
+              { type: 'verify', label: 'Уведомить заинтересованные стороны', details: 'Отправить уведомления об инциденте' },
+              { type: 'check', label: 'Задокументировать инцидент', details: 'Создать отчет для анализа' }
+            ]
+          }
+        ]
+      });
+    }
+
+    return workflows;
+  };
+
+  // Simple recommendations for backward compatibility  
+  const getTroubleshootingRecommendations = (log: SAZPDLog): string[] => {
+    const workflows = getTroubleshootingWorkflows(log);
+    const recommendations: string[] = [];
+    
+    // Extract key recommendations from workflows
+    workflows.forEach(workflow => {
+      workflow.steps.forEach(step => {
+        if (step.severity === 'critical' || step.severity === 'high') {
+          step.actions.slice(0, 2).forEach(action => {
+            recommendations.push(`${action.label}${action.details ? ': ' + action.details : ''}`);
+          });
+        }
+      });
+    });
 
     return recommendations.length > 0 ? recommendations : ['Обратитесь к документации или системному администратору'];
   };
 
-  // Enhanced log detail component
+  // Interactive guided troubleshooting component
+  const GuidedTroubleshootingPanel = ({ workflows }: { workflows: TroubleshootingWorkflow[] }) => {
+    const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
+    const [completedSteps, setCompletedSteps] = useState<Record<string, string[]>>({});
+    const [completedActions, setCompletedActions] = useState<Record<string, string[]>>({});
+
+    const toggleStepCompletion = (workflowId: string, stepId: string) => {
+      setCompletedSteps(prev => ({
+        ...prev,
+        [workflowId]: prev[workflowId]?.includes(stepId)
+          ? prev[workflowId].filter(id => id !== stepId)
+          : [...(prev[workflowId] || []), stepId]
+      }));
+    };
+
+    const toggleActionCompletion = (workflowId: string, actionId: string) => {
+      setCompletedActions(prev => ({
+        ...prev,
+        [workflowId]: prev[workflowId]?.includes(actionId)
+          ? prev[workflowId].filter(id => id !== actionId)
+          : [...(prev[workflowId] || []), actionId]
+      }));
+    };
+
+    const getCompletionProgress = (workflow: TroubleshootingWorkflow) => {
+      const totalSteps = workflow.steps.length;
+      const completedCount = completedSteps[workflow.id]?.length || 0;
+      return Math.round((completedCount / totalSteps) * 100);
+    };
+
+    const getCategoryIcon = (category: string) => {
+      switch (category) {
+        case 'connection': return <Wifi className="h-4 w-4" />;
+        case 'configuration': return <Settings className="h-4 w-4" />;
+        case 'performance': return <Zap className="h-4 w-4" />;
+        case 'security': return <Shield className="h-4 w-4" />;
+        case 'compliance': return <FileCheck className="h-4 w-4" />;
+        default: return <AlertCircle className="h-4 w-4" />;
+      }
+    };
+
+    const getSeverityColor = (severity: string) => {
+      switch (severity) {
+        case 'critical': return 'text-red-600 dark:text-red-400';
+        case 'high': return 'text-orange-600 dark:text-orange-400';
+        case 'medium': return 'text-yellow-600 dark:text-yellow-400';
+        case 'low': return 'text-green-600 dark:text-green-400';
+        default: return 'text-muted-foreground';
+      }
+    };
+
+    if (workflows.length === 0) {
+      return (
+        <div className="text-center text-muted-foreground py-8">
+          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+          <p>Для данной проблемы нет специализированных руководств по устранению</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen className="h-5 w-5 text-blue-600" />
+          <h3 className="text-lg font-semibold">Пошаговые руководства по устранению</h3>
+        </div>
+
+        {/* Workflow selection */}
+        {workflows.length > 1 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+            {workflows.map((workflow) => (
+              <Card
+                key={workflow.id}
+                className={cn(
+                  "cursor-pointer transition-all hover-elevate",
+                  selectedWorkflow === workflow.id ? "ring-2 ring-blue-500" : "hover:shadow-md"
+                )}
+                onClick={() => setSelectedWorkflow(workflow.id)}
+                data-testid={`workflow-card-${workflow.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                      {getCategoryIcon(workflow.category)}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{workflow.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{workflow.description}</p>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {workflow.estimatedTime}
+                        </span>
+                        <div className="text-xs">
+                          <span className="font-medium">{getCompletionProgress(workflow)}%</span>
+                          <span className="text-muted-foreground"> выполнено</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Single workflow display */}
+        {workflows.length === 1 && !selectedWorkflow && setSelectedWorkflow(workflows[0].id)}
+
+        {/* Detailed workflow steps */}
+        {selectedWorkflow && (() => {
+          const workflow = workflows.find(w => w.id === selectedWorkflow);
+          if (!workflow) return null;
+
+          return (
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                      {getCategoryIcon(workflow.category)}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{workflow.title}</CardTitle>
+                      <CardDescription className="mt-1">{workflow.description}</CardDescription>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          Время: {workflow.estimatedTime}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          Прогресс: {getCompletionProgress(workflow)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {workflows.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedWorkflow(null)}
+                      data-testid="button-close-workflow"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {workflow.steps.map((step, stepIndex) => {
+                    const isStepCompleted = completedSteps[workflow.id]?.includes(step.id);
+                    const stepActions = step.actions.map((action, actionIndex) => 
+                      `${step.id}-action-${actionIndex}`
+                    );
+                    const completedStepActions = stepActions.filter(actionId => 
+                      completedActions[workflow.id]?.includes(actionId)
+                    );
+
+                    return (
+                      <div key={step.id} className="border rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                              isStepCompleted 
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                                : "bg-muted text-muted-foreground"
+                            )}>
+                              {isStepCompleted ? (
+                                <CheckCircle className="h-4 w-4" />
+                              ) : (
+                                stepIndex + 1
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h5 className="font-medium">{step.title}</h5>
+                                <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
+                                <Badge 
+                                  variant={step.severity === 'critical' ? 'destructive' : 'secondary'}
+                                  className="mt-2 text-xs"
+                                >
+                                  {step.severity === 'critical' ? 'Критично' : 
+                                   step.severity === 'high' ? 'Высокий' :
+                                   step.severity === 'medium' ? 'Средний' : 'Низкий'}
+                                </Badge>
+                              </div>
+                              <Button
+                                variant={isStepCompleted ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => toggleStepCompletion(workflow.id, step.id)}
+                                data-testid={`button-complete-step-${step.id}`}
+                              >
+                                {isStepCompleted ? (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Выполнено
+                                  </>
+                                ) : (
+                                  'Отметить выполненным'
+                                )}
+                              </Button>
+                            </div>
+
+                            {/* Step actions */}
+                            <div className="mt-4 space-y-3">
+                              {step.actions.map((action, actionIndex) => {
+                                const actionId = `${step.id}-action-${actionIndex}`;
+                                const isActionCompleted = completedActions[workflow.id]?.includes(actionId);
+
+                                return (
+                                  <div key={actionIndex} className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-auto p-1"
+                                      onClick={() => toggleActionCompletion(workflow.id, actionId)}
+                                      data-testid={`button-complete-action-${actionId}`}
+                                    >
+                                      {isActionCompleted ? (
+                                        <CheckSquare className="h-4 w-4 text-green-600" />
+                                      ) : (
+                                        <Square className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className={cn(
+                                          "text-sm font-medium",
+                                          isActionCompleted && "line-through text-muted-foreground"
+                                        )}>
+                                          {action.label}
+                                        </span>
+                                        <Badge variant="outline" className="text-xs">
+                                          {action.type === 'check' ? 'Проверка' :
+                                           action.type === 'command' ? 'Команда' :
+                                           action.type === 'config' ? 'Настройка' : 'Верификация'}
+                                        </Badge>
+                                      </div>
+                                      {action.details && (
+                                        <p className="text-xs text-muted-foreground mt-1 font-mono">
+                                          {action.details}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Step progress */}
+                            <div className="mt-3 text-xs text-muted-foreground">
+                              Прогресс: {completedStepActions.length}/{stepActions.length} действий выполнено
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Overall progress */}
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Общий прогресс</span>
+                    <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                      {getCompletionProgress(workflow)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${getCompletionProgress(workflow)}%` }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+      </div>
+    );
+  };
+
+  // Enhanced log detail component with guided troubleshooting
   const LogDetailPanel = ({ log }: { log: SAZPDLog }) => {
     const recommendations = getTroubleshootingRecommendations(log);
+    const workflows = getTroubleshootingWorkflows(log);
     
     return (
       <div className="space-y-4 p-4 bg-muted/10 border rounded-lg">
@@ -1562,21 +2032,34 @@ export default function AdminSAZPD() {
           </div>
         )}
 
-        {/* Troubleshooting Recommendations */}
+        {/* Quick Recommendations */}
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
-            Рекомендации по устранению
+            Быстрые рекомендации
           </Label>
           <div className="space-y-2">
-            {recommendations.map((rec, index) => (
+            {recommendations.slice(0, 3).map((rec, index) => (
               <div key={index} className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border-l-2 border-blue-200 dark:border-blue-800 rounded-r">
                 <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
                 <p className="text-sm text-blue-900 dark:text-blue-100">{rec}</p>
               </div>
             ))}
+            {recommendations.length > 3 && (
+              <p className="text-xs text-muted-foreground">
+                + еще {recommendations.length - 3} рекомендаций в пошаговом руководстве
+              </p>
+            )}
           </div>
         </div>
+
+        {/* Guided Troubleshooting Workflows */}
+        {workflows.length > 0 && (
+          <div className="space-y-4">
+            <Separator />
+            <GuidedTroubleshootingPanel workflows={workflows} />
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 pt-2 border-t">
