@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText } from "lucide-react";
+import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -455,7 +455,7 @@ export default function AdminSAZPD() {
     );
   };
 
-
+  const renderLogsSection = () => {
     return (
       <div className="space-y-4">
         {/* Фильтры логов */}
@@ -1214,7 +1214,7 @@ export default function AdminSAZPD() {
                 </tr>
               </thead>
               <tbody>
-                {logEntries?.slice(0, 50).map((log: any, index: number) => (
+                {logs?.slice(0, 50).map((log: any, index: number) => (
                   <tr key={index} className="border-b hover:bg-muted/20">
                     <td className="p-3 text-sm text-muted-foreground">
                       {format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm:ss')}
@@ -1245,7 +1245,7 @@ export default function AdminSAZPD() {
               </tbody>
             </table>
           </div>
-          {(!logEntries || logEntries.length === 0) && (
+          {(!logs || logs.length === 0) && (
             <div className="p-8 text-center text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Нет доступных логов для отображения</p>
@@ -1257,6 +1257,7 @@ export default function AdminSAZPD() {
     );
   };
 
+  // Main component return
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between">
