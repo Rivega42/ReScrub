@@ -128,7 +128,17 @@ export default function AdminSAZPD() {
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [testPollingInterval, setTestPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Получение логов САЗПД
+  // Real-time monitoring controls
+  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
+  const [monitoringIntervals, setMonitoringIntervals] = useState({
+    metrics: 30000,     // 30 seconds
+    health: 10000,      // 10 seconds  
+    logs: 15000,        // 15 seconds
+    operators: 60000,   // 60 seconds
+    configs: 120000     // 2 minutes (less frequent)
+  });
+
+  // Получение логов САЗПД with real-time monitoring
   const { data: logsResponse, isLoading: logsLoading, refetch: refetchLogs } = useQuery({
     queryKey: ['/api/sazpd/logs', logFilter, selectedDate],
     queryFn: () => apiRequest(`/api/sazpd/logs?${new URLSearchParams({
@@ -137,42 +147,48 @@ export default function AdminSAZPD() {
       status: logFilter.status,
       search: logFilter.search,
       date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''
-    })}`)
+    })}`),
+    refetchInterval: realTimeEnabled ? monitoringIntervals.logs : false
   });
 
   // Извлекаем массив логов из ответа API
   const logs = logsResponse?.data?.logs || [];
 
-  // Получение метрик САЗПД
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  // Получение метрик САЗПД with real-time monitoring
+  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = useQuery({
     queryKey: ['/api/sazpd/metrics'],
-    queryFn: () => apiRequest('/api/sazpd/metrics')
+    queryFn: () => apiRequest('/api/sazpd/metrics'),
+    refetchInterval: realTimeEnabled ? monitoringIntervals.metrics : false
   });
 
-  // Получение настроек САЗПД
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  // Получение настроек САЗПД with real-time monitoring
+  const { data: settings, isLoading: settingsLoading, refetch: refetchSettings } = useQuery({
     queryKey: ['/api/sazpd/settings'],
-    queryFn: () => apiRequest('/api/sazpd/settings')
+    queryFn: () => apiRequest('/api/sazpd/settings'),
+    refetchInterval: realTimeEnabled ? monitoringIntervals.configs : false
   });
 
-  // Получение статистики операторов
-  const { data: operatorStats = [], isLoading: operatorStatsLoading } = useQuery({
+  // Получение статистики операторов with real-time monitoring
+  const { data: operatorStats = [], isLoading: operatorStatsLoading, refetch: refetchOperatorStats } = useQuery({
     queryKey: ['/api/sazpd/operator-stats'],
-    queryFn: () => apiRequest('/api/sazpd/operator-stats')
+    queryFn: () => apiRequest('/api/sazpd/operator-stats'),
+    refetchInterval: realTimeEnabled ? monitoringIntervals.operators : false
   });
 
-  // Получение общих health checks САЗПД модулей 
+  // Получение общих health checks САЗПД модулей with real-time monitoring
   const { data: healthResponse, isLoading: healthLoading, refetch: refetchHealth } = useQuery({
     queryKey: ['/api/admin/sazpd/health'],
-    queryFn: () => apiRequest('/api/admin/sazpd/health')
+    queryFn: () => apiRequest('/api/admin/sazpd/health'),
+    refetchInterval: realTimeEnabled ? monitoringIntervals.health : false
   });
 
   const healthData = healthResponse?.data;
 
-  // Получение конфигураций САЗПД модулей
-  const { data: configResponse, isLoading: configLoading } = useQuery({
+  // Получение конфигураций САЗПД модулей with real-time monitoring
+  const { data: configResponse, isLoading: configLoading, refetch: refetchConfig } = useQuery({
     queryKey: ['/api/admin/sazpd/config'],
-    queryFn: () => apiRequest('/api/admin/sazpd/config')
+    queryFn: () => apiRequest('/api/admin/sazpd/config'),
+    refetchInterval: realTimeEnabled ? monitoringIntervals.configs : false
   });
 
   const configurations = configResponse?.data?.configurations;
@@ -1787,7 +1803,47 @@ export default function AdminSAZPD() {
           <Badge variant="outline" className="text-green-600">
             ФЗ-152 Compliant
           </Badge>
-          <Button variant="outline" size="sm" data-testid="button-refresh-all">
+          
+          {/* Real-time monitoring controls */}
+          <div className="flex items-center space-x-2 border-l pl-2">
+            <Badge 
+              variant={realTimeEnabled ? "default" : "secondary"} 
+              className={cn(
+                "flex items-center gap-1 text-xs",
+                realTimeEnabled ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : ""
+              )}
+            >
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                realTimeEnabled ? "bg-green-500 animate-pulse" : "bg-gray-400"
+              )} />
+              {realTimeEnabled ? "МОНИТОРИНГ АКТИВЕН" : "МОНИТОРИНГ ОТКЛЮЧЕН"}
+            </Badge>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setRealTimeEnabled(!realTimeEnabled)}
+              data-testid="button-toggle-realtime"
+            >
+              {realTimeEnabled ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+              {realTimeEnabled ? "Пауза" : "Запуск"}
+            </Button>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              refetchMetrics();
+              refetchHealth();
+              refetchLogs();
+              refetchOperatorStats();
+              refetchConfig();
+              refetchSettings();
+            }}
+            data-testid="button-refresh-all"
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             Обновить все
           </Button>
@@ -1831,6 +1887,102 @@ export default function AdminSAZPD() {
         </TabsList>
 
         <TabsContent value="metrics" className="space-y-6">
+          {/* Real-time monitoring status panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-blue-600" />
+                Статус real-time мониторинга
+              </CardTitle>
+              <CardDescription>
+                Состояние автоматического обновления данных системы
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Monitoring status overview */}
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <div className={cn(
+                        "w-3 h-3 rounded-full",
+                        realTimeEnabled ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                      )} />
+                      Общий статус
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-lg font-bold">
+                      {realTimeEnabled ? "АКТИВЕН" : "ОТКЛЮЧЕН"}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Автообновление данных
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Active queries count */}
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Активных запросов</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-lg font-bold text-blue-600">
+                      {realTimeEnabled ? 5 : 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Обновляются автоматически
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Next update countdown */}
+                <Card className="border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Быстрое обновление</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-lg font-bold text-green-600">
+                      {realTimeEnabled ? `${Math.floor(monitoringIntervals.health / 1000)}с` : "—"}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Health checks
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Detailed monitoring intervals */}
+              {realTimeEnabled && (
+                <div className="mt-6 space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Интервалы обновления:</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span>Health: {monitoringIntervals.health / 1000}с</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                      <span>Логи: {monitoringIntervals.logs / 1000}с</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                      <span>Метрики: {monitoringIntervals.metrics / 1000}с</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                      <span>Операторы: {monitoringIntervals.operators / 1000}с</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" />
+                      <span>Конфиги: {monitoringIntervals.configs / 1000}с</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Метрики САЗПД системы</CardTitle>
