@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText, Eye } from "lucide-react";
+import { CalendarIcon, Download, Filter, RefreshCw, Settings, Shield, Activity, Users, AlertTriangle, CheckCircle, Clock, TrendingUp, Play, Pause, RotateCcw, Zap, Database, FileText, Eye, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -1448,84 +1448,327 @@ export default function AdminSAZPD() {
     );
   };
 
-  const renderLogsTable = () => {
-    if (logsLoading) return <div>Загрузка логов...</div>;
+  // Helper function to get troubleshooting recommendations based on log
+  const getTroubleshootingRecommendations = (log: SAZPDLog): string[] => {
+    const recommendations: string[] = [];
+    
+    // Base recommendations by level
+    if (log.level === 'error' || log.level === 'critical') {
+      if (log.module === 'response-analyzer') {
+        recommendations.push('Проверьте настройки интервала анализа в конфигурации модуля');
+        recommendations.push('Убедитесь, что модуль активирован в настройках');
+        recommendations.push('Проверьте подключение к базе данных и доступность API');
+      } else if (log.module === 'decision-engine') {
+        recommendations.push('Проверьте корректность настройки порога уверенности (50-100%)');
+        recommendations.push('Убедитесь, что EVIDENCE_SERVER_SECRET настроен (32+ символов)');
+        recommendations.push('Проверьте импорт и инициализацию модуля в коде');
+      } else if (log.module === 'evidence-collector') {
+        recommendations.push('Проверьте настройки срока хранения доказательств');
+        recommendations.push('Убедитесь в достаточном месте на диске для сохранения данных');
+        recommendations.push('Проверьте разрешения файловой системы');
+      } else if (log.module === 'email-automation') {
+        recommendations.push('Проверьте настройки SMTP и API ключи для Mailganer');
+        recommendations.push('Убедитесь в правильности настройки интервала отправки');
+        recommendations.push('Проверьте подключение к email сервису');
+      }
+      
+      // Common critical error recommendations
+      if (log.level === 'critical') {
+        recommendations.push('КРИТИЧНО: Немедленно обратитесь к системному администратору');
+        recommendations.push('Рассмотрите возможность временного отключения модуля');
+        recommendations.push('Проверьте системные ресурсы (CPU, память, диск)');
+      }
+    } else if (log.level === 'warning') {
+      recommendations.push('Мониторьте ситуацию - возможно потребуется вмешательство');
+      recommendations.push('Проверьте соответствие настроек требованиям ФЗ-152');
+    }
 
+    // Context-specific recommendations based on message content
+    if (log.message.includes('timeout')) {
+      recommendations.push('Увеличьте таймауты в настройках модуля');
+      recommendations.push('Проверьте скорость сетевого подключения');
+    }
+    if (log.message.includes('database') || log.message.includes('DB')) {
+      recommendations.push('Проверьте подключение к базе данных PostgreSQL');
+      recommendations.push('Убедитесь в корректности DATABASE_URL');
+    }
+    if (log.message.includes('API') || log.message.includes('HTTP')) {
+      recommendations.push('Проверьте доступность внешних API сервисов');
+      recommendations.push('Убедитесь в корректности API ключей и токенов');
+    }
+
+    return recommendations.length > 0 ? recommendations : ['Обратитесь к документации или системному администратору'];
+  };
+
+  // Enhanced log detail component
+  const LogDetailPanel = ({ log }: { log: SAZPDLog }) => {
+    const recommendations = getTroubleshootingRecommendations(log);
+    
     return (
-      <div className="space-y-4">
-        {/* Фильтры логов */}
-        <div className="flex flex-wrap gap-4 items-center">
-          <select className="border rounded px-3 py-1">
-            <option value="">Все модули</option>
-            <option value="auth">Авторизация</option>
-            <option value="compliance">Соответствие</option>
-            <option value="crypto">Криптография</option>
-          </select>
-          <select className="border rounded px-3 py-1">
-            <option value="">Все уровни</option>
-            <option value="info">Информация</option>
-            <option value="warn">Предупреждение</option>
-            <option value="error">Ошибка</option>
-          </select>
-          <Button variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Обновить
-          </Button>
-        </div>
-
-        {/* Таблица логов */}
-        <div className="border rounded-lg">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium">Время</th>
-                  <th className="text-left p-3 font-medium">Модуль</th>
-                  <th className="text-left p-3 font-medium">Уровень</th>
-                  <th className="text-left p-3 font-medium">Сообщение</th>
-                  <th className="text-left p-3 font-medium">Действие</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs?.slice(0, 50).map((log: any, index: number) => (
-                  <tr key={index} className="border-b hover:bg-muted/20">
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm:ss')}
-                    </td>
-                    <td className="p-3">
-                      <Badge variant="outline" className="text-xs">
-                        {log.module}
-                      </Badge>
-                    </td>
-                    <td className="p-3">
-                      <Badge 
-                        variant={log.level === 'error' ? 'destructive' : log.level === 'warn' ? 'secondary' : 'default'}
-                        className="text-xs"
-                      >
-                        {log.level.toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-sm max-w-md">
-                      <p className="truncate" title={log.message}>{log.message}</p>
-                    </td>
-                    <td className="p-3">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="space-y-4 p-4 bg-muted/10 border rounded-lg">
+        {/* Basic Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">ID записи</Label>
+            <p className="text-sm font-mono">{log.id}</p>
           </div>
-          {(!logs || logs.length === 0) && (
-            <div className="p-8 text-center text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Нет доступных логов для отображения</p>
-              <p className="text-sm mt-2">Логи появятся по мере работы системы САЗПД</p>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Статус</Label>
+            <Badge variant={log.status === 'failed' ? 'destructive' : log.status === 'processing' ? 'secondary' : 'default'} className="text-xs">
+              {log.status === 'success' ? 'Успешно' : log.status === 'failed' ? 'Ошибка' : 'Обработка'}
+            </Badge>
+          </div>
+          {log.requestId && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">ID запроса</Label>
+              <p className="text-sm font-mono">{log.requestId}</p>
             </div>
           )}
         </div>
+
+        {/* Full Message */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Полное сообщение</Label>
+          <div className="p-3 bg-background border rounded text-sm">
+            {log.message}
+          </div>
+        </div>
+
+        {/* Contextual Details */}
+        {log.details && Object.keys(log.details).length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Контекстная информация</Label>
+            <div className="p-3 bg-background border rounded">
+              <pre className="text-xs text-muted-foreground whitespace-pre-wrap overflow-auto">
+                {JSON.stringify(log.details, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Troubleshooting Recommendations */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Рекомендации по устранению
+          </Label>
+          <div className="space-y-2">
+            {recommendations.map((rec, index) => (
+              <div key={index} className="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 border-l-2 border-blue-200 dark:border-blue-800 rounded-r">
+                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                <p className="text-sm text-blue-900 dark:text-blue-100">{rec}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t">
+          <Button variant="outline" size="sm" data-testid={`button-copy-log-${log.id}`}>
+            <Copy className="h-3 w-3 mr-1" />
+            Копировать детали
+          </Button>
+          {log.level === 'error' || log.level === 'critical' ? (
+            <Button variant="outline" size="sm" data-testid={`button-escalate-${log.id}`}>
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              Эскалировать
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" data-testid={`button-mark-resolved-${log.id}`}>
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Отметить решенным
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLogsTable = () => {
+    const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+    
+    if (logsLoading) return <div>Загрузка логов...</div>;
+
+    return (
+      <div className="space-y-6">
+        {/* Enhanced Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Фильтры и поиск
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="filter-module">Модуль</Label>
+                <Select 
+                  value={logFilter.module} 
+                  onValueChange={(value) => setLogFilter(prev => ({...prev, module: value}))}
+                >
+                  <SelectTrigger id="filter-module" data-testid="select-log-module">
+                    <SelectValue placeholder="Все модули" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все модули</SelectItem>
+                    <SelectItem value="response-analyzer">Анализатор ответов</SelectItem>
+                    <SelectItem value="decision-engine">Движок решений</SelectItem>
+                    <SelectItem value="evidence-collector">Сборщик доказательств</SelectItem>
+                    <SelectItem value="campaign-manager">Менеджер кампаний</SelectItem>
+                    <SelectItem value="email-automation">Email автоматизация</SelectItem>
+                    <SelectItem value="crypto-validator">Крипто-валидатор</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="filter-level">Уровень</Label>
+                <Select 
+                  value={logFilter.level} 
+                  onValueChange={(value) => setLogFilter(prev => ({...prev, level: value}))}
+                >
+                  <SelectTrigger id="filter-level" data-testid="select-log-level">
+                    <SelectValue placeholder="Все уровни" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все уровни</SelectItem>
+                    <SelectItem value="info">Информация</SelectItem>
+                    <SelectItem value="warning">Предупреждение</SelectItem>
+                    <SelectItem value="error">Ошибка</SelectItem>
+                    <SelectItem value="critical">Критическая</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="filter-status">Статус</Label>
+                <Select 
+                  value={logFilter.status} 
+                  onValueChange={(value) => setLogFilter(prev => ({...prev, status: value}))}
+                >
+                  <SelectTrigger id="filter-status" data-testid="select-log-status">
+                    <SelectValue placeholder="Все статусы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все статусы</SelectItem>
+                    <SelectItem value="success">Успешно</SelectItem>
+                    <SelectItem value="failed">Ошибка</SelectItem>
+                    <SelectItem value="processing">Обработка</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="filter-search">Поиск</Label>
+                <Input
+                  id="filter-search"
+                  placeholder="Поиск по сообщению..."
+                  value={logFilter.search}
+                  onChange={(e) => setLogFilter(prev => ({...prev, search: e.target.value}))}
+                  data-testid="input-log-search"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-muted-foreground">
+                Найдено записей: {logs?.length || 0}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={refetchLogs} data-testid="button-refresh-logs">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Обновить
+                </Button>
+                <Button variant="outline" size="sm" data-testid="button-export-logs">
+                  <Download className="h-4 w-4 mr-2" />
+                  Экспорт
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Enhanced Logs Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Журнал событий САЗПД
+            </CardTitle>
+            <CardDescription>
+              Детальный журнал всех событий системы с контекстной информацией и рекомендациями
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {logs && logs.length > 0 ? (
+                logs.slice(0, 50).map((log: SAZPDLog) => (
+                  <div key={log.id} className="border rounded-lg overflow-hidden">
+                    {/* Log Summary Row */}
+                    <div className="p-4 hover:bg-muted/20 cursor-pointer" onClick={() => 
+                      setExpandedLogId(expandedLogId === log.id ? null : log.id)
+                    }>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="text-sm text-muted-foreground min-w-0">
+                            {format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm:ss')}
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {log.module === 'response-analyzer' ? 'Анализатор' :
+                             log.module === 'decision-engine' ? 'Решения' :
+                             log.module === 'evidence-collector' ? 'Доказательства' :
+                             log.module === 'campaign-manager' ? 'Кампании' :
+                             log.module === 'email-automation' ? 'Email' :
+                             log.module === 'crypto-validator' ? 'Криптовалидатор' : log.module}
+                          </Badge>
+                          <Badge 
+                            variant={
+                              log.level === 'error' || log.level === 'critical' ? 'destructive' : 
+                              log.level === 'warning' ? 'secondary' : 'default'
+                            }
+                            className="text-xs"
+                          >
+                            {log.level === 'info' ? 'ИНФО' :
+                             log.level === 'warning' ? 'ПРЕДУПР' :
+                             log.level === 'error' ? 'ОШИБКА' :
+                             log.level === 'critical' ? 'КРИТИЧ' : log.level.toUpperCase()}
+                          </Badge>
+                          <div className="text-sm truncate min-w-0 flex-1" title={log.message}>
+                            {log.message}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={log.status === 'failed' ? 'destructive' : log.status === 'processing' ? 'secondary' : 'default'} 
+                            className="text-xs"
+                          >
+                            {log.status === 'success' ? 'ОК' : log.status === 'failed' ? 'ОШИБКА' : 'ПРОЦЕСС'}
+                          </Badge>
+                          <Button variant="ghost" size="sm" data-testid={`button-expand-log-${log.id}`}>
+                            {expandedLogId === log.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Details */}
+                    {expandedLogId === log.id && (
+                      <div className="border-t bg-muted/5">
+                        <LogDetailPanel log={log} />
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Нет доступных логов для отображения</p>
+                  <p className="text-sm mt-2">Логи появятся по мере работы системы САЗПД</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   };
