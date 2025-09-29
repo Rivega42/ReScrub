@@ -25,6 +25,7 @@ app.use(helmet({
       scriptSrc: process.env.NODE_ENV === 'development' 
         ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://replit.com", "https://mc.yandex.ru", "https://mc.yandex.com"] // Dev: allow Vite HMR, Replit banner + Yandex Metrika
         : ["'self'", "https://replit.com", "https://mc.yandex.ru", "https://mc.yandex.com", "https://yastatic.net"], // Prod: + Yandex Metrika
+      scriptSrcAttr: ["'unsafe-inline'"], // Required for React onClick handlers
       imgSrc: ["'self'", "data:", "blob:", "https://mc.yandex.ru", "https://mc.yandex.com"], // + Yandex Metrika images (both domains)
       connectSrc: process.env.NODE_ENV === 'development'
         ? ["'self'", "ws:", "wss:", "https://mc.yandex.ru", "https://mc.yandex.com"] // Dev: allow WebSocket for HMR + Yandex Metrika
