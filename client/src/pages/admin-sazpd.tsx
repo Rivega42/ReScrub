@@ -104,7 +104,7 @@ interface OperatorStats {
 }
 
 export default function AdminSAZPD() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   
   // Определяем активную вкладку из URL
   const getActiveTabFromUrl = () => {
@@ -1037,7 +1037,15 @@ export default function AdminSAZPD() {
         </div>
       </div>
 
-      <Tabs value={getActiveTabFromUrl()} className="space-y-6">
+      <Tabs value={getActiveTabFromUrl()} onValueChange={(value) => {
+        // Изменяем URL при переключении вкладок
+        const basePath = '/admin/sazpd';
+        if (value === 'metrics') {
+          setLocation(basePath);
+        } else {
+          setLocation(`${basePath}/${value}`);
+        }
+      }} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="metrics" data-testid="tab-metrics">
             <Activity className="h-4 w-4 mr-2" />
