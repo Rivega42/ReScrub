@@ -161,18 +161,22 @@ export default function AdminSAZPD() {
   });
 
   // Получение статуса САЗПД тестирования
-  const { data: testSession, isLoading: testSessionLoading, refetch: refetchTestSession } = useQuery({
+  const { data: testSessionResponse, isLoading: testSessionLoading, refetch: refetchTestSession } = useQuery({
     queryKey: ['/api/admin/sazpd/test/status'],
     queryFn: () => apiRequest('/api/admin/sazpd/test/status'),
     refetchInterval: 2000 // Обновляем каждые 2 секунды
   });
+  
+  const testSession = testSessionResponse?.data;
 
   // Получение результатов тестов
-  const { data: testResults } = useQuery({
+  const { data: testResultsResponse } = useQuery({
     queryKey: ['/api/admin/sazpd/test/results'],
     queryFn: () => apiRequest('/api/admin/sazpd/test/results'),
     enabled: testSession?.status === 'completed'
   });
+  
+  const testResults = testResultsResponse?.data;
 
   // Мутация для обновления настроек
   const updateSettingsMutation = useMutation({
