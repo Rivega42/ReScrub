@@ -7667,6 +7667,162 @@ ${allPages.map(page => `  <url>
   });
 
   // ========================================
+  // EMAIL SERVICE STATUS API ROUTES
+  // ========================================
+
+  // GET /api/admin/email-service-status - Get email delivery statistics
+  app.get('/api/admin/email-service-status', isAdmin, async (req: any, res) => {
+    try {
+      const { status, provider, recipient, dateFrom, dateTo, limit = 100 } = req.query;
+      
+      const filters: any = {};
+      if (status && status !== 'all') filters.status = status;
+      if (provider && provider !== 'all') filters.provider = provider;
+      if (recipient) filters.recipient = recipient;
+      if (dateFrom) filters.dateFrom = new Date(dateFrom);
+      if (dateTo) filters.dateTo = new Date(dateTo);
+      
+      const emailStatuses = await storage.getEmailServiceStatuses({
+        ...filters,
+        limit: parseInt(limit as string)
+      });
+      
+      // Calculate statistics
+      const stats = {
+        totalSent: emailStatuses.length,
+        delivered: emailStatuses.filter(e => e.status === 'delivered').length,
+        opened: emailStatuses.filter(e => e.status === 'opened').length,
+        clicked: emailStatuses.filter(e => e.status === 'clicked').length,
+        bounced: emailStatuses.filter(e => e.status === 'bounced').length,
+        failed: emailStatuses.filter(e => e.status === 'failed').length
+      };
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_email_delivery_stats',
+        targetType: 'email_service_status',
+        metadata: { filters, resultCount: emailStatuses.length },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        stats,
+        logs: emailStatuses,
+        total: emailStatuses.length
+      });
+    } catch (error) {
+      console.error('Error fetching email service status:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch email delivery statistics'
+      });
+    }
+  });
+
+  // ========================================
+  // RESPONSE ANALYTICS API ROUTES
+  // ========================================
+
+  // GET /api/admin/response-analytics - Get response analysis statistics
+  app.get('/api/admin/response-analytics', isAdmin, async (req: any, res) => {
+    try {
+      const { period = '7d', operatorId, decisionType } = req.query;
+      
+      // Calculate date range based on period
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (period) {
+        case '1d':
+          startDate.setDate(endDate.getDate() - 1);
+          break;
+        case '7d':
+          startDate.setDate(endDate.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(endDate.getDate() - 30);
+          break;
+        case '90d':
+          startDate.setDate(endDate.getDate() - 90);
+          break;
+        default:
+          startDate.setDate(endDate.getDate() - 7);
+      }
+      
+      const filters: any = {
+        dateFrom: startDate,
+        dateTo: endDate
+      };
+      
+      if (operatorId && operatorId !== 'all') filters.operatorId = operatorId;
+      if (decisionType && decisionType !== 'all') filters.decisionType = decisionType;
+      
+      // Get deletion requests with response analysis data
+      const deletionRequests = await storage.getDeletionRequestsWithAnalytics(filters);
+      
+      // Calculate analytics
+      const totalRequests = deletionRequests.length;
+      const autoDecisions = deletionRequests.filter(r => r.autoProcessed === true);
+      const escalations = deletionRequests.filter(r => r.decisionType === 'escalate');
+      const completedRequests = deletionRequests.filter(r => r.status === 'completed');
+      
+      // Calculate average analysis time (mock for now)
+      const avgAnalysisTime = autoDecisions.length > 0 ? 2.3 : 0;
+      
+      // Calculate accuracy based on completed requests (mock for now)
+      const analysisAccuracy = completedRequests.length > 0 ? 
+        Math.round((completedRequests.length / totalRequests) * 100) : 0;
+      
+      const analytics = {
+        totalAutoDecisions: autoDecisions.length,
+        analysisAccuracy,
+        escalations: escalations.length,
+        avgAnalysisTime,
+        totalRequests,
+        completedRequests: completedRequests.length,
+        period,
+        dateRange: {
+          from: startDate.toISOString(),
+          to: endDate.toISOString()
+        }
+      };
+      
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: req.adminUser.id,
+        actionType: 'view_response_analytics',
+        targetType: 'deletion_request',
+        metadata: { 
+          period, 
+          operatorId, 
+          decisionType,
+          resultCount: totalRequests 
+        },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({
+        success: true,
+        analytics,
+        requests: deletionRequests.slice(0, 50), // Limit to 50 recent requests
+        total: totalRequests
+      });
+    } catch (error) {
+      console.error('Error fetching response analytics:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch response analytics data'
+      });
+    }
+  });
+
+  // ========================================
   // PLATFORM SECRETS MANAGEMENT API ROUTES
   // ========================================
 

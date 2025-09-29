@@ -476,6 +476,12 @@ export interface IStorage {
   // Enhanced Query Methods for automation
   getDeletionRequestsRequiringFollowUp(): Promise<DeletionRequest[]>;
   getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]>;
+  getDeletionRequestsWithAnalytics(filters?: { 
+    dateFrom?: Date; 
+    dateTo?: Date; 
+    operatorId?: string; 
+    decisionType?: string; 
+  }): Promise<DeletionRequest[]>;
 
   // ========================================
   // CAMPAIGN MANAGEMENT MODULE METHODS
@@ -3999,6 +4005,44 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(deletionRequests.escalateDueAt);
+  }
+
+  async getDeletionRequestsWithAnalytics(filters?: { 
+    dateFrom?: Date; 
+    dateTo?: Date; 
+    operatorId?: string; 
+    decisionType?: string; 
+  }): Promise<DeletionRequest[]> {
+    let query = db.select().from(deletionRequests);
+    const conditions = [];
+    
+    if (filters?.dateFrom && filters.dateTo) {
+      conditions.push(
+        and(
+          sql`${deletionRequests.createdAt} >= ${filters.dateFrom}`,
+          sql`${deletionRequests.createdAt} <= ${filters.dateTo}`
+        )
+      );
+    }
+    
+    if (filters?.operatorId) {
+      // Filter by operator ID if it exists in the request data
+      conditions.push(
+        sql`${deletionRequests.requestDetails}->>'operatorId' = ${filters.operatorId}`
+      );
+    }
+    
+    if (filters?.decisionType) {
+      conditions.push(eq(deletionRequests.decisionType, filters.decisionType));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query
+      .orderBy(desc(deletionRequests.createdAt))
+      .limit(1000); // Limit to 1000 requests for performance
   }
 
   // ========================================
@@ -8254,6 +8298,15 @@ export class MemStorage implements IStorage {
 
   async getDeletionRequestsRequiringEscalation(): Promise<DeletionRequest[]> {
     throw new Error('Two-stage email system - getDeletionRequestsRequiringEscalation not supported in MemStorage. Use DatabaseStorage for production.');
+  }
+
+  async getDeletionRequestsWithAnalytics(filters?: { 
+    dateFrom?: Date; 
+    dateTo?: Date; 
+    operatorId?: string; 
+    decisionType?: string; 
+  }): Promise<DeletionRequest[]> {
+    throw new Error('Response analytics - getDeletionRequestsWithAnalytics not supported in MemStorage. Use DatabaseStorage for production.');
   }
 
   // ========================================

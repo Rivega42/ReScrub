@@ -349,6 +349,20 @@ function Router() {
           </Suspense>
         </AdminGuard>
       </Route>
+      <Route path="/admin-sazpd">
+        <AdminGuard fallback={<Login />}>
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSAZPD />
+          </Suspense>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin-sazpd/:rest*">
+        <AdminGuard fallback={<Login />}>
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSAZPD />
+          </Suspense>
+        </AdminGuard>
+      </Route>
       <Route path="/admin-setup">
         <AdminGuard fallback={<Login />}>
           <Suspense fallback={<AdminLoadingFallback />}>

@@ -1464,6 +1464,551 @@ export default function AdminSAZPD() {
     );
   };
 
+  // Email Templates Management
+  const renderEmailTemplatesManagement = () => {
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [templateFilters, setTemplateFilters] = useState({
+      category: 'all',
+      search: '',
+      isActive: 'all'
+    });
+
+    // Query для получения шаблонов
+    const { data: emailTemplates, isLoading: templatesLoading, refetch: refetchTemplates } = useQuery({
+      queryKey: ['/api/admin/email-templates', templateFilters],
+      queryFn: async () => {
+        const params = new URLSearchParams();
+        if (templateFilters.category !== 'all') params.append('category', templateFilters.category);
+        if (templateFilters.search) params.append('search', templateFilters.search);
+        if (templateFilters.isActive !== 'all') params.append('isActive', templateFilters.isActive);
+        
+        const response = await fetch(`/api/admin/email-templates?${params}`, {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch templates');
+        return response.json();
+      }
+    });
+
+    return (
+      <div className="space-y-6">
+        {/* Header and controls */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  Управление шаблонами писем
+                </CardTitle>
+                <CardDescription>
+                  Создание, редактирование и управление шаблонами писем для запросов на удаление данных
+                </CardDescription>
+              </div>
+              <Button onClick={() => setShowCreateForm(true)} data-testid="button-create-template">
+                <FileText className="h-4 w-4 mr-2" />
+                Создать шаблон
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Фильтры</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="template-category">Категория</Label>
+                <Select value={templateFilters.category} onValueChange={(value) => 
+                  setTemplateFilters(prev => ({ ...prev, category: value }))
+                }>
+                  <SelectTrigger id="template-category">
+                    <SelectValue placeholder="Все категории" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все категории</SelectItem>
+                    <SelectItem value="deletion_request">Запросы на удаление</SelectItem>
+                    <SelectItem value="authentication">Аутентификация</SelectItem>
+                    <SelectItem value="notifications">Уведомления</SelectItem>
+                    <SelectItem value="transactional">Транзакционные</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="template-search">Поиск</Label>
+                <Input
+                  id="template-search"
+                  placeholder="Поиск по названию..."
+                  value={templateFilters.search}
+                  onChange={(e) => setTemplateFilters(prev => ({ ...prev, search: e.target.value }))}
+                  data-testid="input-template-search"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="template-status">Статус</Label>
+                <Select value={templateFilters.isActive} onValueChange={(value) => 
+                  setTemplateFilters(prev => ({ ...prev, isActive: value }))
+                }>
+                  <SelectTrigger id="template-status">
+                    <SelectValue placeholder="Все статусы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все статусы</SelectItem>
+                    <SelectItem value="true">Активные</SelectItem>
+                    <SelectItem value="false">Неактивные</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Templates List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Список шаблонов ({emailTemplates?.length || 0})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {templatesLoading ? (
+              <div className="p-8 text-center">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+                Загрузка шаблонов...
+              </div>
+            ) : !emailTemplates?.length ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Шаблоны не найдены</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {emailTemplates.map((template: any) => (
+                  <Card key={template.id} className="border hover-elevate">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold">{template.name}</h3>
+                            <Badge variant={template.isActive ? 'default' : 'secondary'}>
+                              {template.isActive ? 'Активен' : 'Неактивен'}
+                            </Badge>
+                            <Badge variant="outline">{template.category}</Badge>
+                            {template.documentType && (
+                              <Badge variant="outline">{template.documentType}</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{template.subject}</p>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>Использований: {template.usageCount || 0}</span>
+                            {template.lastUsedAt && (
+                              <span>Последнее использование: {format(new Date(template.lastUsedAt), 'dd.MM.yyyy HH:mm')}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setSelectedTemplateId(template.id)}
+                            data-testid={`button-edit-template-${template.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Редактировать
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            data-testid={`button-test-template-${template.id}`}
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Тест
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Delivery Logs Management
+  const renderDeliveryLogsManagement = () => {
+    const [deliveryFilters, setDeliveryFilters] = useState({
+      status: 'all',
+      provider: 'all',
+      dateFrom: '',
+      dateTo: '',
+      recipient: ''
+    });
+
+    // Query для получения статистики доставки
+    const { data: deliveryStats, isLoading: deliveryStatsLoading } = useQuery({
+      queryKey: ['/api/admin/email-service-status', deliveryFilters],
+      queryFn: async () => {
+        const params = new URLSearchParams();
+        if (deliveryFilters.status !== 'all') params.append('status', deliveryFilters.status);
+        if (deliveryFilters.provider !== 'all') params.append('provider', deliveryFilters.provider);
+        if (deliveryFilters.recipient) params.append('recipient', deliveryFilters.recipient);
+        if (deliveryFilters.dateFrom) params.append('dateFrom', deliveryFilters.dateFrom);
+        if (deliveryFilters.dateTo) params.append('dateTo', deliveryFilters.dateTo);
+        
+        const response = await fetch(`/api/admin/email-service-status?${params}`, {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch delivery stats');
+        return response.json();
+      }
+    });
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wifi className="h-5 w-5 text-green-600" />
+              Мониторинг доставки писем
+            </CardTitle>
+            <CardDescription>
+              Отслеживание статусов доставки, открытий, кликов и отскоков писем
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        {/* Statistics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Всего отправлено</p>
+                  <p className="text-2xl font-bold">{deliveryStats?.totalSent || 0}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Доставлено</p>
+                  <p className="text-2xl font-bold text-green-600">{deliveryStats?.delivered || 0}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Открыто</p>
+                  <p className="text-2xl font-bold text-purple-600">{deliveryStats?.opened || 0}</p>
+                </div>
+                <Eye className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Отскоки</p>
+                  <p className="text-2xl font-bold text-red-600">{deliveryStats?.bounced || 0}</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Фильтры логов</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div>
+                <Label htmlFor="delivery-status">Статус</Label>
+                <Select value={deliveryFilters.status} onValueChange={(value) => 
+                  setDeliveryFilters(prev => ({ ...prev, status: value }))
+                }>
+                  <SelectTrigger id="delivery-status">
+                    <SelectValue placeholder="Все статусы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все статусы</SelectItem>
+                    <SelectItem value="sent">Отправлено</SelectItem>
+                    <SelectItem value="delivered">Доставлено</SelectItem>
+                    <SelectItem value="opened">Открыто</SelectItem>
+                    <SelectItem value="clicked">Кликнуто</SelectItem>
+                    <SelectItem value="bounced">Отскочило</SelectItem>
+                    <SelectItem value="failed">Ошибка</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="delivery-provider">Провайдер</Label>
+                <Select value={deliveryFilters.provider} onValueChange={(value) => 
+                  setDeliveryFilters(prev => ({ ...prev, provider: value }))
+                }>
+                  <SelectTrigger id="delivery-provider">
+                    <SelectValue placeholder="Все провайдеры" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все провайдеры</SelectItem>
+                    <SelectItem value="mailganer">Mailganer.ru</SelectItem>
+                    <SelectItem value="sendgrid">SendGrid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="delivery-recipient">Получатель</Label>
+                <Input
+                  id="delivery-recipient"
+                  placeholder="email@example.com"
+                  value={deliveryFilters.recipient}
+                  onChange={(e) => setDeliveryFilters(prev => ({ ...prev, recipient: e.target.value }))}
+                  data-testid="input-delivery-recipient"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="delivery-date-from">Дата от</Label>
+                <Input
+                  id="delivery-date-from"
+                  type="datetime-local"
+                  value={deliveryFilters.dateFrom}
+                  onChange={(e) => setDeliveryFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="delivery-date-to">Дата до</Label>
+                <Input
+                  id="delivery-date-to"
+                  type="datetime-local"
+                  value={deliveryFilters.dateTo}
+                  onChange={(e) => setDeliveryFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delivery Logs Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Логи доставки</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {deliveryStatsLoading ? (
+              <div className="p-8 text-center">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+                Загрузка логов доставки...
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Wifi className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Логи доставки будут отображены здесь</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Интеграция с Mailganer.ru webhook для real-time обновлений
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Response Analytics Dashboard  
+  const renderResponseAnalytics = () => {
+    const [analyticsFilters, setAnalyticsFilters] = useState({
+      period: '7d',
+      operatorId: 'all',
+      decisionType: 'all'
+    });
+
+    const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+      queryKey: ['/api/admin/response-analytics', analyticsFilters],
+      queryFn: async () => {
+        const params = new URLSearchParams();
+        params.append('period', analyticsFilters.period);
+        if (analyticsFilters.operatorId !== 'all') params.append('operatorId', analyticsFilters.operatorId);
+        if (analyticsFilters.decisionType !== 'all') params.append('decisionType', analyticsFilters.decisionType);
+        
+        const response = await fetch(`/api/admin/response-analytics?${params}`, {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to fetch analytics data');
+        return response.json();
+      }
+    });
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+              Аналитика ответов и Decision Engine
+            </CardTitle>
+            <CardDescription>
+              Анализ автоматических решений, ответов операторов и эффективности системы
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        {/* Decision Engine Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Автоматических решений</p>
+                  <p className="text-2xl font-bold">{analyticsData?.totalAutoDecisions || 0}</p>
+                </div>
+                <Zap className="h-8 w-8 text-yellow-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Точность анализа</p>
+                  <p className="text-2xl font-bold text-green-600">{analyticsData?.analysisAccuracy || 0}%</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Эскалаций</p>
+                  <p className="text-2xl font-bold text-orange-600">{analyticsData?.escalations || 0}</p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Ср. время анализа</p>
+                  <p className="text-2xl font-bold text-blue-600">{analyticsData?.avgAnalysisTime || 0}с</p>
+                </div>
+                <Clock className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Response Analysis Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Настройки анализа ответов</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-4">
+                <h4 className="font-medium">OpenAI Configuration</h4>
+                <div className="space-y-2">
+                  <Label>Модель</Label>
+                  <Select defaultValue="gpt-4">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4">GPT-4</SelectItem>
+                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Порог уверенности (%)</Label>
+                  <Input type="number" min="0" max="100" defaultValue="85" />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h4 className="font-medium">Decision Engine</h4>
+                <div className="space-y-2">
+                  <Label>Порог автозавершения (%)</Label>
+                  <Input type="number" min="0" max="100" defaultValue="90" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Время эскалации (час)</Label>
+                  <Input type="number" min="1" max="168" defaultValue="72" />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h4 className="font-medium">Автоматизация</h4>
+                <div className="space-y-2">
+                  <Label>Интервал проверки (мин)</Label>
+                  <Input type="number" min="5" max="60" defaultValue="5" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Максимум попыток</Label>
+                  <Input type="number" min="1" max="10" defaultValue="3" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Analytics Dashboard */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Детальная аналитика</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analyticsLoading ? (
+              <div className="p-8 text-center">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+                Загрузка аналитических данных...
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Аналитические данные будут отображены здесь</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Графики, тенденции и детальная статистика автоматических решений
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   // Enhanced troubleshooting system with guided workflows
   interface TroubleshootingStep {
     id: string;
@@ -2342,7 +2887,7 @@ export default function AdminSAZPD() {
           setLocation(`${basePath}/${value}`);
         }
       }} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="metrics" data-testid="tab-metrics">
             <Activity className="h-4 w-4 mr-2" />
             Метрики
@@ -2366,6 +2911,18 @@ export default function AdminSAZPD() {
           <TabsTrigger value="operators" data-testid="tab-operators">
             <Users className="h-4 w-4 mr-2" />
             Операторы
+          </TabsTrigger>
+          <TabsTrigger value="email-templates" data-testid="tab-email-templates">
+            <FileText className="h-4 w-4 mr-2" />
+            Шаблоны писем
+          </TabsTrigger>
+          <TabsTrigger value="delivery-logs" data-testid="tab-delivery-logs">
+            <Wifi className="h-4 w-4 mr-2" />
+            Логи доставки
+          </TabsTrigger>
+          <TabsTrigger value="response-analytics" data-testid="tab-response-analytics">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Аналитика ответов
           </TabsTrigger>
         </TabsList>
 
@@ -2517,6 +3074,18 @@ export default function AdminSAZPD() {
               {renderOperatorStats()}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="email-templates" className="space-y-6">
+          {renderEmailTemplatesManagement()}
+        </TabsContent>
+
+        <TabsContent value="delivery-logs" className="space-y-6">
+          {renderDeliveryLogsManagement()}
+        </TabsContent>
+
+        <TabsContent value="response-analytics" className="space-y-6">
+          {renderResponseAnalytics()}
         </TabsContent>
       </Tabs>
     </div>
