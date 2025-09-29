@@ -506,7 +506,7 @@ export default function AdminSAZPD() {
     ];
 
     const getModuleStatus = (moduleId: string) => {
-      return testSession?.modules?.find(m => m.id === moduleId) || {
+      return testSession?.modules?.find((m: any) => m.id === moduleId) || {
         status: 'idle',
         progress: 0,
         results: { tests: 0, passed: 0, failed: 0, errors: [], warnings: [] }
@@ -710,7 +710,7 @@ export default function AdminSAZPD() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-96 overflow-auto">
-                {testSession.modules?.map((module) => (
+                {testSession.modules?.map((module: any) => (
                   module.results?.errors?.length > 0 || module.results?.warnings?.length > 0 ? (
                     <div key={module.id} className="border rounded p-3 space-y-2">
                       <div className="font-medium flex items-center gap-2">
@@ -718,13 +718,13 @@ export default function AdminSAZPD() {
                         {module.name}
                       </div>
                       
-                      {module.results.errors.map((error, idx) => (
+                      {module.results.errors.map((error: any, idx: number) => (
                         <div key={idx} className="text-sm text-red-600 bg-red-50 p-2 rounded">
                           ❌ {error}
                         </div>
                       ))}
                       
-                      {module.results.warnings.map((warning, idx) => (
+                      {module.results.warnings.map((warning: any, idx: number) => (
                         <div key={idx} className="text-sm text-orange-600 bg-orange-50 p-2 rounded">
                           ⚠️ {warning}
                         </div>
