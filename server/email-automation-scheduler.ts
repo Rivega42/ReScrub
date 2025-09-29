@@ -147,7 +147,7 @@ export class EmailAutomationScheduler {
           console.log(`🔄 Processing decision for request ${request.id} (status: ${request.status}, last decision: ${request.decisionType || 'none'})`);
           
           // Принимаем решение с помощью Decision Engine
-          const decisionResult = await decisionEngine.makeDecision(request.id);
+          const decisionResult = await DecisionEngine.getInstance(storage).makeDecision(request.id);
           
           if (decisionResult.success && decisionResult.decision) {
             console.log(`🎯 Decision made for request ${request.id}: ${decisionResult.decision.type} (confidence: ${decisionResult.decision.confidence}%)`);

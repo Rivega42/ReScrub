@@ -571,13 +571,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user (email auth)
   app.get('/api/auth/me', async (req: any, res) => {
     try {
-      // Debug session data
+      // Debug session data (sensitive info masked for security)
       console.log('🔍 /api/auth/me - Session debug:', {
         hasSession: !!req.session,
-        sessionId: req.session?.id,
-        userId: req.session?.userId,
-        email: req.session?.email,
-        cookie: req.session?.cookie
+        sessionId: req.session?.id ? `***${req.session.id.slice(-4)}` : undefined,
+        userId: req.session?.userId ? `***${req.session.userId.slice(-4)}` : undefined,
+        email: req.session?.email ? `***@${req.session.email.split('@')[1]}` : undefined,
+        hasValidCookie: !!req.session?.cookie
       });
       
       // Check if user has an active session
