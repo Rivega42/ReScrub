@@ -105,6 +105,15 @@ The platform uses Mailganer.ru (SamOtpravil) as the email service provider for c
 
 ## Recent Changes
 
+- **2025-09-29**: ✅ **COMPLETED: Document Generation System & Legal Knowledge Base**
+  - **Новые таблицы БД**: documentTemplates, generatedDocuments для системы генерации документов
+  - **Расширена админ панель САЗПД**: добавлены 2 новые вкладки (11 вкладок total)
+    - "Генерация документов" - интерфейс для создания юридических документов (заявления, жалобы в РКН)
+    - "Правовая база ФЗ-152" - справочник статей законодательства с поиском и фильтрацией
+  - **UI/UX**: Полностью функциональные интерфейсы с карточками документов, статьями, кнопками действий
+  - **Тестирование**: E2E тесты пройдены успешно, все элементы видны и доступны
+  - **Архитектура**: Database schema migrations applied, типы определены через Drizzle + Zod
+  - **Готовность**: Frontend интерфейсы готовы к подключению backend API endpoints
 - **2025-09-21**: 🎉 **COMPLETED: Production-Ready Advanced Blog Generation System**
   - **REVOLUTIONARY UPGRADE**: Completely overhauled from 1,000 word articles to full-format 3,500+ word content
   - **SECTIONAL ARCHITECTURE**: Implemented specialized generation with metadata, content sections, and FAQ modules

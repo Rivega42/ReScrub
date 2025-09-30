@@ -113,6 +113,11 @@ export default function AdminSAZPD() {
     if (location.includes('/testing')) return 'testing';
     if (location.includes('/settings')) return 'settings';
     if (location.includes('/operators')) return 'operators';
+    if (location.includes('/email-templates')) return 'email-templates';
+    if (location.includes('/delivery-logs')) return 'delivery-logs';
+    if (location.includes('/response-analytics')) return 'response-analytics';
+    if (location.includes('/document-generation')) return 'document-generation';
+    if (location.includes('/legal-knowledge')) return 'legal-knowledge';
     return 'metrics'; // По умолчанию
   };
 
@@ -2887,7 +2892,7 @@ export default function AdminSAZPD() {
           setLocation(`${basePath}/${value}`);
         }
       }} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="metrics" data-testid="tab-metrics">
             <Activity className="h-4 w-4 mr-2" />
             Метрики
@@ -2923,6 +2928,14 @@ export default function AdminSAZPD() {
           <TabsTrigger value="response-analytics" data-testid="tab-response-analytics">
             <TrendingUp className="h-4 w-4 mr-2" />
             Аналитика ответов
+          </TabsTrigger>
+          <TabsTrigger value="document-generation" data-testid="tab-document-generation">
+            <FileCheck className="h-4 w-4 mr-2" />
+            Генерация документов
+          </TabsTrigger>
+          <TabsTrigger value="legal-knowledge" data-testid="tab-legal-knowledge">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Правовая база ФЗ-152
           </TabsTrigger>
         </TabsList>
 
@@ -3086,6 +3099,214 @@ export default function AdminSAZPD() {
 
         <TabsContent value="response-analytics" className="space-y-6">
           {renderResponseAnalytics()}
+        </TabsContent>
+
+        <TabsContent value="document-generation" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileCheck className="h-5 w-5" />
+                Генерация юридических документов
+              </CardTitle>
+              <CardDescription>
+                Автоматическое создание заявлений, жалоб и юридических документов на основе ФЗ-152
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Заявление на удаление</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Начальное требование об удалении персональных данных
+                    </p>
+                    <Button className="w-full" data-testid="button-generate-initial-request">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Создать документ
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Повторное требование</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Follow-up документ при отсутствии ответа
+                    </p>
+                    <Button className="w-full" variant="secondary" data-testid="button-generate-followup">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Создать документ
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Жалоба в РКН</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Обращение в Роскомнадзор при нарушениях
+                    </p>
+                    <Button className="w-full" variant="destructive" data-testid="button-generate-rkn-complaint">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Создать жалобу
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Недавно созданные документы</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <FileCheck className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-sm">Заявление #2025001</p>
+                        <p className="text-xs text-muted-foreground">Оператор: VK.com • 15.01.2025</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" data-testid="button-view-document">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" data-testid="button-download-document">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-center text-sm text-muted-foreground py-8">
+                    Документы будут отображаться после генерации
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="legal-knowledge" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Справочник статей ФЗ-152
+              </CardTitle>
+              <CardDescription>
+                База правовых знаний для автоматического подбора статей законодательства
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Input 
+                    placeholder="Поиск по статьям..." 
+                    data-testid="input-search-legal-articles"
+                  />
+                </div>
+                <Select defaultValue="all">
+                  <SelectTrigger className="w-[200px]" data-testid="select-category-filter">
+                    <SelectValue placeholder="Категория" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все категории</SelectItem>
+                    <SelectItem value="rights">Права субъектов</SelectItem>
+                    <SelectItem value="obligations">Обязанности операторов</SelectItem>
+                    <SelectItem value="violations">Нарушения</SelectItem>
+                    <SelectItem value="procedures">Процедуры</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-base">Статья 9. Согласие субъекта персональных данных</CardTitle>
+                        <Badge variant="outline" className="mt-2">Права субъектов</Badge>
+                      </div>
+                      <Button size="sm" variant="ghost" data-testid="button-view-article-9">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Определяет требования к согласию на обработку персональных данных. 
+                      Используется в документах: Начальное требование, Жалобы в РКН.
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <Badge variant="secondary">Срок: 30 дней</Badge>
+                      <Badge variant="secondary">Документов: 15</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-base">Статья 14. Общие требования</CardTitle>
+                        <Badge variant="outline" className="mt-2">Обязанности операторов</Badge>
+                      </div>
+                      <Button size="sm" variant="ghost" data-testid="button-view-article-14">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Общие требования к обработке персональных данных. Обязательное уничтожение
+                      или обезличивание при достижении целей обработки.
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <Badge variant="secondary">Срок: 30 дней</Badge>
+                      <Badge variant="secondary">Документов: 28</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-base">Статья 21. Права субъекта ПД</CardTitle>
+                        <Badge variant="outline" className="mt-2">Права субъектов</Badge>
+                      </div>
+                      <Button size="sm" variant="ghost" data-testid="button-view-article-21">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Право субъекта на защиту своих прав и законных интересов, включая право на
+                      удаление или уточнение своих персональных данных.
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <Badge variant="secondary">Срок: 30 дней</Badge>
+                      <Badge variant="secondary">Документов: 42</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="text-center">
+                  <Button variant="outline" data-testid="button-load-more-articles">
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    Показать еще статьи
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

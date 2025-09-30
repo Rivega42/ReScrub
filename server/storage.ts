@@ -31,6 +31,8 @@ import {
   emailTemplateVersions,
   evidenceCollection,
   legalArticles,
+  documentTemplates,
+  generatedDocuments,
   // САЗПД modules tables - temporarily disabled
   // campaigns,
   // decisionRules,
@@ -100,6 +102,10 @@ import {
   type InsertEvidenceCollection,
   type LegalArticle,
   type InsertLegalArticle,
+  type DocumentTemplate,
+  type InsertDocumentTemplate,
+  type GeneratedDocument,
+  type InsertGeneratedDocument,
   // САЗПД modules types - temporarily disabled (using DeletionRequest as Campaign entity)
   // type Campaign,
   // type InsertCampaign,
@@ -568,6 +574,25 @@ export interface IStorage {
   getAllOperatorProfiles(): Promise<OperatorProfile[]>;
   updateOperatorProfile(id: string, updates: Partial<OperatorProfile>): Promise<OperatorProfile | undefined>;
   deleteOperatorProfile(id: string): Promise<boolean>;
+
+  // ========================================
+  // DOCUMENT GENERATION SYSTEM METHODS
+  // ========================================
+
+  // Document templates operations
+  createDocumentTemplate(templateData: InsertDocumentTemplate): Promise<DocumentTemplate>;
+  getDocumentTemplateById(id: string): Promise<DocumentTemplate | undefined>;
+  getAllDocumentTemplates(filters?: { documentType?: string; category?: string; isActive?: boolean }): Promise<DocumentTemplate[]>;
+  updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
+  deleteDocumentTemplate(id: string): Promise<boolean>;
+  
+  // Generated documents operations
+  createGeneratedDocument(documentData: InsertGeneratedDocument): Promise<GeneratedDocument>;
+  getGeneratedDocumentById(id: string): Promise<GeneratedDocument | undefined>;
+  getGeneratedDocumentsByUser(userId: string, filters?: { status?: string; documentType?: string }): Promise<GeneratedDocument[]>;
+  updateGeneratedDocument(id: string, updates: Partial<GeneratedDocument>): Promise<GeneratedDocument | undefined>;
+  updateDocumentStatus(id: string, status: string, sentTo?: string): Promise<GeneratedDocument | undefined>;
+  deleteGeneratedDocument(id: string): Promise<boolean>;
 
   // ========================================
   // DECISION ENGINE MODULE METHODS

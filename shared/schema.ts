@@ -1920,3 +1920,122 @@ export const operatorProfiles = pgTable("operator_profiles", {
   index("IDX_operator_profiles_compliance").on(table.complianceLevel),
 ]);
 
+// ========================================
+// DOCUMENT GENERATION SYSTEM TABLES
+// ========================================
+
+// Document templates - шаблоны юридических документов
+export const documentTemplates = pgTable("document_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(), // Название шаблона
+  documentType: varchar("document_type").notNull(), // DocumentType enum
+  category: varchar("category").notNull().default("deletion_request"), // 'deletion_request', 'complaint', 'appeal'
+  
+  // Содержимое шаблона
+  subject: varchar("subject").notNull(), // Тема письма/документа
+  bodyTemplate: text("body_template").notNull(), // Шаблон тела документа с переменными {{variable}}
+  
+  // Правовые ссылки
+  legalArticleIds: text("legal_article_ids").array().default(sql`ARRAY[]::text[]`), // Связанные статьи ФЗ-152
+  legalReferences: text("legal_references").array().default(sql`ARRAY[]::text[]`), // Ссылки на законы
+  
+  // Переменные шаблона
+  variables: jsonb("variables").default(sql`'[]'::jsonb`), // Список переменных: [{"name": "userName", "label": "ФИО", "required": true}]
+  
+  // Настройки использования
+  isActive: boolean("is_active").default(true),
+  isDefault: boolean("is_default").default(false), // Шаблон по умолчанию для типа
+  sortOrder: integer("sort_order").default(0),
+  
+  // Метаданные
+  description: text("description"),
+  usage: varchar("usage").default("automated"), // 'automated', 'manual', 'both'
+  targetAudience: varchar("target_audience").default("operators"), // 'operators', 'roskomnadzor', 'courts'
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: varchar("created_by"), // User ID
+}, (table) => [
+  index("IDX_document_templates_type").on(table.documentType),
+  index("IDX_document_templates_category").on(table.category),
+  index("IDX_document_templates_active").on(table.isActive),
+]);
+
+// Generated documents - сгенерированные документы
+export const generatedDocuments = pgTable("generated_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => userAccounts.id, { onDelete: "cascade" }),
+  templateId: varchar("template_id").notNull().references(() => documentTemplates.id),
+  deletionRequestId: varchar("deletion_request_id").references(() => deletionRequests.id, { onDelete: "set null" }),
+  
+  // Информация о документе
+  documentType: varchar("document_type").notNull(), // DocumentType enum
+  documentNumber: varchar("document_number"), // Уникальный номер документа
+  
+  // Содержимое документа
+  subject: varchar("subject").notNull(),
+  bodyHtml: text("body_html").notNull(), // Сгенерированный HTML
+  bodyText: text("body_text").notNull(), // Сгенерированный текст
+  variables: jsonb("variables").notNull(), // Значения переменных, использованные при генерации
+  
+  // Правовые ссылки
+  legalArticleIds: text("legal_article_ids").array().default(sql`ARRAY[]::text[]`),
+  legalReferences: text("legal_references").array().default(sql`ARRAY[]::text[]`),
+  
+  // Статус документа
+  status: varchar("status").notNull().default("draft"), // 'draft', 'generated', 'sent', 'archived'
+  sentAt: timestamp("sent_at"),
+  sentTo: varchar("sent_to"), // Email получателя
+  
+  // Файловая информация
+  filePath: varchar("file_path"), // Путь к PDF/DOCX файлу
+  fileFormat: varchar("file_format").default("html"), // 'html', 'pdf', 'docx'
+  fileSize: integer("file_size"), // Размер файла в байтах
+  
+  // Метаданные
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Дополнительная информация
+  generationLog: jsonb("generation_log").default(sql`'[]'::jsonb`), // Лог генерации
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_generated_documents_user").on(table.userId),
+  index("IDX_generated_documents_template").on(table.templateId),
+  index("IDX_generated_documents_request").on(table.deletionRequestId),
+  index("IDX_generated_documents_type").on(table.documentType),
+  index("IDX_generated_documents_status").on(table.status),
+  index("IDX_generated_documents_created").on(table.createdAt),
+]);
+
+// Insert schemas and types
+export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
+  id: true,
+  legalArticleIds: true,
+  legalReferences: true,
+  variables: true,
+  isActive: true,
+  isDefault: true,
+  sortOrder: true,
+  metadata: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGeneratedDocumentSchema = createInsertSchema(generatedDocuments).omit({
+  id: true,
+  legalArticleIds: true,
+  legalReferences: true,
+  status: true,
+  fileFormat: true,
+  metadata: true,
+  generationLog: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
+export type GeneratedDocument = typeof generatedDocuments.$inferSelect;
+export type InsertGeneratedDocument = z.infer<typeof insertGeneratedDocumentSchema>;
+
