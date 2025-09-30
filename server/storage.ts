@@ -4396,6 +4396,130 @@ export class DatabaseStorage implements IStorage {
   // End of САЗПД modules implementations comment block
 
   // ========================================
+  // DOCUMENT GENERATION SYSTEM IMPLEMENTATIONS
+  // ========================================
+
+  // Document templates operations
+  async createDocumentTemplate(templateData: InsertDocumentTemplate): Promise<DocumentTemplate> {
+    const [template] = await db
+      .insert(documentTemplates)
+      .values(templateData)
+      .returning();
+    return template;
+  }
+
+  async getDocumentTemplateById(id: string): Promise<DocumentTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(documentTemplates)
+      .where(eq(documentTemplates.id, id));
+    return template;
+  }
+
+  async getAllDocumentTemplates(filters?: { documentType?: string; category?: string; isActive?: boolean }): Promise<DocumentTemplate[]> {
+    let query = db.select().from(documentTemplates);
+    const conditions = [];
+
+    if (filters?.documentType) {
+      conditions.push(eq(documentTemplates.documentType, filters.documentType));
+    }
+    if (filters?.category) {
+      conditions.push(eq(documentTemplates.category, filters.category));
+    }
+    if (filters?.isActive !== undefined) {
+      conditions.push(eq(documentTemplates.isActive, filters.isActive));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    return await query.orderBy(desc(documentTemplates.createdAt));
+  }
+
+  async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined> {
+    const [template] = await db
+      .update(documentTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(documentTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  async deleteDocumentTemplate(id: string): Promise<boolean> {
+    const result = await db
+      .delete(documentTemplates)
+      .where(eq(documentTemplates.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Generated documents operations
+  async createGeneratedDocument(documentData: InsertGeneratedDocument): Promise<GeneratedDocument> {
+    const [document] = await db
+      .insert(generatedDocuments)
+      .values(documentData)
+      .returning();
+    return document;
+  }
+
+  async getGeneratedDocumentById(id: string): Promise<GeneratedDocument | undefined> {
+    const [document] = await db
+      .select()
+      .from(generatedDocuments)
+      .where(eq(generatedDocuments.id, id));
+    return document;
+  }
+
+  async getGeneratedDocumentsByUser(userId: string, filters?: { status?: string; documentType?: string }): Promise<GeneratedDocument[]> {
+    let query = db.select().from(generatedDocuments).where(eq(generatedDocuments.userId, userId));
+    const conditions = [eq(generatedDocuments.userId, userId)];
+
+    if (filters?.status) {
+      conditions.push(eq(generatedDocuments.status, filters.status));
+    }
+    if (filters?.documentType) {
+      conditions.push(eq(generatedDocuments.documentType, filters.documentType));
+    }
+
+    if (conditions.length > 0) {
+      query = db.select().from(generatedDocuments).where(and(...conditions)) as any;
+    }
+
+    return await query.orderBy(desc(generatedDocuments.createdAt));
+  }
+
+  async updateGeneratedDocument(id: string, updates: Partial<GeneratedDocument>): Promise<GeneratedDocument | undefined> {
+    const [document] = await db
+      .update(generatedDocuments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(generatedDocuments.id, id))
+      .returning();
+    return document;
+  }
+
+  async updateDocumentStatus(id: string, status: string, sentTo?: string): Promise<GeneratedDocument | undefined> {
+    const updateData: any = { status, updatedAt: new Date() };
+    if (sentTo) {
+      updateData.sentTo = sentTo;
+      updateData.sentAt = new Date();
+    }
+    
+    const [document] = await db
+      .update(generatedDocuments)
+      .set(updateData)
+      .where(eq(generatedDocuments.id, id))
+      .returning();
+    return document;
+  }
+
+  async deleteGeneratedDocument(id: string): Promise<boolean> {
+    const result = await db
+      .delete(generatedDocuments)
+      .where(eq(generatedDocuments.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // ========================================
   // CAMPAIGN MANAGEMENT MODULE IMPLEMENTATIONS
   // ========================================
 

@@ -5211,6 +5211,239 @@ ${allPages.map(page => `  <url>
   }
 
   // ========================================  
+  // DOCUMENT GENERATION SYSTEM API ENDPOINTS
+  // ========================================
+
+  // GET /api/admin/sazpd/documents/templates - get all document templates
+  app.get("/api/admin/sazpd/documents/templates", isAdmin, async (req: any, res) => {
+    try {
+      const { documentType, category, isActive } = req.query;
+      const filters: any = {};
+      
+      if (documentType) filters.documentType = documentType;
+      if (category) filters.category = category;
+      if (isActive !== undefined) filters.isActive = isActive === 'true';
+
+      const templates = await storage.getAllDocumentTemplates(filters);
+      
+      res.json({ 
+        success: true, 
+        templates,
+        count: templates.length
+      });
+    } catch (error) {
+      console.error('Error fetching document templates:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения шаблонов документов' 
+      });
+    }
+  });
+
+  // GET /api/admin/sazpd/documents/templates/:id - get specific template
+  app.get("/api/admin/sazpd/documents/templates/:id", isAdmin, async (req: any, res) => {
+    try {
+      const template = await storage.getDocumentTemplateById(req.params.id);
+      
+      if (!template) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Шаблон не найден' 
+        });
+      }
+      
+      res.json({ success: true, template });
+    } catch (error) {
+      console.error('Error fetching document template:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения шаблона' 
+      });
+    }
+  });
+
+  // POST /api/admin/sazpd/documents/templates - create new template
+  app.post("/api/admin/sazpd/documents/templates", isAdmin, async (req: any, res) => {
+    try {
+      const template = await storage.createDocumentTemplate(req.body);
+      
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        actionType: 'create_document_template',
+        targetType: 'document_template',
+        targetId: template.id,
+        metadata: { templateName: template.name, documentType: template.documentType },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+      
+      res.json({ success: true, template });
+    } catch (error) {
+      console.error('Error creating document template:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка создания шаблона' 
+      });
+    }
+  });
+
+  // GET /api/admin/sazpd/documents/generated - get generated documents
+  app.get("/api/admin/sazpd/documents/generated", isAdmin, async (req: any, res) => {
+    try {
+      const { userId, status, documentType } = req.query;
+      
+      if (!userId) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'userId обязателен' 
+        });
+      }
+
+      const filters: any = {};
+      if (status) filters.status = status;
+      if (documentType) filters.documentType = documentType;
+
+      const documents = await storage.getGeneratedDocumentsByUser(userId as string, filters);
+      
+      res.json({ 
+        success: true, 
+        documents,
+        count: documents.length
+      });
+    } catch (error) {
+      console.error('Error fetching generated documents:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения документов' 
+      });
+    }
+  });
+
+  // POST /api/admin/sazpd/documents/generate - generate new document
+  app.post("/api/admin/sazpd/documents/generate", isAdmin, async (req: any, res) => {
+    try {
+      const { templateId, userId, variables } = req.body;
+
+      // Get template
+      const template = await storage.getDocumentTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Шаблон не найден' 
+        });
+      }
+
+      // Generate document from template (simplified - would use Handlebars in full implementation)
+      let content = template.content;
+      if (variables) {
+        Object.entries(variables).forEach(([key, value]) => {
+          content = content.replace(new RegExp(`{{${key}}}`, 'g'), value as string);
+        });
+      }
+
+      // Create generated document
+      const document = await storage.createGeneratedDocument({
+        userId,
+        templateId,
+        documentType: template.documentType,
+        title: template.name,
+        content,
+        variables,
+        status: 'draft'
+      });
+
+      await storage.logAdminAction({
+        adminId: req.session.userId!,
+        actionType: 'generate_document',
+        targetType: 'generated_document',
+        targetId: document.id,
+        metadata: { templateId, documentType: template.documentType },
+        sessionId: req.sessionID,
+        ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown'
+      });
+
+      res.json({ success: true, document });
+    } catch (error) {
+      console.error('Error generating document:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка генерации документа' 
+      });
+    }
+  });
+
+  // PUT /api/admin/sazpd/documents/generated/:id/status - update document status
+  app.put("/api/admin/sazpd/documents/generated/:id/status", isAdmin, async (req: any, res) => {
+    try {
+      const { status, sentTo } = req.body;
+      
+      const document = await storage.updateDocumentStatus(req.params.id, status, sentTo);
+      
+      if (!document) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Документ не найден' 
+        });
+      }
+
+      res.json({ success: true, document });
+    } catch (error) {
+      console.error('Error updating document status:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка обновления статуса' 
+      });
+    }
+  });
+
+  // ========================================  
+  // LEGAL KNOWLEDGE BASE API ENDPOINTS
+  // ========================================
+
+  // GET /api/admin/sazpd/legal-norms - get all legal norms
+  app.get("/api/admin/sazpd/legal-norms", isAdmin, async (req: any, res) => {
+    try {
+      const norms = await storage.getActiveLegalNorms();
+      
+      res.json({ 
+        success: true, 
+        norms,
+        count: norms.length
+      });
+    } catch (error) {
+      console.error('Error fetching legal norms:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения правовых норм' 
+      });
+    }
+  });
+
+  // GET /api/admin/sazpd/legal-norms/:code - get specific legal norm by code
+  app.get("/api/admin/sazpd/legal-norms/:code", isAdmin, async (req: any, res) => {
+    try {
+      const norm = await storage.getLegalNormByCode(req.params.code);
+      
+      if (!norm) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Правовая норма не найдена' 
+        });
+      }
+      
+      res.json({ success: true, norm });
+    } catch (error) {
+      console.error('Error fetching legal norm:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Ошибка получения правовой нормы' 
+      });
+    }
+  });
+
+  // ========================================  
   // САЗПД HEALTH CHECK SCHEMA VALIDATION
   // ========================================
   
