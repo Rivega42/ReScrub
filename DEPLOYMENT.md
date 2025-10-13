@@ -129,9 +129,9 @@ ROBOKASSA_TEST_PASSWORD_2=test-pass-2
 **Настройка Robokassa:**
 1. Регистрация магазина: https://auth.robokassa.ru/Merchant/Registration
 2. Настройки → Технические настройки:
-   - **Result URL**: `https://your-app.replit.app/api/robokassa/result`
-   - **Success URL**: `https://your-app.replit.app/api/robokassa/success`
-   - **Fail URL**: `https://your-app.replit.app/api/robokassa/fail`
+   - **Result URL**: `https://your-app.replit.app/api/webhooks/robokassa/result`
+   - **Success URL**: `https://your-app.replit.app/api/webhooks/robokassa/success`
+   - **Fail URL**: `https://your-app.replit.app/api/webhooks/robokassa/fail`
 3. Метод POST, Алгоритм MD5
 4. Получить Password #1 и Password #2
 
@@ -208,9 +208,9 @@ curl -X POST https://api.samotpravil.com/api/v1/email/send \
 1. Регистрация магазина: https://auth.robokassa.ru
 2. Технические настройки → Webhook URLs:
    ```
-   Result URL:  https://your-app.replit.app/api/robokassa/result
-   Success URL: https://your-app.replit.app/api/robokassa/success
-   Fail URL:    https://your-app.replit.app/api/robokassa/fail
+   Result URL:  https://your-app.replit.app/api/webhooks/robokassa/result
+   Success URL: https://your-app.replit.app/api/webhooks/robokassa/success
+   Fail URL:    https://your-app.replit.app/api/webhooks/robokassa/fail
    ```
 3. Метод: **POST**, Алгоритм: **MD5**
 4. Получить Password #1 и Password #2
@@ -423,7 +423,7 @@ curl -X POST https://your-app.replit.app/api/payments/create \
 
 **Решение:**
 1. Убедитесь, что `APP_URL` указывает на HTTPS домен
-2. Проверьте логи: `/api/robokassa/result` получает запросы
+2. Проверьте логи: `/api/webhooks/robokassa/result` получает запросы
 3. Проверьте MD5 подпись в Robokassa
 
 ### Проблема: Email не отправляются
