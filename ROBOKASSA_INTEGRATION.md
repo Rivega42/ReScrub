@@ -1,768 +1,593 @@
-# Инструкция по интеграции Robokassa в ResCrub
+# 🔴 ПОЛНАЯ ИНСТРУКЦИЯ: ИНТЕГРАЦИЯ ROBOKASSA В RESCRUB
 
-## Содержание
-1. [Обзор интеграции](#обзор-интеграции)
-2. [Настройка переменных окружения](#настройка-переменных-окружения)
-3. [Структура файлов](#структура-файлов)
-4. [Архитектура системы](#архитектура-системы)
-5. [Настройка личного кабинета Robokassa](#настройка-личного-кабинета-robokassa)
-6. [Процесс оплаты](#процесс-оплаты)
-7. [Периодические платежи](#периодические-платежи)
-8. [Обработка webhook уведомлений](#обработка-webhook-уведомлений)
-9. [Тестирование](#тестирование)
-10. [Безопасность](#безопасность)
+## 📋 Оглавление
+1. [Критические проблемы и ошибки](#критические-проблемы-и-ошибки)
+2. [Пошаговая настройка](#пошаговая-настройка)
+3. [Техническая реализация](#техническая-реализация)
+4. [Тестирование](#тестирование)
+5. [Production деплой](#production-деплой)
+6. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Обзор интеграции
+## 🚨 КРИТИЧЕСКИЕ ПРОБЛЕМЫ И ОШИБКИ
 
-В проекте ResCrub реализована полная интеграция с платежной системой Robokassa для обработки:
-- ✅ Одноразовых платежей за подписки
-- ✅ Автоматических периодических списаний (recurring payments)
-- ✅ Оплаты баллами (внутренняя валюта)
-- ✅ Комбинированной оплаты (баллы + Robokassa)
-- ✅ Webhook уведомлений о статусе платежей
+### ❌ Проблема #1: НЕПРАВИЛЬНЫЕ WEBHOOK URLs (САМАЯ ЧАСТАЯ ОШИБКА!)
 
-### Основные компоненты:
-- **RobokassaClient** (`server/robokassa.ts`) - класс для работы с API
-- **Webhook handlers** (`server/routes.ts`) - обработка уведомлений
-- **SubscriptionManager** (`server/subscription-manager.ts`) - автоматические продления
-- **Database schema** (`shared/schema.ts`) - таблицы payments и subscriptions
+**Что делали неправильно:**
+```
+❌ Result URL:  /api/robokassa/result
+❌ Success URL: /api/robokassa/success  
+❌ Fail URL:    /api/robokassa/fail
+```
+
+**Правильно:**
+```
+✅ Result URL:  /api/webhooks/robokassa/result
+✅ Success URL: /api/webhooks/robokassa/success
+✅ Fail URL:    /api/webhooks/robokassa/fail
+```
+
+**Почему критично:**
+- Robokassa НЕ УВЕДОМИТ вас об оплате, если URL неправильный
+- Платеж пройдет, но ваша система НЕ УЗНАЕТ об этом
+- Пользователь заплатит, но не получит доступ
+- **Финансовые потери и недовольные клиенты!**
+
+**Как проверить:**
+```bash
+# Должен вернуть 200 OK (даже без валидных данных)
+curl -X POST https://your-app.replit.app/api/webhooks/robokassa/result \
+  -d "OutSum=100.00&InvId=12345&SignatureValue=test"
+```
 
 ---
 
-## Настройка переменных окружения
+### ❌ Проблема #2: Путаница с паролями Password #1 и Password #2
 
-### Обязательные переменные
+**Robokassa использует ДВА разных пароля:**
 
-Добавьте в `.env` файл следующие переменные:
+| Пароль | Когда используется | Для чего |
+|--------|-------------------|----------|
+| **Password #1** | При создании платежной ссылки | Подпись инициализации платежа |
+| **Password #2** | При получении webhook от Robokassa | Проверка результата платежа |
+
+**Критичная ошибка:** Использовать один и тот же пароль везде!
+
+```typescript
+// ❌ НЕПРАВИЛЬНО
+const signature = crypto.createHash('md5')
+  .update(`${merchantLogin}:${outSum}:${invoiceId}:${PASSWORD_1}`) // Инициализация
+  .digest('hex');
+
+const verified = crypto.createHash('md5')
+  .update(`${outSum}:${invoiceId}:${PASSWORD_1}`) // ❌ Должен быть PASSWORD_2!
+  .digest('hex') === receivedSignature;
+
+// ✅ ПРАВИЛЬНО
+// Инициализация платежа (Password #1)
+const initSignature = crypto.createHash('md5')
+  .update(`${merchantLogin}:${outSum}:${invoiceId}:${PASSWORD_1}`)
+  .digest('hex');
+
+// Проверка webhook (Password #2)
+const resultSignature = crypto.createHash('md5')
+  .update(`${outSum}:${invoiceId}:${PASSWORD_2}`) // ✅ PASSWORD_2!
+  .digest('hex');
+```
+
+---
+
+### ❌ Проблема #3: Формат суммы платежа
+
+**Robokassa требует:**
+- Сумму в рублях (не копейках!)
+- Ровно 2 знака после запятой
+- Десятичный разделитель - точка (не запятая!)
+
+```typescript
+// ❌ НЕПРАВИЛЬНО
+const outSum = 99900; // копейки
+const outSum = "999"; // без десятичных
+const outSum = 999.9; // 1 знак после запятой
+const outSum = "999,00"; // запятая вместо точки
+
+// ✅ ПРАВИЛЬНО
+const outSum = (999).toFixed(2); // "999.00"
+const outSum = (1790.50).toFixed(2); // "1790.50"
+```
+
+---
+
+### ❌ Проблема #4: Порядок параметров в MD5 подписи
+
+**СТРОГО ОПРЕДЕЛЕННЫЙ порядок!** Любое отклонение = неверная подпись.
+
+**Для инициализации платежа (Password #1):**
+```
+MerchantLogin:OutSum:InvoiceID:Password#1[:дополнительные_параметры]
+```
+
+**Для проверки результата (Password #2):**
+```
+OutSum:InvoiceID:Password#2
+```
+
+**Обратите внимание:**
+- В инициализации: **MerchantLogin** идет первым
+- В проверке: **MerchantLogin отсутствует**!
+- Регистр MD5 хеша: **lowercase** (`toLowerCase()`)
+
+```typescript
+// ✅ ПРАВИЛЬНАЯ реализация
+function createInitSignature(merchantLogin: string, outSum: string, invoiceId: string) {
+  const str = `${merchantLogin}:${outSum}:${invoiceId}:${PASSWORD_1}`;
+  return crypto.createHash('md5').update(str).digest('hex').toLowerCase();
+}
+
+function verifyResultSignature(outSum: string, invoiceId: string, signature: string) {
+  const str = `${outSum}:${invoiceId}:${PASSWORD_2}`;
+  const expected = crypto.createHash('md5').update(str).digest('hex').toLowerCase();
+  return expected === signature.toLowerCase();
+}
+```
+
+---
+
+### ❌ Проблема #5: Recurring платежи (подписки)
+
+**Особенность:** `PreviousInvoiceID` НЕ участвует в подписи инициализации!
+
+```typescript
+// ❌ НЕПРАВИЛЬНО - включить PreviousInvoiceID в подпись
+const signature = createSignature(
+  merchantLogin, 
+  outSum, 
+  invoiceId, 
+  { PreviousInvoiceID: '12345' } // ❌ НЕТ!
+);
+
+// ✅ ПРАВИЛЬНО - PreviousInvoiceID только в POST параметрах
+const signature = createSignature(merchantLogin, outSum, invoiceId); // Без PreviousInvoiceID
+
+const formData = new URLSearchParams({
+  MerchantLogin: merchantLogin,
+  OutSum: outSum,
+  InvoiceID: invoiceId,
+  PreviousInvoiceID: previousInvoiceId, // ✅ Только здесь!
+  SignatureValue: signature
+});
+```
+
+---
+
+### ❌ Проблема #6: APP_URL для callback URLs
+
+**Критично:** `APP_URL` должен быть HTTPS и совпадать с production доменом!
 
 ```bash
-# Robokassa Production (Боевой режим)
-ROBOKASSA_MERCHANT_LOGIN=your_merchant_login
-ROBOKASSA_PASSWORD_1=your_password_1
-ROBOKASSA_PASSWORD_2=your_password_2
+# ❌ НЕПРАВИЛЬНО
+APP_URL=http://localhost:5000
+APP_URL=https://your-app--dev.replit.app  # development URL
+APP_URL=https://your-app.replit.app/      # лишний слэш в конце
 
-# Robokassa Test (Тестовый режим)
+# ✅ ПРАВИЛЬНО
+APP_URL=https://your-app.replit.app
+```
+
+**Как используется:**
+```typescript
+// Robokassa вызывает эти URL после платежа
+const resultURL = `${APP_URL}/api/webhooks/robokassa/result`;
+const successURL = `${APP_URL}/api/webhooks/robokassa/success`;
+const failURL = `${APP_URL}/api/webhooks/robokassa/fail`;
+```
+
+---
+
+## 📝 ПОШАГОВАЯ НАСТРОЙКА
+
+### Шаг 1: Регистрация магазина в Robokassa
+
+1. **Регистрация:** https://auth.robokassa.ru/Merchant/Registration
+2. **Заполнить данные:**
+   - Название магазина: `ResCrub`
+   - Тип: `Услуги`
+   - URL сайта: `https://rescrub.ru`
+   - Email: ваш email
+
+3. **Дождаться подтверждения** (1-3 рабочих дня)
+
+---
+
+### Шаг 2: Настройка технических параметров
+
+**Важно:** Делать это **ПОСЛЕ** деплоя приложения, когда знаете production URL!
+
+1. **Войти в кабинет:** https://merchant.robokassa.ru
+2. **Настройки → Технические настройки**
+3. **Заполнить параметры:**
+
+```
+Result URL (обработка результата):
+https://your-app.replit.app/api/webhooks/robokassa/result
+Метод: POST ✅
+Алгоритм: MD5 ✅
+
+Success URL (успешная оплата):
+https://your-app.replit.app/api/webhooks/robokassa/success
+Метод: POST ✅
+
+Fail URL (неудачная оплата):
+https://your-app.replit.app/api/webhooks/robokassa/fail
+Метод: POST ✅
+```
+
+4. **Сохранить настройки**
+5. **Скопировать пароли:**
+   - Password #1 (для подписи платежных форм)
+   - Password #2 (для обработки результатов)
+
+---
+
+### Шаг 3: Настройка environment variables
+
+**В Replit Secrets добавить:**
+
+```bash
+# Production Robokassa
+ROBOKASSA_MERCHANT_LOGIN=demo               # Ваш MerchantLogin
+ROBOKASSA_PASSWORD_1=Vja58vAjEk3S           # Password #1 из кабинета
+ROBOKASSA_PASSWORD_2=9k42InbDj93x           # Password #2 из кабинета
+
+# Тестовый режим (для разработки)
+ROBOKASSA_TEST_MODE=true                    # true для тестов
+ROBOKASSA_TEST_PASSWORD_1=test123           # Тестовые пароли
+ROBOKASSA_TEST_PASSWORD_2=test456
+
+# APP URL (критично!)
+APP_URL=https://your-app.replit.app         # БЕЗ слэша в конце!
+```
+
+**Переключение режимов:**
+```bash
+# Development (тестовые платежи)
 ROBOKASSA_TEST_MODE=true
-ROBOKASSA_TEST_PASSWORD_1=your_test_password_1
-ROBOKASSA_TEST_PASSWORD_2=your_test_password_2
-```
 
-### Где получить значения:
-
-1. **ROBOKASSA_MERCHANT_LOGIN** - идентификатор магазина (Merchant Login)
-   - Доступен в личном кабинете Robokassa → Настройки → Технические настройки
-
-2. **ROBOKASSA_PASSWORD_1** - пароль №1 для формирования подписи платежа
-   - Генерируется в ЛК Robokassa → Технические настройки → Пароль #1
-
-3. **ROBOKASSA_PASSWORD_2** - пароль №2 для проверки подписи результата
-   - Генерируется в ЛК Robokassa → Технические настройки → Пароль #2
-
-4. **TEST-режим пароли** - отдельные пароли для тестирования
-   - Настраиваются в разделе "Тестовый режим"
-
-### Проверка конфигурации
-
-После настройки переменных, при запуске сервера вы увидите:
-
-```bash
-# Успешная инициализация:
-✅ Robokassa client initialized
-
-# Ошибка конфигурации:
-⚠️ Robokassa credentials not found. Payment processing will be disabled.
+# Production (реальные деньги)
+ROBOKASSA_TEST_MODE=false
 ```
 
 ---
 
-## Структура файлов
+### Шаг 4: Проверка интеграции
+
+**Проверка #1: Webhook endpoints доступны**
+```bash
+# Должно вернуть 200 OK или 400 (но НЕ 404!)
+curl -X POST https://your-app.replit.app/api/webhooks/robokassa/result
+
+# Проверить все 3 endpoint'а
+curl -X POST https://your-app.replit.app/api/webhooks/robokassa/success
+curl -X POST https://your-app.replit.app/api/webhooks/robokassa/fail
+```
+
+**Проверка #2: Создание платежной ссылки**
+```bash
+# В вашем приложении создать тестовый платеж
+# Должна вернуться ссылка вида:
+# https://auth.robokassa.ru/Merchant/Index.aspx?MerchantLogin=demo&OutSum=999.00...
+```
+
+**Проверка #3: Тестовый платеж**
+```bash
+# В тестовом режиме используйте данные:
+Карта: 5555 5555 5555 4444
+Срок: 12/28
+CVV: 123
+```
+
+---
+
+## 💻 ТЕХНИЧЕСКАЯ РЕАЛИЗАЦИЯ
+
+### Структура файлов
 
 ```
 server/
-├── robokassa.ts              # RobokassaClient - основной класс
-├── routes.ts                 # Webhook endpoints + API оплаты
-├── subscription-manager.ts   # Автоматические продления подписок
-└── storage.ts                # Database методы для платежей
+├── robokassa.ts          # RobokassaClient класс
+├── routes.ts             # Webhook endpoints
+├── subscription-manager.ts  # Обработка подписок
+└── storage.ts            # База данных
 
-shared/
-└── schema.ts                 # Drizzle схемы: payments, subscriptions
-
-client/src/pages/
-└── Subscription.tsx          # UI страница оформления подписки
+.env
+├── ROBOKASSA_MERCHANT_LOGIN
+├── ROBOKASSA_PASSWORD_1
+├── ROBOKASSA_PASSWORD_2
+└── APP_URL
 ```
 
 ---
 
-## Архитектура системы
+### Основные методы RobokassaClient
 
-### Database Schema
-
-#### Таблица `subscriptions`
+**1. Создание платежной ссылки**
 ```typescript
-export const subscriptions = pgTable("subscriptions", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  planId: varchar("plan_id").notNull(),
-  status: varchar("status"), // 'pending' | 'active' | 'cancelled' | 'expired'
-  currentPeriodStart: timestamp("current_period_start"),
-  currentPeriodEnd: timestamp("current_period_end"),
-  robokassaInvoiceId: varchar("robokassa_invoice_id").unique(), // ID материнского платежа
-  createdAt: timestamp("created_at").defaultNow(),
-});
-```
-
-#### Таблица `payments`
-```typescript
-export const payments = pgTable("payments", {
-  id: varchar("id").primaryKey(),
-  subscriptionId: varchar("subscription_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  amount: integer("amount").notNull(), // в рублях
-  currency: varchar("currency").default("RUB"),
-  status: varchar("status"), // 'pending' | 'paid' | 'failed' | 'refunded'
-  paymentMethod: varchar("payment_method"), // 'card' | 'wallet' | 'sberbank'
-  robokassaInvoiceId: varchar("robokassa_invoice_id").unique(),
-  parentInvoiceId: varchar("parent_invoice_id"), // для recurring платежей
-  isRecurring: boolean("is_recurring").default(false),
-  paidAt: timestamp("paid_at"),
-  failedAt: timestamp("failed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-```
-
-### RobokassaClient API
-
-#### Создание платежа
-```typescript
-import { robokassaClient } from './robokassa';
-
 const paymentUrl = robokassaClient.createPaymentUrl({
-  invoiceId: 'sub_user123_1234567890',
-  amount: 990, // в рублях
-  description: 'Подписка Premium на 1 месяц',
+  invoiceId: 'ORDER-12345',  // Уникальный ID заказа
+  amount: 1790.00,           // Сумма в рублях
+  description: 'Подписка Базовый план',
   userEmail: 'user@example.com',
-  isRecurring: false, // true для подписок с автопродлением
+  isRecurring: true          // Для подписок
 });
 
-// Перенаправляем пользователя на paymentUrl
+// Возвращает: https://auth.robokassa.ru/Merchant/Index.aspx?...
 ```
 
-#### Создание периодического платежа (recurring)
+**2. Проверка webhook**
 ```typescript
-const recurringResult = await robokassaClient.createRecurringPayment({
-  invoiceId: 'sub_user123_1234567891', // новый уникальный ID
-  previousInvoiceId: 'sub_user123_1234567890', // ID материнского платежа
-  amount: 990,
-  description: 'Продление подписки Premium',
-});
+const webhookData = {
+  OutSum: '1790.00',
+  InvId: 'ORDER-12345',
+  SignatureValue: 'abc123...'
+};
 
-if (recurringResult.success) {
-  console.log('Recurring payment created:', recurringResult.invoiceId);
-} else {
-  console.error('Recurring payment failed:', recurringResult.error);
+const isValid = robokassaClient.validateWebhook(webhookData);
+if (isValid) {
+  // Подпись валидна, можно обрабатывать платеж
 }
 ```
 
-#### Проверка webhook подписи
+**3. Создание recurring платежа**
 ```typescript
+const result = await robokassaClient.createRecurringPayment({
+  invoiceId: 'ORDER-67890',
+  previousInvoiceId: 'ORDER-12345', // ID материнского платежа
+  amount: 1790.00,
+  description: 'Продление подписки'
+});
+
+if (result.success) {
+  console.log('Recurring платеж создан:', result.invoiceId);
+}
+```
+
+---
+
+### Webhook endpoints
+
+**Структура:**
+```typescript
+// Result URL - ГЛАВНЫЙ endpoint для обработки
 app.post('/api/webhooks/robokassa/result', async (req, res) => {
-  const parsedData = robokassaClient.parseWebhookData(req.body);
+  const { OutSum, InvId, SignatureValue } = req.body;
   
-  if (!parsedData || !parsedData.isValid) {
+  // 1. Проверить подпись
+  const isValid = robokassaClient.verifyResultSignature(OutSum, InvId, SignatureValue);
+  if (!isValid) {
     return res.status(400).send('Invalid signature');
   }
   
-  const { invoiceId, amount, paymentMethod } = parsedData;
-  // Обрабатываем успешный платеж
+  // 2. Обновить статус платежа в БД
+  await storage.updatePayment(InvId, { status: 'completed' });
+  
+  // 3. Активировать подписку
+  await storage.updateSubscription(subscriptionId, { status: 'active' });
+  
+  // 4. ОБЯЗАТЕЛЬНО вернуть OK
+  res.send(`OK${InvId}`);
+});
+
+// Success URL - редирект после успешной оплаты
+app.post('/api/webhooks/robokassa/success', (req, res) => {
+  res.redirect('/dashboard?payment=success');
+});
+
+// Fail URL - редирект после ошибки
+app.post('/api/webhooks/robokassa/fail', (req, res) => {
+  res.redirect('/subscription?payment=failed');
 });
 ```
 
 ---
 
-## Настройка личного кабинета Robokassa
+## 🧪 ТЕСТИРОВАНИЕ
 
-### 1. Создание магазина
+### Тестовый режим
 
-1. Зарегистрируйтесь на [robokassa.ru](https://robokassa.ru)
-2. Перейдите в раздел **"Управление"** → **"Мои магазины"**
-3. Нажмите **"Создать магазин"**
-4. Заполните информацию о магазине
-
-### 2. Технические настройки
-
-В разделе **"Технические настройки"** укажите:
-
-#### Result URL (обязательно!)
-```
-https://yourdomain.com/api/webhooks/robokassa/result
-```
-**Важно:** Robokassa отправляет уведомления только на порты 80 (HTTP) и 443 (HTTPS)
-
-#### Success URL
-```
-https://yourdomain.com/api/webhooks/robokassa/success
-```
-
-#### Fail URL
-```
-https://yourdomain.com/api/webhooks/robokassa/fail
-```
-
-#### Дополнительные настройки:
-- **Метод отправки данных:** POST
-- **Кодировка:** UTF-8
-- **Алгоритм подписи:** MD5
-- **Язык интерфейса:** Русский (ru)
-
-### 3. Генерация паролей
-
-1. **Пароль #1** - для формирования подписи при инициализации платежа
-   - Нажмите "Сгенерировать" в разделе "Пароль #1"
-   - Скопируйте значение в `ROBOKASSA_PASSWORD_1`
-
-2. **Пароль #2** - для проверки подписи в уведомлениях
-   - Нажмите "Сгенерировать" в разделе "Пароль #2"
-   - Скопируйте значение в `ROBOKASSA_PASSWORD_2`
-
-### 4. Включение периодических платежей (Recurring)
-
-1. Перейдите в **"Дополнительные возможности"** → **"Recurring платежи"**
-2. Активируйте функцию периодических списаний
-3. Подтвердите условия использования
-
-**Важно:** Без активации Recurring периодические платежи работать не будут!
-
-### 5. Тестовый режим
-
-Для разработки используйте **Тестовый режим**:
-1. Включите тестовый режим в настройках магазина
-2. Сгенерируйте тестовые пароли #1 и #2
-3. Используйте их в переменных `ROBOKASSA_TEST_PASSWORD_1` и `ROBOKASSA_TEST_PASSWORD_2`
-4. Установите `ROBOKASSA_TEST_MODE=true`
-
----
-
-## Процесс оплаты
-
-### Пошаговый flow оплаты подписки
-
-#### 1. Пользователь выбирает план подписки
-
-Frontend отправляет POST запрос:
-```typescript
-// client/src/pages/Subscription.tsx
-const response = await apiRequest('/api/subscription', {
-  method: 'POST',
-  body: JSON.stringify({ planId: selectedPlan.id }),
-});
-```
-
-#### 2. Backend создает подписку и платеж
-
-```typescript
-// server/routes.ts - POST /api/subscription
-app.post('/api/subscription', isEmailAuthenticated, async (req, res) => {
-  const { planId } = req.body;
-  const userId = req.session.userId!;
-  
-  // 1. Получаем баланс баллов пользователя
-  const userPoints = await storage.getUserPoints(userId);
-  const plan = await storage.getSubscriptionPlanById(planId);
-  const planPriceRubles = plan.price;
-  
-  // 2. Проверяем, хватит ли баллов для полной оплаты
-  const canPayWithPoints = userPoints >= planPriceRubles;
-  const pointsToUse = canPayWithPoints ? planPriceRubles : 0;
-  const remainingAmountToPay = canPayWithPoints ? 0 : planPriceRubles;
-  
-  // 3. Списываем баллы (если используются)
-  if (pointsToUse > 0) {
-    await storage.deductUserPoints(userId, pointsToUse);
-  }
-  
-  // 4. Создаем invoice ID
-  const invoiceId = `sub_${userId}_${Date.now()}`;
-  
-  // 5. Создаем subscription
-  const subscription = await storage.createSubscription({
-    userId,
-    planId,
-    status: 'pending',
-    robokassaInvoiceId: invoiceId,
-  });
-  
-  // 6. Создаем payment
-  const payment = await storage.createPayment({
-    subscriptionId: subscription.id,
-    userId,
-    amount: remainingAmountToPay,
-    currency: plan.currency,
-    robokassaInvoiceId: invoiceId,
-    isRecurring: false,
-  });
-  
-  // 7. Генерируем URL оплаты или активируем подписку
-  if (remainingAmountToPay > 0) {
-    // Нужна оплата через Robokassa
-    const paymentUrl = robokassaClient.createPaymentUrl({
-      invoiceId,
-      amount: remainingAmountToPay,
-      description: `Подписка ${plan.displayName}`,
-      userEmail: userAccount?.email,
-      isRecurring: false,
-    });
-    
-    res.json({
-      subscription,
-      payment,
-      paymentUrl, // Frontend перенаправляет на этот URL
-      pointsUsed: pointsToUse,
-      remainingAmount: remainingAmountToPay,
-    });
-  } else {
-    // Полностью оплачено баллами - активируем сразу
-    await storage.updateSubscription(subscription.id, { status: 'active' });
-    await storage.updatePayment(payment.id, { status: 'paid', paymentMethod: 'points' });
-    
-    res.json({
-      subscription,
-      payment,
-      paymentUrl: null,
-      fullyPaidWithPoints: true,
-    });
-  }
-});
-```
-
-#### 3. Пользователь оплачивает на сайте Robokassa
-
-Frontend перенаправляет пользователя на `paymentUrl`:
-```typescript
-if (response.paymentUrl) {
-  window.location.href = response.paymentUrl;
-}
-```
-
-#### 4. Robokassa обрабатывает платеж
-
-Пользователь вводит данные карты → Robokassa списывает деньги → отправляет webhook
-
-#### 5. Backend получает Result URL webhook
-
-```typescript
-// server/routes.ts - POST /api/webhooks/robokassa/result
-app.post('/api/webhooks/robokassa/result', async (req, res) => {
-  // 1. Парсим и проверяем подпись
-  const parsedData = robokassaClient.parseWebhookData(req.body);
-  if (!parsedData || !parsedData.isValid) {
-    return res.status(400).send('Invalid signature');
-  }
-  
-  const { invoiceId, amount, paymentMethod } = parsedData;
-  
-  // 2. Находим платеж
-  const payment = await storage.getPaymentByInvoiceId(invoiceId);
-  
-  // 3. Обновляем статус платежа
-  await storage.updatePayment(payment.id, {
-    status: 'paid',
-    paidAt: new Date(),
-    paymentMethod,
-  });
-  
-  // 4. Активируем подписку
-  const subscription = await storage.getSubscriptionById(payment.subscriptionId);
-  const plan = await storage.getSubscriptionPlanById(subscription.planId);
-  
-  const now = new Date();
-  const currentPeriodEnd = new Date(now);
-  currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + plan.intervalCount);
-  
-  await storage.updateSubscription(subscription.id, {
-    status: 'active',
-    currentPeriodStart: now,
-    currentPeriodEnd,
-  });
-  
-  // 5. Начисляем бонусные баллы
-  await storage.addUserPoints(subscription.userId, 100, 'Успешная подписка');
-  
-  // 6. Отвечаем "OK" чтобы Robokassa знала, что webhook обработан
-  res.send('OK');
-});
-```
-
-#### 6. Пользователь возвращается на Success URL
-
-Robokassa перенаправляет пользователя обратно на ваш сайт после успешной оплаты.
-
----
-
-## Периодические платежи
-
-### Как работает автоматическое продление
-
-ResCrub использует **SubscriptionManager** для автоматического продления подписок:
-
-#### 1. Инициализация планировщика
-
-```typescript
-// server/index.ts
-import { SubscriptionManager } from './subscription-manager';
-
-const subscriptionManager = SubscriptionManager.getInstance();
-subscriptionManager.start(); // Запускается каждые 6 часов
-```
-
-#### 2. Проверка истекающих подписок
-
-```typescript
-// server/subscription-manager.ts
-class SubscriptionManager {
-  async processRecurringPayments() {
-    // Находим подписки, срок которых истекает через 3 дня
-    const renewalThreshold = new Date();
-    renewalThreshold.setDate(renewalThreshold.getDate() + 3);
-    
-    const expiringSubscriptions = await storage.getExpiringSubscriptions(renewalThreshold);
-    
-    for (const subscription of expiringSubscriptions) {
-      await this.renewSubscription(subscription);
-    }
-  }
-  
-  async renewSubscription(subscription: Subscription) {
-    const plan = await storage.getSubscriptionPlanById(subscription.planId);
-    const newInvoiceId = `sub_${subscription.userId}_${Date.now()}`;
-    
-    // 1. Создаем новый payment record
-    const payment = await storage.createPayment({
-      subscriptionId: subscription.id,
-      userId: subscription.userId,
-      amount: plan.price,
-      currency: plan.currency,
-      robokassaInvoiceId: newInvoiceId,
-      isRecurring: true, // Флаг периодического платежа
-      parentInvoiceId: subscription.robokassaInvoiceId, // Ссылка на материнский платеж
-    });
-    
-    // 2. Создаем recurring платеж в Robokassa
-    const recurringResult = await robokassaClient.createRecurringPayment({
-      invoiceId: newInvoiceId,
-      previousInvoiceId: subscription.robokassaInvoiceId!, // ID первого платежа
-      amount: plan.price,
-      description: `Продление подписки ${plan.displayName}`,
-    });
-    
-    if (recurringResult.success) {
-      // 3. Robokassa автоматически спишет деньги и отправит Result URL webhook
-      console.log(`✅ Recurring payment created for subscription ${subscription.id}`);
-    } else {
-      // 4. Если не получилось - отправляем уведомление пользователю
-      await sendSubscriptionExpiryNotification(subscription.userId, subscription);
-    }
-  }
-}
-```
-
-#### Важные моменты:
-
-1. **Материнский платеж** - первый платеж пользователя сохраняется в `subscription.robokassaInvoiceId`
-2. **Дочерние платежи** - все последующие продления ссылаются на материнский через `parentInvoiceId`
-3. **Автоматическое списание** - Robokassa сама спишет деньги с карты пользователя
-4. **Webhook уведомление** - после успешного списания Robokassa отправит webhook на Result URL
-
-### Условия для recurring платежей
-
-- ✅ Первый платеж должен быть выполнен с параметром `isRecurring: true`
-- ✅ В личном кабинете Robokassa включена функция Recurring
-- ✅ Карта пользователя поддерживает recurring (большинство российских карт)
-- ✅ Срок действия карты не истек
-
----
-
-## Обработка webhook уведомлений
-
-### Result URL - успешная оплата
-
-**Endpoint:** `POST /api/webhooks/robokassa/result`
-
-**Параметры запроса:**
-```
-OutSum=990.00
-InvId=sub_user123_1234567890
-SignatureValue=abc123def456...
-PaymentMethod=BankCard
-```
-
-**Обработка:**
-```typescript
-app.post('/api/webhooks/robokassa/result', 
-  express.raw({ type: 'application/x-www-form-urlencoded' }), 
-  async (req, res) => {
-    // 1. Парсим данные
-    const data = new URLSearchParams(req.body.toString());
-    const webhookData = Object.fromEntries(data.entries());
-    
-    // 2. Проверяем подпись (КРИТИЧНО!)
-    const parsedData = robokassaClient.parseWebhookData(webhookData);
-    if (!parsedData || !parsedData.isValid) {
-      return res.status(400).send('Invalid signature');
-    }
-    
-    // 3. Находим платеж
-    const payment = await storage.getPaymentByInvoiceId(parsedData.invoiceId);
-    if (!payment) {
-      return res.status(404).send('Payment not found');
-    }
-    
-    // 4. Обновляем статус
-    await storage.updatePayment(payment.id, {
-      status: 'paid',
-      paidAt: new Date(),
-      paymentMethod: parsedData.paymentMethod,
-    });
-    
-    // 5. Активируем подписку
-    await storage.updateSubscription(payment.subscriptionId, {
-      status: 'active',
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: calculatePeriodEnd(plan),
-    });
-    
-    // 6. Начисляем бонусы
-    await storage.addUserPoints(payment.userId, 100, 'Успешная подписка');
-    
-    // 7. ОБЯЗАТЕЛЬНО отвечаем "OK"
-    res.send('OK');
-  }
-);
-```
-
-**⚠️ ВАЖНО:**
-- Webhook вызывается **асинхронно**, не зависит от пользователя
-- Должен отвечать `200 OK` или `OK` в теле
-- Robokassa повторит webhook до 10 раз, если не получит OK
-- Проверка подписи **обязательна** для безопасности
-
-### Success URL - редирект пользователя
-
-**Endpoint:** `POST /api/webhooks/robokassa/success`
-
-```typescript
-app.post('/api/webhooks/robokassa/success', async (req, res) => {
-  // Просто логируем - основная обработка в Result URL
-  console.log('User returned after successful payment');
-  res.send('OK');
-});
-```
-
-### Fail URL - неудачная оплата
-
-**Endpoint:** `POST /api/webhooks/robokassa/fail`
-
-```typescript
-app.post('/api/webhooks/robokassa/fail', async (req, res) => {
-  const { InvId: invoiceId, FailureDescription } = req.body;
-  
-  // Обновляем статус платежа
-  const payment = await storage.getPaymentByInvoiceId(invoiceId);
-  if (payment) {
-    await storage.updatePayment(payment.id, {
-      status: 'failed',
-      failedAt: new Date(),
-      failureReason: FailureDescription || 'Payment failed',
-    });
-  }
-  
-  res.send('OK');
-});
-```
-
----
-
-## Тестирование
-
-### 1. Тестовый режим
-
-Активируйте тестовый режим:
+**1. Включить тестовый режим:**
 ```bash
 ROBOKASSA_TEST_MODE=true
-ROBOKASSA_TEST_PASSWORD_1=test_password_1
-ROBOKASSA_TEST_PASSWORD_2=test_password_2
+ROBOKASSA_TEST_PASSWORD_1=test123
+ROBOKASSA_TEST_PASSWORD_2=test456
 ```
 
-### 2. Тестовые карты
+**2. Тестовые карты Robokassa:**
+```
+Успешный платеж:
+Карта: 5555 5555 5555 4444
+Срок: 12/28
+CVV: 123
 
-Robokassa предоставляет тестовые карты:
+Отклоненный платеж:
+Карта: 5555 5555 5555 5557
+```
 
-| Карта | Результат |
-|-------|-----------|
-| `4111111111111111` | Успешная оплата |
-| `4242424242424242` | Успешная оплата |
-| `5555555555554444` | Успешная оплата |
-| `0000000000000000` | Отклонение платежа |
-
-**Срок:** любой будущий месяц/год  
-**CVV:** любые 3 цифры
-
-### 3. Локальное тестирование webhooks
-
-Используйте **ngrok** или **localtunnel** для туннелирования localhost:
-
+**3. Проверка webhooks вручную:**
 ```bash
-# Установка ngrok
-npm install -g ngrok
-
-# Запуск туннеля
-ngrok http 5000
-
-# Скопируйте HTTPS URL (например: https://abc123.ngrok.io)
-```
-
-Затем в настройках Robokassa укажите:
-```
-Result URL: https://abc123.ngrok.io/api/webhooks/robokassa/result
-Success URL: https://abc123.ngrok.io/api/webhooks/robokassa/success
-Fail URL: https://abc123.ngrok.io/api/webhooks/robokassa/fail
-```
-
-### 4. Проверка логов
-
-```bash
-# Проверяйте логи сервера при получении webhooks
-npm run dev
-
-# Логи успешной оплаты:
-✅ Robokassa result webhook received: { OutSum: '990.00', InvId: 'sub_...' }
-✅ Payment updated: paid
-✅ Subscription activated
-💰 Awarded 100 points to user
+# Эмуляция успешного платежа
+curl -X POST http://localhost:5000/api/webhooks/robokassa/result \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "OutSum=999.00&InvId=TEST-123&SignatureValue=$(echo -n '999.00:TEST-123:test456' | md5sum | cut -d' ' -f1)"
 ```
 
 ---
 
-## Безопасность
+### Логирование
 
-### 1. Проверка подписи
-
-**ВСЕГДА** проверяйте подпись webhook:
+**Включить debug логи:**
 ```typescript
-const parsedData = robokassaClient.parseWebhookData(webhookData);
-if (!parsedData || !parsedData.isValid) {
-  return res.status(400).send('Invalid signature');
-}
+console.log('🔵 Robokassa: Creating payment URL', { invoiceId, amount });
+console.log('✅ Robokassa: Webhook received', { OutSum, InvId });
+console.log('❌ Robokassa: Invalid signature', { expected, received });
 ```
 
-### 2. Хранение паролей
-
-- ❌ **НЕ КОММИТЬТЕ** пароли в Git
-- ✅ Используйте `.env` файл (добавлен в `.gitignore`)
-- ✅ Используйте Replit Secrets для production
-
-### 3. HTTPS обязателен
-
-Robokassa отправляет webhooks **только на HTTPS** (порт 443):
-- ✅ Production должен быть на HTTPS
-- ✅ Для локальной разработки используйте ngrok
-
-### 4. Идемпотентность webhooks
-
-Robokassa может отправить один webhook **несколько раз**:
-```typescript
-// Проверяем, не обработан ли платеж уже
-if (payment.status === 'paid') {
-  console.log('Payment already processed');
-  return res.send('OK'); // Все равно отвечаем OK
-}
-```
-
-### 5. Timeout защита
-
-Webhook должен ответить в течение **30 секунд**:
-```typescript
-// Обрабатываем быстро, тяжелые операции - в фоне
-res.send('OK'); // Сначала отвечаем
-
-// Затем выполняем дополнительные действия
-await sendEmailNotification(user);
+**Проверить логи в Replit:**
+```bash
+# В Replit Console смотреть на:
+[express] POST /api/webhooks/robokassa/result 200
+✅ Payment completed: ORDER-12345
 ```
 
 ---
 
-## Частые проблемы и решения
+## 🚀 PRODUCTION ДЕПЛОЙ
 
-### Проблема: Webhook не приходят
+### Чеклист перед запуском
 
-**Решения:**
-1. Проверьте URL в настройках Robokassa (должен быть HTTPS)
-2. Убедитесь, что порт 443 открыт
-3. Проверьте логи сервера на ошибки
-4. Используйте ngrok для локальной разработки
+- [ ] `ROBOKASSA_TEST_MODE=false` установлено
+- [ ] Production пароли настроены
+- [ ] `APP_URL` указывает на production домен
+- [ ] Webhook URLs настроены в кабинете Robokassa
+- [ ] Тестовый платеж проведен успешно
+- [ ] Логи проверены на наличие ошибок
+
+### Проверка после деплоя
+
+**1. Проверить доступность webhooks:**
+```bash
+curl -I https://your-app.replit.app/api/webhooks/robokassa/result
+# Должно вернуть: HTTP/1.1 200 OK или 400 Bad Request (но НЕ 404!)
+```
+
+**2. Создать реальный платеж:**
+```bash
+# В приложении создать подписку
+# Проверить, что:
+- Платежная ссылка открывается
+- После оплаты redirect работает
+- Webhook получен (проверить логи)
+- Подписка активирована в БД
+```
+
+**3. Мониторинг:**
+```bash
+# Следить за логами:
+[express] POST /api/webhooks/robokassa/result 200
+✅ Payment completed: ORDER-12345
+✅ Subscription activated: SUB-456
+```
+
+---
+
+## 🔧 TROUBLESHOOTING
+
+### Проблема: Webhook не приходит
+
+**Причина 1: Неправильный URL**
+```bash
+# Проверить
+curl -X POST https://your-app.replit.app/api/webhooks/robokassa/result
+
+# Если 404 - URL неправильный, должен быть /api/webhooks/robokassa/*
+```
+
+**Причина 2: APP_URL не совпадает**
+```bash
+# В .env проверить:
+APP_URL=https://your-app.replit.app  # БЕЗ слэша в конце!
+```
+
+**Причина 3: Robokassa ждет GET, а endpoint принимает POST**
+```typescript
+// Должно быть POST
+app.post('/api/webhooks/robokassa/result', ...);
+```
+
+---
 
 ### Проблема: Invalid signature
 
-**Решения:**
-1. Проверьте, что используете правильный `ROBOKASSA_PASSWORD_2`
-2. Убедитесь, что в Robokassa установлен алгоритм **MD5**
-3. Проверьте, что тестовый режим соответствует `ROBOKASSA_TEST_MODE`
+**Причина 1: Неправильный пароль**
+```typescript
+// Проверить, что используется PASSWORD_2 для проверки результата
+const signature = crypto.createHash('md5')
+  .update(`${OutSum}:${InvId}:${PASSWORD_2}`) // ✅ PASSWORD_2
+  .digest('hex');
+```
 
-### Проблема: Recurring платежи не создаются
+**Причина 2: Формат суммы**
+```typescript
+// Должно быть с 2 знаками после запятой
+OutSum = "999.00"  // ✅
+OutSum = "999"     // ❌
+```
 
-**Решения:**
-1. Убедитесь, что в ЛК Robokassa включена функция Recurring
-2. Проверьте, что первый платеж был с `isRecurring: true`
-3. Проверьте, что `subscription.robokassaInvoiceId` сохранен
-
-### Проблема: Платеж создан, но подписка не активировалась
-
-**Решения:**
-1. Проверьте, что webhook `/api/webhooks/robokassa/result` отработал
-2. Посмотрите логи на ошибки обновления subscription
-3. Проверьте, что payment.subscriptionId корректный
-
----
-
-## Поддержка
-
-### Документация Robokassa
-- Официальная документация: https://docs.robokassa.ru/
-- API Reference: https://docs.robokassa.ru/partner-api/
-- Тестовый режим: https://docs.robokassa.ru/test-mode/
-
-### Техническая поддержка
-- Email: support@robokassa.ru
-- Телефон: 8 (800) 700-11-58
-- Telegram: @robokassa_support
-
-### Код проекта ResCrub
-- `server/robokassa.ts` - основная логика
-- `server/routes.ts` - webhook handlers
-- `server/subscription-manager.ts` - автопродление
-- `shared/schema.ts` - database schema
+**Причина 3: Регистр MD5**
+```typescript
+// Должно быть lowercase
+.digest('hex').toLowerCase() // ✅
+```
 
 ---
 
-## Чеклист запуска в production
+### Проблема: Recurring платеж не создается
 
-- [ ] Получены боевые пароли #1 и #2
-- [ ] Переменные окружения настроены (без TEST_MODE)
-- [ ] Result URL настроен на HTTPS домен
-- [ ] Success/Fail URL настроены
-- [ ] Алгоритм подписи: MD5
-- [ ] Метод отправки: POST
-- [ ] Кодировка: UTF-8
-- [ ] Включен Recurring (если нужны подписки)
-- [ ] Протестирована успешная оплата
-- [ ] Протестирован отказ в оплате
-- [ ] Протестировано автопродление (если используется)
-- [ ] Логирование webhooks работает
-- [ ] Проверка подписи активна
-- [ ] HTTPS сертификат валиден
-- [ ] Мониторинг ошибок настроен
+**Причина: PreviousInvoiceID в подписи**
+```typescript
+// ❌ НЕПРАВИЛЬНО
+const signature = createSignature(login, sum, invoiceId, { PreviousInvoiceID: '123' });
+
+// ✅ ПРАВИЛЬНО
+const signature = createSignature(login, sum, invoiceId); // Без PreviousInvoiceID!
+```
 
 ---
 
-**Готово!** Теперь интеграция Robokassa полностью настроена и готова к работе. 🚀
+## 📚 ДОПОЛНИТЕЛЬНЫЕ РЕСУРСЫ
+
+- **Документация Robokassa:** https://docs.robokassa.ru
+- **Тестовый кабинет:** https://merchant.robokassa.ru
+- **Техподдержка:** support@robokassa.ru
+- **Телефон:** 8-800-500-44-55
+
+---
+
+## ✅ ИТОГОВЫЙ CHECKLIST
+
+### Настройка
+- [ ] Зарегистрирован магазин в Robokassa
+- [ ] Получены Password #1 и Password #2
+- [ ] Настроены webhook URLs в кабинете
+- [ ] Environment variables настроены
+
+### Код
+- [ ] RobokassaClient реализован
+- [ ] Webhook endpoints созданы
+- [ ] Подпись MD5 корректная
+- [ ] Recurring payments поддерживаются
+
+### Тестирование
+- [ ] Тестовый платеж проведен
+- [ ] Webhooks получены
+- [ ] Логи проверены
+- [ ] Подписка активирована
+
+### Production
+- [ ] `ROBOKASSA_TEST_MODE=false`
+- [ ] Production пароли установлены
+- [ ] `APP_URL` корректный
+- [ ] Мониторинг настроен
+
+---
+
+**🎉 Готово! Robokassa полностью интегрирована!**
+
+---
+
+## 📝 История изменений
+
+- **2025-10-29**: Создана полная инструкция с учетом всех проблем при интеграции
+- Исправлены критические ошибки с webhook URLs
+- Добавлены детальные объяснения работы с Password #1 и Password #2
+- Описаны все подводные камни при работе с recurring платежами
