@@ -553,6 +553,71 @@ export class DecisionEngine {
   }
 
   /**
+   * Анализ собранных доказательств для принятия решения
+   */
+  private async analyzeCollectedEvidence(requestId: string): Promise<DecisionContext['evidence']> {
+    const defaultEvidence: DecisionContext['evidence'] = {
+      collected: false,
+      chainLength: 0,
+      integrityVerified: false,
+      types: [],
+      criticalEvidenceCount: 0,
+      qualityScore: 0,
+      legalStrength: 'LOW',
+      violationEvidenceCount: 0,
+      emailResponseEvidenceCount: 0,
+      operatorRefusalEvidenceCount: 0,
+      legalBasisInvalidCount: 0,
+    };
+
+    try {
+      const evidenceList = await storage.getEvidenceCollectionByRequestId(requestId);
+      if (!evidenceList || evidenceList.length === 0) {
+        return defaultEvidence;
+      }
+
+      const types = [...new Set(evidenceList.map(e => e.evidenceType))];
+      const violationCount = evidenceList.filter(e => e.evidenceType === 'VIOLATION_DETECTED').length;
+      const emailResponseCount = evidenceList.filter(e => e.evidenceType === 'EMAIL_RESPONSE').length;
+      const refusalCount = evidenceList.filter(e => e.evidenceType === 'OPERATOR_REFUSAL').length;
+      const legalBasisInvalid = evidenceList.filter(e => e.evidenceType === 'LEGAL_BASIS_INVALID').length;
+      const criticalCount = violationCount + refusalCount + legalBasisInvalid;
+
+      let qualityScore = Math.min(100, evidenceList.length * 15);
+      let legalStrength: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
+      if (criticalCount >= 3) legalStrength = 'CRITICAL';
+      else if (criticalCount >= 2) legalStrength = 'HIGH';
+      else if (evidenceList.length >= 3) legalStrength = 'MEDIUM';
+
+      let integrityVerified = true;
+      try {
+        const chainIntegrity = await this.evidenceCollector.verifyChainIntegrity(requestId);
+        integrityVerified = chainIntegrity.isValid;
+        if (integrityVerified) qualityScore = Math.min(100, qualityScore + 10);
+      } catch {
+        integrityVerified = false;
+      }
+
+      return {
+        collected: true,
+        chainLength: evidenceList.length,
+        integrityVerified,
+        types,
+        criticalEvidenceCount: criticalCount,
+        qualityScore,
+        legalStrength,
+        violationEvidenceCount: violationCount,
+        emailResponseEvidenceCount: emailResponseCount,
+        operatorRefusalEvidenceCount: refusalCount,
+        legalBasisInvalidCount: legalBasisInvalid,
+      };
+    } catch (error) {
+      console.error(`Error analyzing evidence for request ${requestId}:`, error);
+      return defaultEvidence;
+    }
+  }
+
+  /**
    * Применение правил принятия решений
    */
   private async applyDecisionRules(context: DecisionContext): Promise<{

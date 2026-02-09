@@ -177,35 +177,39 @@ app.use((req, res, next) => {
     // Seed subscription plans
     await storage.seedSubscriptionPlans();
     
-    // Start subscription manager for recurring payments
-    console.log('🚀 Initializing subscription manager...');
-    subscriptionManager.start();
+    // Stagger background service starts to avoid overloading at startup
+    // Each service gets a delay so they don't all compete for DB/network at once
     
-    // Start email automation scheduler for deletion request follow-ups and escalations
-    console.log('📧 Initializing email automation scheduler...');
-    emailAutomationScheduler.start();
-    console.log('✅ Email automation scheduler started successfully (ФЗ-152 compliance)');
+    setTimeout(() => {
+      console.log('🚀 Initializing subscription manager...');
+      subscriptionManager.start();
+    }, 10_000); // 10s after startup
     
-    // Initialize and start blog scheduler for automatic article generation
-    if (process.env.OPENAI_API_KEY && !SchedulerInstance.isInitialized()) {
-      console.log('🤖 Initializing blog scheduler...');
-      const blogGenerator = new BlogGeneratorService(storage);
-      const blogScheduler = new BlogScheduler(blogGenerator, storage, 30); // Check every 30 minutes
-      
-      // Store instance for API access
-      SchedulerInstance.set(blogScheduler);
-      
-      blogScheduler.start();
-      console.log('✅ Blog scheduler started successfully');
-    } else if (process.env.OPENAI_API_KEY) {
-      console.log('ℹ️ Blog scheduler already initialized, skipping');
-    } else {
-      console.log('⚠️ Blog scheduler disabled: OPENAI_API_KEY not found');
-    }
+    setTimeout(() => {
+      console.log('📧 Initializing email automation scheduler...');
+      emailAutomationScheduler.start();
+      console.log('✅ Email automation scheduler started successfully (ФЗ-152 compliance)');
+    }, 30_000); // 30s after startup
     
-    // Start automatic health checks for system monitoring
-    console.log('🏥 Starting system health monitoring service...');
-    healthCheckService.start();
-    console.log('✅ Health check service started successfully');
+    setTimeout(() => {
+      if (process.env.OPENAI_API_KEY && !SchedulerInstance.isInitialized()) {
+        console.log('🤖 Initializing blog scheduler...');
+        const blogGenerator = new BlogGeneratorService(storage);
+        const blogScheduler = new BlogScheduler(blogGenerator, storage, 30);
+        SchedulerInstance.set(blogScheduler);
+        blogScheduler.start();
+        console.log('✅ Blog scheduler started successfully');
+      } else if (process.env.OPENAI_API_KEY) {
+        console.log('ℹ️ Blog scheduler already initialized, skipping');
+      } else {
+        console.log('⚠️ Blog scheduler disabled: OPENAI_API_KEY not found');
+      }
+    }, 45_000); // 45s after startup
+    
+    setTimeout(() => {
+      console.log('🏥 Starting system health monitoring service...');
+      healthCheckService.start();
+      console.log('✅ Health check service started successfully');
+    }, 60_000); // 60s after startup
   });
 })();
