@@ -135,6 +135,15 @@ export default function Footer() {
                     </Link>
                   </li>
                   <li>
+                    <Link 
+                      href="/security" 
+                      className="text-sm leading-6 text-muted-foreground hover:text-foreground"
+                      data-testid="link-footer-security"
+                    >
+                      Безопасность
+                    </Link>
+                  </li>
+                  <li>
                     <button
                       onClick={() => setIsConsentModalOpen(true)}
                       className="text-sm leading-6 text-muted-foreground hover:text-foreground text-left"

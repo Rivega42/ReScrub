@@ -24,6 +24,7 @@ const Support = lazy(() => import("@/pages/Support"));
 const Contacts = lazy(() => import("@/pages/Contacts"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
+const Security = lazy(() => import("@/pages/Security"));
 const InvitePage = lazy(() => import("@/pages/InvitePage"));
 
 // Тяжелые статичные страницы
@@ -190,6 +191,11 @@ function Router() {
       <Route path="/terms">
         <Suspense fallback={<PageLoadingFallback />}>
           <Terms />
+        </Suspense>
+      </Route>
+      <Route path="/security">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <Security />
         </Suspense>
       </Route>
       <Route path="/whitepaper">
