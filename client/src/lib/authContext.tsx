@@ -41,7 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error,
     refetch: refetchUser 
   } = useQuery({
-    queryKey: ['/api/auth/me'],
+    queryKey: ['/api/v1/auth/me'],
+    queryFn: async () => { try { const res = await fetch('/api/v1/auth/me', { credentials: 'include', headers: { Authorization: 'Bearer ' + (localStorage.getItem('token') || '') } }); if (!res.ok) return null; const data = await res.json(); return data; } catch { return null; } },
     enabled: true,
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       try {
-        const data = await apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
+        const data = await apiRequest('/api/v1/auth/login', { method: 'POST', body: { email, password } });
         
         if (!data.success) {
           throw new Error(data.message || 'Ошибка входа');
@@ -92,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onSuccess: async () => {
       // Force immediate refetch and wait for it to complete
-      await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/v1/auth/me'] });
       await refetchUser();
     },
   });
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       try {
-        const data = await apiRequest('/api/auth/register', { method: 'POST', body: { email, password } });
+        const data = await apiRequest('/api/v1/auth/register', { method: 'POST', body: { email, password } });
         
         if (!data.success) {
           throw new Error(data.message || 'Ошибка регистрации');
@@ -135,12 +136,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const data = await apiRequest('/api/auth/logout', { method: 'POST' });
+      const data = await apiRequest('/api/v1/auth/logout', { method: 'POST' });
       return data;
     },
     onSuccess: () => {
       queryClient.clear();
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/auth/me'] });
     },
   });
 
@@ -156,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/auth/me'] });
     },
   });
 
