@@ -125,6 +125,7 @@ const FeatureSmartHome = lazy(() => import("@/pages/features/SmartHome"));
 const FeatureMobileApp = lazy(() => import("@/pages/features/MobileApp"));
 const FeatureCrossSkillEcosystem = lazy(() => import("@/pages/features/CrossSkillEcosystem"));
 const FeatureA2aProtocol = lazy(() => import("@/pages/features/A2aProtocol"));
+const FeaturePersonalOS = lazy(() => import("./pages/features/PersonalOS"));
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -407,6 +408,11 @@ function Router() {
       <Route path="/features/a2a-protocol">
         <Suspense fallback={<PageLoadingFallback />}>
           <FeatureA2aProtocol />
+        </Suspense>
+      </Route>
+      <Route path="/features/personal-os">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeaturePersonalOS />
         </Suspense>
       </Route>
       <Route path="/business/pricing">
