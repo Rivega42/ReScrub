@@ -29,19 +29,19 @@ export default function BusinessSupport() {
     <div className="min-h-screen bg-background">
       <BusinessSEO 
         title="Техническая поддержка — GrandHub Business"
-        description="Профессиональная техническая поддержка GrandHub Business 24/7. Помощь в настройке 152фз решений, консультации экспертов, документация и обучение."
+        description="Профессиональная техническая поддержка GrandHub Business 24/7. Помощь в настройке AI-ассистент решений, консультации экспертов, документация и обучение."
         pageCategory="contact"
         neuralSignals={{
-          primaryKeywords: ['техническая поддержка 152фз', 'помощь настройка персональные данные', 'консультации юриста 152фз'],
+          primaryKeywords: ['поддержка AI-автоматизации', 'помощь настройка AI-ассистента', 'консультации по AI-интеграции'],
           searchIntent: 'informational',
           contentDepth: 'comprehensive',
           expertiseLevel: 8
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['техническая поддержка для предприятий 152фз', 'консультации по 152фз для предприятий', 'помощь внедрение защиты данных в бизнес'],
-            semantic: ['корпоративная техподдержка', 'обучение сотрудников защите данных', 'DPO услуги для организаций'],
-            longTail: ['консультации по 152фз для предприятий и корпоративных клиентов']
+            primary: ['поддержка AI-платформы для предприятий', 'консультации по GrandHub для компаний', 'помощь с внедрением AI в бизнес'],
+            semantic: ['корпоративная поддержка GrandHub', 'обучение работе с AI-платформой', 'AI-консультирование для организаций'],
+            longTail: ['консультации по GrandHub для компаний и корпоративных клиентов']
           }
         }}
       />
@@ -59,7 +59,7 @@ export default function BusinessSupport() {
                   Поддержка 24/7
                 </Badge>
                 <Badge variant="secondary">
-                  Эксперты 152фз
+                  Эксперты AI-ассистент
                 </Badge>
               </div>
               
@@ -69,8 +69,8 @@ export default function BusinessSupport() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Профессиональная поддержка от экспертов по защите персональных данных. 
-                Помогаем решить любые вопросы по 152фз и настройке наших решений.
+                Профессиональная поддержка от экспертов по защите бизнес-процессов. 
+                Помогаем решить любые вопросы по AI-ассистент и настройке наших решений.
               </p>
               
               <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">
@@ -178,7 +178,7 @@ export default function BusinessSupport() {
                 Часто задаваемые вопросы
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Ответы на самые популярные вопросы о 152фз и наших решениях
+                Ответы на самые популярные вопросы о AI-ассистент и наших решениях
               </p>
             </div>
 
@@ -208,11 +208,11 @@ export default function BusinessSupport() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-2">
-                      Соответствуют ли ваши решения требованиям 152фз?
+                      Соответствуют ли ваши решения требованиям AI-ассистент?
                     </h3>
                     <p className="text-muted-foreground">
                       Да, все наши решения полностью соответствуют требованиям Федерального закона 
-                      №152фз "О персональных данных". Мы регулярно обновляем продукты в соответствии 
+                      №AI-ассистент "О бизнес-процессов". Мы регулярно обновляем продукты в соответствии 
                       с изменениями в законодательстве и получили экспертные заключения от юристов.
                     </p>
                   </div>
@@ -248,7 +248,7 @@ export default function BusinessSupport() {
                     </h3>
                     <p className="text-muted-foreground">
                       Да, мы проводим онлайн-обучение для ваших сотрудников по работе с нашими 
-                      системами и требованиям 152фз. Также предоставляем подробную документацию, 
+                      системами и требованиям AI-ассистент. Также предоставляем подробную документацию, 
                       видеоинструкции и проводим индивидуальные консультации.
                     </p>
                   </div>
@@ -336,7 +336,7 @@ export default function BusinessSupport() {
                 </div>
                 <p className="text-muted-foreground">
                   Обучающие статьи, видеоуроки и лучшие практики по защите 
-                  персональных данных и соблюдению 152фз.
+                  бизнес-процессов и соблюдению AI-ассистент.
                 </p>
                 <div className="flex items-center gap-2 mt-4 text-primary">
                   <span className="text-sm font-medium">Перейти к материалам</span>
@@ -355,7 +355,7 @@ export default function BusinessSupport() {
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
               Наши эксперты помогут выбрать оптимальное решение для вашего бизнеса 
-              и ответят на все вопросы по 152фз
+              и ответят на все вопросы по AI-ассистент
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Button size="lg" className="gap-2" data-testid="button-support-consultation">

@@ -1,14 +1,13 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Shield, Users, Zap, Lock, Award, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageCircle, Users, Zap, Lock, Award, Globe, Brain } from "lucide-react";
 
 export default function About() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
       <main className="pt-16">
-        {/* Hero Section */}
         <section className="py-24 sm:py-32">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
@@ -16,14 +15,13 @@ export default function About() {
                 О GrandHub
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Мы защищаем персональные данные россиян в соответствии с 152-ФЗ, 
-                автоматически удаляя информацию с сайтов брокеров данных.
+                Мы создаём первый персональный AI-помощник для жизни в России —
+                тот, который знает тебя, а не просто отвечает на вопросы.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Mission Section */}
         <section className="py-24 sm:py-32 bg-muted/30">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl lg:text-center">
@@ -31,62 +29,59 @@ export default function About() {
                 Наша миссия
               </h2>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Каждый россиянин имеет право на защиту своих персональных данных. 
-                Мы делаем эту защиту простой, автоматической и эффективной.
+                ChatGPT знает всё. Но он не знает тебя, твои цели, твою семью, твой контекст.
+                GrandHub — это разница между энциклопедией и личным помощником. Мы строим второе.
               </p>
             </div>
-            
+
             <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
               <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
                 <div className="relative pl-16">
                   <dt className="text-base font-semibold leading-7 text-foreground">
                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                      <Shield className="h-6 w-6 text-primary-foreground" />
+                      <Brain className="h-6 w-6 text-primary-foreground" />
                     </div>
-                    Соответствие 152-ФЗ
+                    Персонализация как основа
                   </dt>
                   <dd className="mt-2 text-base leading-7 text-muted-foreground">
-                    Полное соблюдение российского законодательства о персональных данных. 
-                    Работаем в правовом поле РФ.
+                    GrandHub запоминает тебя. С каждым запросом помощник становится умнее
+                    и точнее — как настоящий ассистент, который работает с тобой годами.
                   </dd>
                 </div>
-
                 <div className="relative pl-16">
                   <dt className="text-base font-semibold leading-7 text-foreground">
                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                       <Zap className="h-6 w-6 text-primary-foreground" />
                     </div>
-                    Автоматизация
+                    Удобство в России
                   </dt>
                   <dd className="mt-2 text-base leading-7 text-muted-foreground">
-                    Автоматический поиск и удаление данных с сотен сайтов брокеров. 
-                    Без необходимости ручной работы.
+                    Российские сервисы, цены в рублях, понимание местного контекста.
+                    Не адаптация западного продукта, а создание нового — для России.
                   </dd>
                 </div>
-
                 <div className="relative pl-16">
                   <dt className="text-base font-semibold leading-7 text-foreground">
                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                       <Lock className="h-6 w-6 text-primary-foreground" />
                     </div>
-                    Безопасность
+                    Безопасность данных
                   </dt>
                   <dd className="mt-2 text-base leading-7 text-muted-foreground">
-                    Высокие стандарты безопасности данных. Мы не храним ваши персональные 
-                    данные дольше необходимого.
+                    Твои данные остаются твоими. Мы не продаём профили, не используем данные
+                    для рекламы — только для улучшения твоего опыта.
                   </dd>
                 </div>
-
                 <div className="relative pl-16">
                   <dt className="text-base font-semibold leading-7 text-foreground">
                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                       <Globe className="h-6 w-6 text-primary-foreground" />
                     </div>
-                    Российский сервис
+                    Экосистема навыков
                   </dt>
                   <dd className="mt-2 text-base leading-7 text-muted-foreground">
-                    Разработано в России, для россиян. Понимаем специфику российского 
-                    интернета и законодательства.
+                    12 специализированных навыков — от финансов до Trading Hub.
+                    Каждый навык усиливает другие, создавая синергию для твоей жизни.
                   </dd>
                 </div>
               </dl>
@@ -94,54 +89,49 @@ export default function About() {
           </div>
         </section>
 
-        {/* Team Section */}
         <section className="py-24 sm:py-32">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Команда экспертов
+                Команда
               </h2>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Наша команда состоит из специалистов по кибербезопасности, юристов 
-                и разработчиков с многолетним опытом в области защиты данных.
+                Основатели, разработчики и продуктовые дизайнеры — люди, которые сами
+                устали от неудобных AI-инструментов и решили создать то, что нужно на самом деле.
               </p>
             </div>
-
             <div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
               <div className="bg-card rounded-lg border border-border p-8 shadow-sm">
                 <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary mb-4">
                   <Users className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Кибербезопасность</h3>
+                <h3 className="text-lg font-semibold text-foreground">Продукт и AI</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Специалисты с опытом работы в ведущих ИБ-компаниях России
+                  Команда продакт-менеджеров и AI-инженеров с опытом в Яндексе, VK и стартапах
                 </p>
               </div>
-
               <div className="bg-card rounded-lg border border-border p-8 shadow-sm">
                 <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary mb-4">
                   <Award className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">Юридическая экспертиза</h3>
+                <h3 className="text-lg font-semibold text-foreground">Trading Hub</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Юристы, специализирующиеся на 152-ФЗ и защите персональных данных
+                  Эксперты по тендерам и аукционам с 10+ годами опыта в B2B-торговле
                 </p>
               </div>
-
               <div className="bg-card rounded-lg border border-border p-8 shadow-sm">
                 <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary mb-4">
                   <Zap className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Разработка</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Инженеры, создающие надежные и масштабируемые решения
+                  Full-stack команда, строящая надёжную и масштабируемую платформу для России
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Values Section */}
         <section className="py-24 sm:py-32 bg-muted/30">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
@@ -149,30 +139,27 @@ export default function About() {
                 Наши принципы
               </h2>
             </div>
-
             <div className="mx-auto mt-16 max-w-2xl lg:max-w-4xl">
               <div className="space-y-8">
                 <div className="border-l-4 border-primary pl-6">
-                  <h3 className="text-lg font-semibold text-foreground">Прозрачность</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Память как суперсила</h3>
                   <p className="mt-2 text-muted-foreground">
-                    Мы открыто рассказываем о том, как работает наш сервис, 
-                    какие данные обрабатываем и как их защищаем.
+                    Мы верим, что настоящий помощник — тот, кто помнит тебя. Персонализация —
+                    наше конкурентное преимущество, не мощность модели.
                   </p>
                 </div>
-
                 <div className="border-l-4 border-primary pl-6">
-                  <h3 className="text-lg font-semibold text-foreground">Результативность</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Российский контекст</h3>
                   <p className="mt-2 text-muted-foreground">
-                    Мы измеряем успех количеством удаленных записей и уровнем 
-                    защищенности ваших данных.
+                    Мы строим продукт для жизни в России. Это не перевод американского продукта —
+                    это нативное решение для российских реалий.
                   </p>
                 </div>
-
                 <div className="border-l-4 border-primary pl-6">
-                  <h3 className="text-lg font-semibold text-foreground">Непрерывное развитие</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Экосистема, а не инструмент</h3>
                   <p className="mt-2 text-muted-foreground">
-                    Постоянно совершенствуем алгоритмы, добавляем новые источники 
-                    и улучшаем качество защиты.
+                    12 навыков — это единая экосистема. Финансы знают о твоих покупках,
+                    Коуч знает о твоём расписании, Trading Hub использует контекст всего профиля.
                   </p>
                 </div>
               </div>
@@ -180,29 +167,24 @@ export default function About() {
           </div>
         </section>
 
-        {/* CTA Section */}
         <section className="py-24 sm:py-32">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Готовы защитить свои данные?
+                Попробуй GrandHub сейчас
               </h2>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Начните с бесплатного пробного периода и убедитесь в эффективности нашего решения.
+                5 Pro-запросов бесплатно. Без регистрации. Прямо в Telegram.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
-                <a
-                  href="/reports"
-                  className="rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  data-testid="button-about-get-started"
-                >
-                  Начать защиту
+                <a href="https://t.me/Grandhub_bot" target="_blank" rel="noopener noreferrer"
+                   className="rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/80"
+                   data-testid="button-about-get-started">
+                  <MessageCircle className="inline mr-2 h-4 w-4" />
+                  Открыть @Grandhub_bot
                 </a>
-                <a 
-                  href="/contacts" 
-                  className="text-sm font-semibold leading-6 text-foreground hover:text-muted-foreground"
-                  data-testid="link-about-contacts"
-                >
+                <a href="/contacts" className="text-sm font-semibold leading-6 text-foreground hover:text-muted-foreground"
+                   data-testid="link-about-contacts">
                   Связаться с нами <span aria-hidden="true">→</span>
                 </a>
               </div>
@@ -210,7 +192,6 @@ export default function About() {
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );

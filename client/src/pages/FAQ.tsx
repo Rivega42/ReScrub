@@ -1,249 +1,156 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { HelpCircle, Shield, CreditCard, Phone } from "lucide-react";
+import { HelpCircle, MessageCircle, CreditCard, Brain } from "lucide-react";
 import { useEffect } from "react";
 
-interface FAQItem {
-  id: string;
-  question: string;
-  answer: string;
-}
+interface FAQItem { id: string; question: string; answer: string; }
 
 const faqData: FAQItem[] = [
   {
     id: "what-is-grandhub",
-    question: "Что такое GrandHub и как работает сервис?",
-    answer: `GrandHub — это автоматизированный сервис защиты персональных данных россиян в соответствии с 152-ФЗ "О персональных данных". 
+    question: "Что такое GrandHub и чем он отличается от ChatGPT?",
+    answer: `GrandHub — первый персональный AI-помощник для жизни в России. Принципиальное отличие от ChatGPT и других AI:
 
-Мы автоматически сканируем сотни российских и международных сайтов брокеров данных, находим вашу персональную информацию (ФИО, адреса, номера телефонов, email) и отправляем официальные запросы на удаление в соответствии с российским законодательством.
+ChatGPT знает всё в мире — но не знает тебя. GrandHub знает тебя — твои цели, привычки, семью, финансы, расписание.
 
-Процесс полностью автоматизирован — вы просто указываете свои данные, а мы берем на себя всю работу по их защите.`
+Конкретные отличия:
+• **Память**: GrandHub помнит твой контекст между сессиями
+• **12 навыков**: специализированные модули для каждой сферы жизни
+• **Российский контекст**: понимает российские реалии, работает с рублями и местными сервисами
+• **Trading Hub**: уникальная функция участия в аукционах и тендерах
+• **Telegram**: никаких новых приложений — всё в привычном мессенджере`
   },
   {
-    id: "law-152-fz",
-    question: "Как GrandHub соблюдает требования 152-ФЗ?",
-    answer: `Мы строго соблюдаем Федеральный закон №152-ФЗ "О персональных данных":
+    id: "how-to-start",
+    question: "Как начать пользоваться GrandHub?",
+    answer: `Начать проще простого — три шага:
 
-• **Согласие субъекта**: Работаем только с данными, на обработку которых вы дали согласие
-• **Минимизация данных**: Обрабатываем только необходимый минимум информации
-• **Безопасность**: Используем криптографическую защиту и не храним данные дольше необходимого
-• **Право на удаление**: Обеспечиваем ваше право на удаление персональных данных с сайтов третьих лиц
+1. Открой Telegram и найди @Grandhub_bot
+2. Нажми /start — авторизация через Telegram, без паролей
+3. Пройди онбординг (2 минуты) — расскажи боту о себе
 
-Наша деятельность не противоречит российскому законодательству — мы помогаем гражданам РФ реализовать свои права, предусмотренные 152-ФЗ.`
+Сразу после этого получишь:
+• 5 бесплатных Pro-запросов
+• 50 базовых запросов в месяц
+• Доступ к 3 навыкам на выбор
+
+Никакой кредитной карты на старте не нужно.`
   },
   {
-    id: "what-sites-supported",
-    question: "С каких сайтов GrandHub удаляет персональные данные?",
-    answer: `Мы работаем с широким спектром российских и международных источников:
+    id: "skills",
+    question: "Какие навыки есть в GrandHub?",
+    answer: `GrandHub включает 12 специализированных навыков:
 
-**Российские сайты и базы данных:**
-• Справочные сервисы (телефонные справочники, адресные базы)
-• Социальные сети и форумы
-• Объявления и доски объявлений
-• Открытые реестры и каталоги
+**Управление жизнью:**
+• Финансы — бюджет, расходы, накопления
+• Расписание — планирование дня, встречи, дедлайны
+• Семья — совместные задачи, напоминания, дети
 
-**Международные брокеры данных:**
-• Whitepages, Spokeo, BeenVerified
-• PeopleFinder, TruePeopleSearch
-• Radaris, MyLife, Intelius
+**Здоровье и саморазвитие:**
+• Здоровье — трекинг, напоминания о таблетках, советы
+• Женское здоровье — цикл, здоровье, self-care
+• Коуч — цели, привычки, мотивация
 
-Всего более 200+ источников, список постоянно обновляется. Полный перечень доступен в личном кабинете.`
+**Покупки и быт:**
+• Покупки — списки, сравнение цен, рекомендации
+• Подписки — контроль подписок, оптимизация
+• Умный дом — интеграции, сценарии, контроль
+
+**Торговля и возможности:**
+• Торговля — мониторинг цен, поставщики
+• Путешествия — планирование, маршруты, билеты
+• Trading Hub — аукционы, тендеры, AI-автоторг`
   },
   {
-    id: "how-long-process",
-    question: "Сколько времени занимает удаление данных?",
-    answer: `Процесс удаления зависит от конкретного сайта и может занимать:
+    id: "trading-hub",
+    question: "Что такое Trading Hub и как он работает?",
+    answer: `Trading Hub — уникальная киллер-фича GrandHub. Это AI-платформа для участия в аукционах, тендерах и B2B-торговле.
 
-**Быстрое удаление (1-7 дней):**
-• Сайты с автоматическим удалением
-• Зарубежные сервисы с четким процессом
+**Возможности Trading Hub:**
+• Мониторинг тендеров и аукционов в реальном времени
+• AI-автоторг — бот сам отслеживает торги и предлагает оптимальные ставки
+• Поиск поставщиков с лучшими ценами
+• Уведомления о новых возможностях по твоим параметрам
 
-**Стандартное удаление (2-4 недели):**
-• Большинство российских сайтов
-• Требуют ручной модерации запросов
+**Кто использует:**
+• Малый и средний бизнес
+• ИП и самозанятые
+• Менеджеры по закупкам
+• Продавцы на маркетплейсах
 
-**Сложные случаи (1-3 месяца):**
-• Сайты с требованием дополнительных документов
-• Арбитражные процедуры
-
-Мы ведем мониторинг и повторно отправляем запросы при необходимости.`
+Trading Hub доступен с тарифа Про.`
   },
   {
-    id: "pricing-plans",
-    question: "Сколько стоят услуги GrandHub?",
-    answer: `Мы предлагаем гибкие тарифные планы:
+    id: "pricing",
+    question: "Сколько стоит GrandHub?",
+    answer: `GrandHub предлагает 4 тарифа:
 
-**Базовый план — 1 990₽/месяц**
-• До 50 сайтов для сканирования
-• Ежемесячные отчеты
-• Email поддержка
+**Free — 0₽ навсегда**
+• 5 Pro-запросов + 50 базовых/мес
+• 3 навыка на выбор
+• Попробовать без риска
 
-**Стандартный план — 3 490₽/месяц**
-• До 150 сайтов
-• Еженедельные отчеты
-• Приоритетная поддержка
-• SMS уведомления
+**Старт — 990₽/мес (Early Bird: 790₽)**
+• 500 Pro-запросов + безлимит базовых
+• Все 12 навыков
+• Расширенная память
 
-**Премиум план — 5 990₽/месяц**
-• Более 200 сайтов
-• Ежедневный мониторинг
-• Персональный менеджер
-• Экстренное удаление
+**Про — 2490₽/мес**
+• Безлимит Pro-запросов
+• Trading Hub (аукционы, тендеры, AI-автоторг)
+• Семейный доступ до 3 человек
 
-`
+**Бизнес — 7990₽/мес**
+• До 10 пользователей
+• API-доступ
+• Корпоративный Trading Hub`
   },
   {
     id: "data-security",
     question: "Как обеспечивается безопасность моих данных?",
-    answer: `Безопасность ваших данных — наш приоритет:
+    answer: `Безопасность — наш приоритет:
 
-**Техническая защита:**
-• Шифрование данных AES-256
-• Защищенные каналы связи (TLS 1.3)
-• Двухфакторная аутентификация
+• Данные шифруются при передаче и хранении
+• Мы не продаём твои данные третьим лицам
+• Данные не используются для обучения общих моделей
+• Авторизация через Telegram — безопасна по умолчанию
+• Ты можешь запросить удаление всех своих данных в любое время
 
-**Организационные меры:**
-• Данные хранятся только в России
-• Минимальные права доступа сотрудников
-• Регулярные аудиты безопасности
-
-**Правовые гарантии:**
-• Удаление данных после завершения услуги
-• Отсутствие передачи данных третьим лицам
-• Соответствие требованиям 152-ФЗ
-
-Мы не используем ваши данные в коммерческих целях и не создаем профили пользователей.`
+GrandHub использует твои данные только чтобы лучше помогать тебе — и ни для чего другого.`
   },
   {
-    id: "payment-methods",
-    question: "Как происходит оплата услуг?",
-    answer: `Принимаем все основные способы оплаты в России:
+    id: "vs-competitors",
+    question: "Чем GrandHub лучше Алисы, GigaChat и YandexGPT?",
+    answer: `Честное сравнение:
 
-**Банковские карты:**
-• Visa, MasterCard (российские банки)
-• Мир
-• Все карты российских банков
+**Алиса (Яндекс):** Простые ответы на вопросы, нет памяти, нет персонализации, нет сложных задач.
 
-**Электронные кошельки:**
-• Яндекс.Деньги
-• QIWI
-• WebMoney
+**GigaChat (Сбер):** Корпоративный продукт, ориентирован на бизнес-интеграции, а не на личную жизнь.
 
-**Другие способы:**
-• Банковский перевод для юридических лиц
-• Наличные через терминалы
-• Сбербанк Онлайн
+**YandexGPT:** Мощный генератор текста, но нет персонального профиля и специализированных навыков жизни.
 
-Оплата защищена и происходит через сертифицированные платежные системы.`
+**ChatGPT:** Умнее всех, но не знает тебя, не адаптирован для России, платёж в долларах.
+
+**GrandHub:** Знает тебя. Российский. Специализированные навыки. Trading Hub. Telegram.`
   },
   {
-    id: "results-guarantee",
-    question: "Гарантируете ли вы результат удаления данных?",
-    answer: `Мы предоставляем максимальные гарантии в рамках действующего законодательства:
+    id: "support",
+    question: "Как связаться с поддержкой GrandHub?",
+    answer: `Несколько способов связи:
 
-**Что мы гарантируем:**
-• Отправку всех необходимых запросов на удаление
-• Соблюдение всех процедур и сроков
-• Предоставление детальных отчетов о проделанной работе
-• Повторную отправку запросов при необходимости
+• **Telegram:** @Grandhub_bot — написать /help внутри бота
+• **Email:** hello@grandhub.ru
+• **Сайт:** grandhub.ru/contacts
 
-**Прозрачная отчетность:**
-• Детальные отчеты о всех предпринятых действиях
-• Информация о статусе каждого запроса
-• Регулярные обновления о ходе работы`
+Время ответа:
+• В боте: обычно в течение нескольких часов
+• Email: до 24 часов в рабочие дни
+
+Поддержка ведётся на русском языке.`
   },
-  {
-    id: "roskomnadzor",
-    question: "Нужно ли обращаться в Роскомнадзор самостоятельно?",
-    answer: `В большинстве случаев обращение в Роскомнадзор не требуется:
-
-**Когда GrandHub справляется сам:**
-• Сайты соблюдают требования 152-ФЗ
-• Есть четкие процедуры удаления данных
-• Ответственные администраторы ресурсов
-
-**Когда может потребоваться Роскомнадзор:**
-• Отказ сайта удалить данные без уважительной причины
-• Нарушение сроков рассмотрения (более 30 дней)
-• Требование необоснованных документов
-
-При необходимости мы поможем подготовить обращение в Роскомнадзор и предоставим всю документацию о наших попытках урегулировать вопрос в досудебном порядке.`
-  },
-  {
-    id: "family-protection",
-    question: "Можно ли защитить данные всей семьи?",
-    answer: `Да, мы предлагаем семейные тарифы со скидками:
-
-**Семейный тариф:**
-• До 5 членов семьи в одной подписке
-• Скидка 30% от стоимости индивидуальных планов
-• Общий личный кабинет с раздельными отчетами
-
-**Защита детей:**
-• Особое внимание к данным несовершеннолетних
-• Уведомление родителей о всех операциях
-• Соблюдение требований к обработке детских данных
-
-**Корпоративные решения:**
-• Защита данных сотрудников
-• Групповые скидки от 10 человек
-• Корпоративная отчетность
-
-Для оформления семейного тарифа свяжитесь с нашей поддержкой.`
-  },
-  {
-    id: "monitoring-frequency",
-    question: "Как часто проводится мониторинг новых утечек данных?",
-    answer: `Частота мониторинга зависит от выбранного тарифа:
-
-**Непрерывный мониторинг:**
-• Автоматическое сканирование каждые 24 часа
-• Мгновенные уведомления о новых находках
-• Автоматическая отправка запросов на удаление
-
-**Источники новых данных:**
-• Новые брокеры данных
-• Утечки из взломанных баз
-• Социальные сети и публичные реестры
-• Рекламные и маркетинговые базы
-
-**Реагирование:**
-• Уведомление в течение 2 часов после обнаружения
-• Автоматическая инициация процедуры удаления
-• Детальная информация в личном кабинете
-
-Наши алгоритмы постоянно совершенствуются для выявления новых источников персональных данных.`
-  },
-  {
-    id: "support-contact",
-    question: "Как связаться с технической поддержкой?",
-    answer: `Мы предлагаем несколько каналов связи:
-
-**Основные каналы:**
-• **Email:** support@grandhub.ru (ответ в течение 4 часов)
-• **Телефон:** +7 (495) 123-45-67 (будни 9:00-21:00)
-• **Онлайн-чат:** доступен в личном кабинете
-• **Telegram:** @GrandHubSupport
-
-**Экстренная поддержка:**
-• Для премиум-клиентов: персональный менеджер
-• Экстренная линия: +7 (800) 555-01-23
-
-**Время ответа:**
-• Чат и телефон: мгновенно
-• Email: до 4 часов в рабочие дни
-• Сложные вопросы: до 24 часов
-
-Вся поддержка ведется на русском языке специалистами, знающими российское законодательство.`
-  }
 ];
 
 export default function FAQ() {
@@ -254,9 +161,7 @@ export default function FAQ() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
       <main className="pt-16">
-        {/* Hero Section */}
         <section className="py-24 sm:py-32">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
@@ -269,34 +174,27 @@ export default function FAQ() {
                 Часто задаваемые вопросы
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
-                Ответы на основные вопросы о защите персональных данных, 
-                152-ФЗ и работе сервиса GrandHub
+                Ответы на вопросы о GrandHub — первом персональном AI-помощнике для жизни в России
               </p>
             </div>
           </div>
         </section>
 
-        {/* FAQ Section */}
         <section className="pb-24 sm:pb-32">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <Accordion type="single" collapsible className="w-full space-y-4">
               {faqData.map((faq, index) => (
-                <AccordionItem 
-                  key={faq.id} 
-                  value={faq.id} 
+                <AccordionItem key={faq.id} value={faq.id}
                   className="bg-card rounded-lg border border-border shadow-sm px-6"
-                  data-testid={`faq-item-${index + 1}`}
-                >
-                  <AccordionTrigger 
+                  data-testid={`faq-item-${index + 1}`}>
+                  <AccordionTrigger
                     className="text-left text-base font-medium text-foreground hover:text-muted-foreground transition-colors py-6"
-                    data-testid={`faq-trigger-${index + 1}`}
-                  >
+                    data-testid={`faq-trigger-${index + 1}`}>
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent 
+                  <AccordionContent
                     className="text-muted-foreground leading-7 pb-6 whitespace-pre-line"
-                    data-testid={`faq-content-${index + 1}`}
-                  >
+                    data-testid={`faq-content-${index + 1}`}>
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -305,63 +203,44 @@ export default function FAQ() {
           </div>
         </section>
 
-        {/* Additional Help Section */}
         <section className="py-24 sm:py-32 bg-muted/30">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Нужна дополнительная помощь?
+                Нужна помощь?
               </h2>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Не нашли ответ на свой вопрос? Наша команда поддержки готова помочь вам
+                Не нашёл ответ? Напиши нам — отвечаем быстро.
               </p>
-              
-              <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Support Card */}
+              <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 mb-4">
-                    <Phone className="h-6 w-6 text-primary" />
+                    <MessageCircle className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Техническая поддержка</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Получите помощь от наших экспертов по любым вопросам
-                  </p>
-                  <a href="mailto:support@grandhub.ru">
-                    <Button variant="outline" size="sm" className="w-full" data-testid="button-contact-support">
-                      Связаться
-                    </Button>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Telegram-бот</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Напиши /help в боте</p>
+                  <a href="https://t.me/Grandhub_bot" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="w-full">@Grandhub_bot</Button>
                   </a>
                 </div>
-
-                {/* Pricing Card */}
                 <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 mb-4">
                     <CreditCard className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Тарифы и оплата</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Выберите подходящий тариф для защиты своих данных
-                  </p>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Тарифы</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Выбери подходящий план</p>
                   <Link href="/#pricing">
-                    <Button variant="outline" size="sm" className="w-full" data-testid="button-view-pricing">
-                      Посмотреть тарифы
-                    </Button>
+                    <Button variant="outline" size="sm" className="w-full">Посмотреть тарифы</Button>
                   </Link>
                 </div>
-
-                {/* About Card */}
                 <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 mb-4">
-                    <Shield className="h-6 w-6 text-primary" />
+                    <Brain className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">О сервисе</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Узнайте больше о нашей миссии и принципах работы
-                  </p>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">О продукте</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Подробнее о GrandHub</p>
                   <Link href="/about">
-                    <Button variant="outline" size="sm" className="w-full" data-testid="button-learn-more">
-                      Узнать больше
-                    </Button>
+                    <Button variant="outline" size="sm" className="w-full">Узнать больше</Button>
                   </Link>
                 </div>
               </div>
@@ -369,33 +248,28 @@ export default function FAQ() {
           </div>
         </section>
 
-        {/* CTA Section */}
         <section className="py-24 sm:py-32">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Готовы защитить свои данные?
-              </h2>
-              <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Начните защиту своих персональных данных с помощью нашего сервиса
-              </p>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link href="/reports">
-                  <Button size="lg" data-testid="button-start-protection">
-                    Начать защиту
-                  </Button>
-                </Link>
-                <Link href="/about">
-                  <Button variant="outline" size="lg" data-testid="button-learn-more-cta">
-                    Узнать больше
-                  </Button>
-                </Link>
-              </div>
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Попробуй GrandHub бесплатно
+            </h2>
+            <p className="mt-6 text-lg leading-8 text-muted-foreground">
+              5 Pro-запросов без оплаты. Просто открой бот.
+            </p>
+            <div className="mt-10 flex items-center justify-center gap-x-6">
+              <a href="https://t.me/Grandhub_bot" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" data-testid="button-start-protection">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Открыть @Grandhub_bot
+                </Button>
+              </a>
+              <Link href="/about">
+                <Button variant="outline" size="lg">Узнать больше</Button>
+              </Link>
             </div>
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );

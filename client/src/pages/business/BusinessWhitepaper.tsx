@@ -28,21 +28,21 @@ export default function BusinessWhitepaper() {
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
         title="Техническая документация — GrandHub Business Platform"
-        description="Подробная техническая документация платформы GrandHub Business. Архитектура защиты данных, алгоритмы атомаризации, API спецификации и руководства по интеграции для разработчиков."
+        description="Подробная техническая документация платформы GrandHub Business. Архитектура защиты данных, алгоритмы AI-аналитикии, API спецификации и руководства по интеграции для разработчиков."
         author="GrandHub Technical Team"
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
-          primaryKeywords: ['техническая документация защита данных', 'архитектура атомаризации данных', 'API спецификация 152фз'],
+          primaryKeywords: ['техническая документация AI-автоматизация', 'архитектура AI-аналитикии данных', 'API спецификация AI-платформа'],
           searchIntent: 'informational',
           contentDepth: 'expert',
           expertiseLevel: 10
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['техническая документация для корпоративных клиентов', 'архитектура защиты данных предприятий', 'whitepaper enterprise атомаризация'],
-            semantic: ['корпоративная техническая документация', 'enterprise архитектура безопасности', 'бизнес документация 152фз'],
-            longTail: ['техническая документация корпоративной системы защиты персональных данных для разработчиков предприятий']
+            primary: ['техническая документация для корпоративных клиентов', 'архитектура защиты данных предприятий', 'whitepaper enterprise AI-аналитикия'],
+            semantic: ['корпоративная техническая документация', 'enterprise архитектура безопасности', 'бизнес документация AI-платформа'],
+            longTail: ['техническая документация корпоративной системы защиты бизнес-данных для разработчиков предприятий']
           }
         }}
         botHints={{
@@ -84,8 +84,8 @@ export default function BusinessWhitepaper() {
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Техническая документация и архитектурный обзор платформы корпоративной 
-                  защиты персональных данных. Подробное описание технологий атомаризации, 
-                  криптографических алгоритмов и методов обеспечения compliance с 152фз.
+                  защиты бизнес-данных. Подробное описание технологий AI-аналитикии, 
+                  криптографических алгоритмов и методов обеспечения автоматизация с AI-платформа.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -124,7 +124,7 @@ export default function BusinessWhitepaper() {
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="w-8 text-muted-foreground">3.</span>
-                      <span>Технология атомаризации</span>
+                      <span>Технология AI-аналитикии</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="w-8 text-muted-foreground">4.</span>
@@ -140,7 +140,7 @@ export default function BusinessWhitepaper() {
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="w-8 text-muted-foreground">7.</span>
-                      <span>Соответствие 152фз</span>
+                      <span>Соответствие AI-платформа</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="w-8 text-muted-foreground">8.</span>
@@ -181,7 +181,7 @@ export default function BusinessWhitepaper() {
                       <Database className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle>Атомаризация данных</CardTitle>
+                      <CardTitle>AI-аналитикия данных</CardTitle>
                       <Badge variant="secondary" className="mt-1">Глава 3</Badge>
                     </div>
                   </div>
@@ -295,7 +295,7 @@ export default function BusinessWhitepaper() {
                       </h3>
                       <p className="mt-2 text-muted-foreground">
                         OpenAPI 3.0 спецификация с полным покрытием всех endpoints 
-                        для управления согласиями, атомаризации и мониторинга.
+                        для управления согласиями, AI-аналитикии и мониторинга.
                       </p>
                     </div>
                   </div>
@@ -350,7 +350,7 @@ export default function BusinessWhitepaper() {
                   <CardHeader>
                     <CardTitle>Пример API запроса</CardTitle>
                     <CardDescription>
-                      Атомаризация персональных данных через REST API
+                      AI-аналитикия бизнес-данных через REST API
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -367,7 +367,7 @@ export default function BusinessWhitepaper() {
     "address": "Москва, ул. Тверская, 1"
   },
   "retention_policy": "7_years",
-  "compliance": ["152FZ", "GDPR"],
+  "автоматизация": ["152FZ", "GDPR"],
   "distribution_zones": ["ru-central", "ru-west"]
 }`}
                           </code>
@@ -385,7 +385,7 @@ export default function BusinessWhitepaper() {
   "fragments_count": 256,
   "storage_nodes": ["node-1", "node-2", "node-3"],
   "encryption_keys": "*** HIDDEN ***",
-  "compliance_score": 100,
+  "автоматизация_score": 100,
   "estimated_retrieval_time": "< 500ms"
 }`}
                           </code>
@@ -399,7 +399,7 @@ export default function BusinessWhitepaper() {
           </div>
         </section>
 
-        {/* Compliance Section */}
+        {/* Автоматизация Section */}
         <section className="py-16 lg:py-24 bg-muted/30">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
@@ -421,7 +421,7 @@ export default function BusinessWhitepaper() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span>152фз о персональных данных</span>
+                    <span>AI-платформа о бизнес-данных</span>
                     <Badge variant="default">✓ Полное соответствие</Badge>
                   </div>
                   <div className="flex justify-between items-center">
@@ -429,7 +429,7 @@ export default function BusinessWhitepaper() {
                     <Badge variant="default">✓ Сертифицировано</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>Требования ФСТЭК России</span>
+                    <span>Требования Битрикс24 России</span>
                     <Badge variant="default">✓ Соответствует</Badge>
                   </div>
                   <div className="flex justify-between items-center">

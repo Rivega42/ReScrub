@@ -25,13 +25,13 @@ export default function BusinessConsent() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Корпоративный виджет согласий 152фз — GrandHub Business"
-        description="Виджет согласий для бизнеса: автоматизация сбора согласий на обработку персональных данных согласно 152фз. Корпоративный consent management, API интеграция для предприятий."
+        title="Корпоративный виджет согласий AI-ассистент — GrandHub Business"
+        description="AI-ассистент для автоматизации работы с клиентами и сотрудниками. Чат-бот в Telegram и на сайте, интеграция с CRM и 1С для российских компаний."
         productType="consent"
         productData={{
-          name: "Виджет согласий 152фз",
-          description: "Готовое решение для автоматизации сбора согласий на обработку персональных данных",
-          category: "Compliance Software",
+          name: "AI-ассистент для бизнеса",
+          description: "Готовое AI-решение для автоматизации общения с клиентами и сотрудниками",
+          category: "AI Business Assistant",
           url: "/business/consent",
           offers: {
             price: "9900",
@@ -40,14 +40,14 @@ export default function BusinessConsent() {
           }
         }}
         neuralSignals={{
-          primaryKeywords: ['виджет согласий для бизнеса', 'корпоративный cookie consent', 'управление согласиями клиентов B2B'],
+          primaryKeywords: ['AI-ассистент для бизнеса', 'AI-чат для клиентов и сотрудников', 'автоматизация общения с клиентами B2B'],
           searchIntent: 'transactional',
           contentDepth: 'comprehensive',
           expertiseLevel: 9
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['виджет согласий для бизнеса', 'форма согласия 152фз для компаний', 'корпоративный cookie consent'],
+            primary: ['AI-ассистент для бизнеса', 'форма согласия AI-ассистент для компаний', 'AI-чат для клиентов и сотрудников'],
             semantic: ['управление согласиями предприятий', 'consent management для бизнеса', 'персонализированные согласия B2B'],
             longTail: ['как внедрить виджет согласий в корпоративные системы']
           }
@@ -68,7 +68,7 @@ export default function BusinessConsent() {
                     Готовое решение
                   </Badge>
                   <Badge variant="secondary">
-                    152фз для бизнеса
+                    AI для бизнеса
                   </Badge>
                 </div>
                 
@@ -79,8 +79,8 @@ export default function BusinessConsent() {
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Корпоративный виджет для автоматизации сбора согласий на обработку 
-                  персональных данных клиентов в соответствии с 152фз. 
-                  Простая интеграция в корпоративные системы, полная настройка под бизнес-процессы.
+                  персональных данных клиентов в соответствии с AI-ассистент. 
+                  Быстрая интеграция в корпоративные системы, полная настройка под бизнес-процессы.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -91,26 +91,26 @@ export default function BusinessConsent() {
                     </Button>
                   </Link>
                   <Button variant="outline" size="lg">
-                    Демо версия
+                    Демо-версия
                   </Button>
                 </div>
                 
                 <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    Интеграция за 5 минут
+                    Интеграция за 1 день
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    Российская локализация
+                    Поддержка на русском
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    Cookie и персонализация
+                    Telegram и веб-чат
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    API для интеграции
+                    API для 1С и CRM
                   </div>
                 </div>
               </div>
@@ -120,31 +120,31 @@ export default function BusinessConsent() {
                   <Card className="p-6 shadow-2xl">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">Настройки согласий</h3>
-                        <Badge variant="default">Live Preview</Badge>
+                        <h3 className="font-semibold">Настройки AI-ассистента</h3>
+                        <Badge variant="default">Live Demo</Badge>
                       </div>
                       
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Обязательные cookies</span>
+                          <span className="text-sm">Входящие запросы</span>
                           <div className="w-8 h-4 bg-green-500 rounded-full relative">
                             <div className="w-3 h-3 bg-white rounded-full absolute right-0.5 top-0.5"></div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Аналитика</span>
+                          <span className="text-sm">AI-ответы</span>
                           <div className="w-8 h-4 bg-gray-300 rounded-full relative">
                             <div className="w-3 h-3 bg-white rounded-full absolute left-0.5 top-0.5"></div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Маркетинг</span>
+                          <span className="text-sm">Интеграция CRM</span>
                           <div className="w-8 h-4 bg-green-500 rounded-full relative">
                             <div className="w-3 h-3 bg-white rounded-full absolute right-0.5 top-0.5"></div>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Персонализация</span>
+                          <span className="text-sm">Уведомления</span>
                           <div className="w-8 h-4 bg-gray-300 rounded-full relative">
                             <div className="w-3 h-3 bg-white rounded-full absolute left-0.5 top-0.5"></div>
                           </div>
@@ -152,8 +152,8 @@ export default function BusinessConsent() {
                       </div>
                       
                       <div className="flex gap-2 pt-4">
-                        <Button size="sm" className="flex-1">Принять все</Button>
-                        <Button size="sm" variant="outline" className="flex-1">Настроить</Button>
+                        <Button size="sm" className="flex-1">Запустить</Button>
+                        <Button size="sm" variant="outline" className="flex-1">Настройка</Button>
                       </div>
                     </div>
                   </Card>
@@ -168,10 +168,10 @@ export default function BusinessConsent() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Корпоративные возможности
+                Возможности AI-ассистента
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Все необходимые функции для корпоративного соответствия 152фз
+                Все необходимые функции для корпоративного соответствия AI-ассистент
               </p>
             </div>
             
@@ -182,7 +182,7 @@ export default function BusinessConsent() {
                     <div className="rounded-lg bg-primary/10 p-2">
                       <Shield className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle>152фз Compliance</CardTitle>
+                    <CardTitle>AI-ассистент Compliance</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -193,15 +193,15 @@ export default function BusinessConsent() {
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Российская правовая база
+                      Обучение на ваших данных
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Автообновления требований
+                      Постоянное самообучение
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Документооборот для аудита
+                      Интеграция с вашими системами
                     </div>
                   </div>
                 </CardContent>
@@ -213,26 +213,26 @@ export default function BusinessConsent() {
                     <div className="rounded-lg bg-blue-500/10 p-2">
                       <Code className="h-6 w-6 text-blue-600" />
                     </div>
-                    <CardTitle>Простая интеграция</CardTitle>
+                    <CardTitle>Быстрая интеграция</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Интеграция за 5 минут с любым сайтом. Поддержка всех популярных 
+                    Интеграция за 1 день с любым сайтом. Поддержка всех популярных 
                     CMS, фреймворков и готовые SDK для разработчиков.
                   </CardDescription>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      JavaScript SDK
+                      Telegram Bot API
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      WordPress плагин
+                      AmoCRM коннектор
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      REST API
+                      REST API (1С, Bitrix)
                     </div>
                   </div>
                 </CardContent>
@@ -244,7 +244,7 @@ export default function BusinessConsent() {
                     <div className="rounded-lg bg-green-500/10 p-2">
                       <BarChart3 className="h-6 w-6 text-green-600" />
                     </div>
-                    <CardTitle>Аналитика и отчеты</CardTitle>
+                    <CardTitle>AI-ответы и отчеты</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -255,7 +255,7 @@ export default function BusinessConsent() {
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Дашборд согласий
+                      Дашборд задач
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-4 w-4 text-green-600" />
@@ -289,7 +289,7 @@ export default function BusinessConsent() {
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="javascript">JavaScript</TabsTrigger>
                   <TabsTrigger value="wordpress">WordPress</TabsTrigger>
-                  <TabsTrigger value="api">REST API</TabsTrigger>
+                  <TabsTrigger value="api">REST API (1С, Bitrix)</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="javascript" className="mt-8">
@@ -297,16 +297,16 @@ export default function BusinessConsent() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Code className="h-5 w-5" />
-                        JavaScript интеграция
+                        Telegram-интеграция
                       </CardTitle>
                       <CardDescription>
-                        Добавьте виджет на любой сайт за 2 минуты
+                        Подключите AI-бота к Telegram за 15 минут
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
                         <div>
-                          <h4 className="text-sm font-medium mb-2">1. Подключите скрипт</h4>
+                          <h4 className="text-sm font-medium mb-2">1. Создайте Telegram-бота</h4>
                           <div className="bg-muted p-4 rounded-lg">
                             <code className="text-sm">
                               {`<script src="https://widget.grandhub.ru/consent.js" 
@@ -316,7 +316,7 @@ export default function BusinessConsent() {
                         </div>
                         
                         <div>
-                          <h4 className="text-sm font-medium mb-2">2. Инициализация (опционально)</h4>
+                          <h4 className="text-sm font-medium mb-2">2. Интеграция с CRM</h4>
                           <div className="bg-muted p-4 rounded-lg">
                             <code className="text-sm">
                               {`RescrubConsent.init({
@@ -337,21 +337,21 @@ export default function BusinessConsent() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Globe className="h-5 w-5" />
-                        WordPress плагин
+                        AmoCRM коннектор
                       </CardTitle>
                       <CardDescription>
-                        Готовый плагин для WordPress сайтов
+                        Встраиваемый виджет для любого сайта
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">1</div>
-                          <span>Скачайте плагин из WordPress репозитория</span>
+                          <span>Добавьте один скрипт на ваш сайт</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">2</div>
-                          <span>Активируйте плагин в админ панели</span>
+                          <span>Укажите API-ключ GrandHub</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">3</div>
@@ -359,7 +359,7 @@ export default function BusinessConsent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">4</div>
-                          <span>Настройте внешний вид и тексты</span>
+                          <span>Запустите и тестируйте</span>
                         </div>
                       </div>
                     </CardContent>
@@ -371,16 +371,16 @@ export default function BusinessConsent() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Settings className="h-5 w-5" />
-                        REST API
+                        REST API (1С, Bitrix)
                       </CardTitle>
                       <CardDescription>
-                        Программное управление согласиями через API
+                        Программное управление AI-ботом через API
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
                         <div>
-                          <h4 className="text-sm font-medium mb-2">Запись согласия пользователя</h4>
+                          <h4 className="text-sm font-medium mb-2">Создание нового диалога</h4>
                           <div className="bg-muted p-4 rounded-lg">
                             <code className="text-sm">
                               {`POST /api/v1/consent
@@ -397,7 +397,7 @@ export default function BusinessConsent() {
                         </div>
                         
                         <div>
-                          <h4 className="text-sm font-medium mb-2">Получение статуса согласий</h4>
+                          <h4 className="text-sm font-medium mb-2">Получение истории диалогов</h4>
                           <div className="bg-muted p-4 rounded-lg">
                             <code className="text-sm">
                               {`GET /api/v1/consent/user123
@@ -418,10 +418,10 @@ Authorization: Bearer your-api-key`}
         <section className="py-16 lg:py-24 bg-primary text-primary-foreground">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Начните использовать виджет сегодня
+              Запустите AI-ассистента сегодня
             </h2>
             <p className="mt-4 text-lg opacity-90">
-              30-дневный бесплатный период. Настройка за 5 минут.
+              14-дневный бесплатный период. Настройка за 1 день.
             </p>
             
             <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">
@@ -449,7 +449,7 @@ Authorization: Bearer your-api-key`}
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
-                Российские сервера
+                Российские серверы
               </div>
             </div>
           </div>

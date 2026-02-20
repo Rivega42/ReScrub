@@ -30,19 +30,19 @@ export default function BusinessAPI() {
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
         title="API документация — GrandHub Business Platform"
-        description="Полная REST API документация GrandHub Business. OpenAPI 3.0 спецификация, SDK библиотеки, webhook интеграции для автоматизации 152фз compliance в ваших системах."
+        description="Полная REST API документация GrandHub Business. OpenAPI 3.0 спецификация, SDK библиотеки, webhook интеграции для автоматизации AI-автоматизация в ваших системах."
         author="GrandHub API Team"
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
-          primaryKeywords: ['API документация 152фз', 'REST API защита персональных данных', 'SDK интеграция compliance'],
+          primaryKeywords: ['API документация AI-интеграция', 'REST API защита персональных данных', 'SDK интеграция compliance'],
           searchIntent: 'informational',
           contentDepth: 'expert',
           expertiseLevel: 9
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['корпоративный API 152фз', 'REST API для бизнес систем', 'SDK интеграция для предприятий'],
+            primary: ['корпоративный API AI-интеграция', 'REST API для бизнес систем', 'SDK интеграция для предприятий'],
             semantic: ['интеграция защиты данных в бизнес', 'корпоративный API персональных данных', 'enterprise REST API'],
             longTail: ['как интегрировать корпоративный API защиты персональных данных в бизнес системы']
           }
@@ -87,7 +87,7 @@ export default function BusinessAPI() {
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Полная REST API документация для интеграции GrandHub Business в ваши системы. 
                   OpenAPI 3.0 спецификация, официальные SDK, webhook endpoints и примеры кода 
-                  для автоматизации соблюдения 152фз.
+                  для автоматизации соблюдения AI-интеграция.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -131,19 +131,19 @@ export default function BusinessAPI() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Управление согласиями</span>
+                      <span className="text-sm">Управление задачами</span>
                       <Badge variant="outline">12 методов</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Атомаризация данных</span>
+                      <span className="text-sm">AI-аналитика</span>
                       <Badge variant="outline">8 методов</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Мониторинг compliance</span>
+                      <span className="text-sm">Мониторинг бизнеса</span>
                       <Badge variant="outline">15 методов</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Аналитика и отчеты</span>
+                      <span className="text-sm">Аналитика и отчёты</span>
                       <Badge variant="outline">6 методов</Badge>
                     </div>
                     <div className="flex items-center justify-between">
@@ -192,7 +192,7 @@ export default function BusinessAPI() {
                     в разделе настроек интеграций.
                   </CardDescription>
                   <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                    <code>API_KEY=rscb_live_1234567890abcdef</code>
+                    <code>API_KEY=ghb_live_1234567890abcdef</code>
                   </div>
                 </CardContent>
               </Card>
@@ -233,10 +233,10 @@ export default function BusinessAPI() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base mb-4">
-                    Выполните первый API вызов для создания согласия пользователя.
+                    Выполните первый API вызов для создания задачи/сделки.
                   </CardDescription>
                   <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                    <code>client.consent.create({'{...}'})</code>
+                    <code>client.tasks.create({'{...}'})</code>
                   </div>
                 </CardContent>
               </Card>
@@ -257,24 +257,24 @@ export default function BusinessAPI() {
             </div>
             
             <div className="mt-16">
-              <Tabs defaultValue="consent" className="w-full">
+              <Tabs defaultValue="task" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="consent">Согласия</TabsTrigger>
+                  <TabsTrigger value="task">Согласия</TabsTrigger>
                   <TabsTrigger value="atomization">Атомаризация</TabsTrigger>
                   <TabsTrigger value="monitoring">Мониторинг</TabsTrigger>
                   <TabsTrigger value="analytics">Аналитика</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="consent" className="mt-8">
+                <TabsContent value="task" className="mt-8">
                   <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Badge variant="default" className="text-xs">POST</Badge>
-                          /api/v2/consent
+                          /api/v2/task
                         </CardTitle>
                         <CardDescription>
-                          Создание нового согласия пользователя
+                          Создание нового задачи/сделки
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -285,13 +285,13 @@ export default function BusinessAPI() {
                               <code>
 {`{
   "user_id": "usr_12345",
-  "consents": {
+  "tasks": {
     "analytics": true,
     "marketing": false,
     "personalization": true,
     "cookies_necessary": true
   },
-  "consent_method": "explicit",
+  "task_method": "explicit",
   "ip_address": "192.168.1.1",
   "user_agent": "Mozilla/5.0...",
   "timestamp": "2025-09-21T16:00:00Z"
@@ -305,11 +305,11 @@ export default function BusinessAPI() {
                             <div className="bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto">
                               <code>
 {`{
-  "consent_id": "consent_67890",
+  "task_id": "task_67890",
   "status": "active",
   "created_at": "2025-09-21T16:00:00Z",
   "expires_at": "2026-09-21T16:00:00Z",
-  "compliance_status": "152FZ_compliant"
+  "processing_status": "152FZ_compliant"
 }`}
                               </code>
                             </div>
@@ -322,10 +322,10 @@ export default function BusinessAPI() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Badge variant="secondary" className="text-xs">GET</Badge>
-                          /api/v2/consent/{'{user_id}'}
+                          /api/v2/task/{'{user_id}'}
                         </CardTitle>
                         <CardDescription>
-                          Получение статуса согласий пользователя
+                          Получение статуса задач пользователя
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -350,13 +350,13 @@ export default function BusinessAPI() {
                               <code>
 {`{
   "user_id": "usr_12345",
-  "current_consents": {
+  "current_tasks": {
     "analytics": true,
     "marketing": false,
     "personalization": true
   },
   "last_updated": "2025-09-21T16:00:00Z",
-  "consent_count": 3,
+  "task_count": 3,
   "compliance_score": 100
 }`}
                               </code>
@@ -456,7 +456,7 @@ export default function BusinessAPI() {
   "deleted_at": "2025-09-21T16:00:00Z",
   "fragments_destroyed": 256,
   "keys_destroyed": 5,
-  "compliance_status": "right_to_be_forgotten_fulfilled"
+  "processing_status": "right_to_be_forgotten_fulfilled"
 }`}
                               </code>
                             </div>
@@ -476,7 +476,7 @@ export default function BusinessAPI() {
                           /api/v2/monitoring/compliance
                         </CardTitle>
                         <CardDescription>
-                          Получение статуса соблюдения 152фз
+                          Получение статуса соблюдения AI-интеграция
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -501,7 +501,7 @@ export default function BusinessAPI() {
                               <code>
 {`{
   "compliance_score": 98.7,
-  "total_consents": 12547,
+  "total_tasks": 12547,
   "active_violations": 0,
   "resolved_violations": 3,
   "data_requests_processed": 127,
@@ -536,7 +536,7 @@ export default function BusinessAPI() {
   "events": [
     "compliance.violation.detected",
     "data.request.received",
-    "consent.expired"
+    "task.expired"
   ],
   "secret": "webhook_secret_key",
   "active": true
@@ -584,11 +584,11 @@ export default function BusinessAPI() {
                             <div className="bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto">
                               <code>
 {`{
-  "consent_metrics": {
-    "total_consents": 125470,
-    "consent_rate": 87.3,
+  "task_metrics": {
+    "total_tasks": 125470,
+    "task_rate": 87.3,
     "opt_out_rate": 12.7,
-    "avg_consent_duration": "11.2 months"
+    "avg_task_duration": "11.2 months"
   },
   "compliance_metrics": {
     "score": 98.7,
@@ -961,7 +961,7 @@ export default function BusinessAPI() {
                           <div>
                             <h4 className="text-sm font-medium mb-2">HTTP заголовок</h4>
                             <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                              <code>Authorization: Bearer rscb_live_1234567890abcdef</code>
+                              <code>Authorization: Bearer ghb_live_1234567890abcdef</code>
                             </div>
                           </div>
                           
@@ -970,9 +970,9 @@ export default function BusinessAPI() {
                             <div className="bg-muted p-3 rounded-lg text-sm font-mono">
                               <code>
 {`curl -X GET \\
-  -H "Authorization: Bearer rscb_live_1234567890abcdef" \\
+  -H "Authorization: Bearer ghb_live_1234567890abcdef" \\
   -H "Content-Type: application/json" \\
-  https://api.grandhub.ru/v2/consent/usr_12345`}
+  https://api.grandhub.ru/v2/task/usr_12345`}
                               </code>
                             </div>
                           </div>

@@ -29,17 +29,17 @@ export default function BusinessIntegrations() {
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
         title="Интеграции — GrandHub Business Platform"
-        description="Готовые интеграции GrandHub Business с CRM, ERP, системами аналитики и популярными бизнес-приложениями. 150+ готовых коннекторов для автоматизации 152фз compliance."
+        description="Готовые интеграции GrandHub Business с CRM, ERP, системами аналитики и популярными бизнес-приложениями. 150+ готовых коннекторов для автоматизации AI-автоматизация автоматизация."
         neuralSignals={{
-          primaryKeywords: ['интеграция 152фз CRM', 'подключение системы защиты данных', 'автоматизация compliance интеграция'],
+          primaryKeywords: ['интеграция AI с CRM 1С Битрикс', 'подключение AI-ассистента к бизнес-системам', 'автоматизация бизнеса через интеграцию'],
           searchIntent: 'informational',
           contentDepth: 'comprehensive',
           expertiseLevel: 7
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['интеграция защиты данных в корпоративные системы', 'подключение 152фз к бизнес системам', 'автоматизация compliance в компании'],
-            semantic: ['CRM интеграция приватность для бизнеса', 'ERP защита данных компаний', 'интеграция 152фз в бизнес-процессы'],
+            primary: ['интеграция защиты данных в корпоративные системы', 'подключение AI-автоматизация к бизнес системам', 'автоматизация автоматизация в компании'],
+            semantic: ['CRM интеграция приватность для бизнеса', 'ERP защита данных компаний', 'интеграция AI-автоматизация в бизнес-процессы'],
             longTail: ['как интегрировать защиту персональных данных в корпоративные системы предприятий']
           }
         }}
@@ -55,7 +55,7 @@ export default function BusinessIntegrations() {
               <div className="flex justify-center mb-6">
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Building2 className="h-3 w-3" />
-                  150+ интеграций
+                  Ключевые интеграции
                 </Badge>
               </div>
               
@@ -66,7 +66,7 @@ export default function BusinessIntegrations() {
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
                 Подключите GrandHub Business к вашим существующим системам: CRM, ERP, 
-                маркетинговым платформам и бизнес-приложениям. Автоматизируйте compliance 
+                маркетинговым платформам и бизнес-приложениям. Автоматизируйте автоматизация 
                 процессы без изменения привычных рабочих процессов.
               </p>
               
@@ -132,7 +132,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Автоматическое управление согласиями клиентов в Bitrix24. 
-                          Синхронизация данных и compliance статусов.
+                          Синхронизация данных и автоматизация статусов.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">
@@ -145,7 +145,7 @@ export default function BusinessIntegrations() {
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <CheckCircle className="h-4 w-4 text-green-600" />
-                            Отчеты по compliance
+                            Отчеты по автоматизация
                           </div>
                         </div>
                         <div className="mt-4">
@@ -171,7 +171,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Интеграция с amoCRM для автоматизации процессов согласий 
-                          и обеспечения соответствия 152фз.
+                          и обеспечения соответствия AI-автоматизация.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">
@@ -292,7 +292,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Интеграция с мультиканальной платформой SendPulse 
-                          для соблюдения 152фз в различных каналах коммуникации.
+                          для соблюдения AI-автоматизация в различных каналах коммуникации.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">
@@ -412,7 +412,7 @@ export default function BusinessIntegrations() {
                       </CardHeader>
                       <CardContent>
                         <CardDescription className="text-base">
-                          Интеграция с Google Analytics 4 для соблюдения 152фз 
+                          Интеграция с Google Analytics 4 для соблюдения AI-автоматизация 
                           при использовании международных сервисов аналитики.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
@@ -452,7 +452,7 @@ export default function BusinessIntegrations() {
                       <CardContent>
                         <CardDescription className="text-base">
                           Российская система сквозной аналитики с встроенной 
-                          поддержкой compliance требований 152фз.
+                          поддержкой автоматизация требований AI-автоматизация.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
                           <div className="flex items-center gap-2 text-sm">
@@ -654,7 +654,7 @@ export default function BusinessIntegrations() {
                       </CardHeader>
                       <CardContent>
                         <CardDescription className="text-base">
-                          Slack приложение для уведомлений о compliance событиях 
+                          Slack приложение для уведомлений о автоматизация событиях 
                           и управления согласиями прямо из рабочих каналов.
                         </CardDescription>
                         <div className="mt-4 space-y-2">
@@ -859,7 +859,7 @@ export default function BusinessIntegrations() {
                       </h3>
                       <p className="mt-2 text-muted-foreground">
                         Интеграция с системами электронного документооборота 
-                        для автоматизации согласий и compliance процессов.
+                        для автоматизации согласий и автоматизация процессов.
                       </p>
                     </div>
                   </div>

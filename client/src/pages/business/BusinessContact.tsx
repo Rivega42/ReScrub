@@ -68,9 +68,9 @@ const subjects = [
   { value: "pricing", label: "Коммерческое предложение" },
   { value: "implementation", label: "Вопросы внедрения" },
   { value: "support", label: "Техническая поддержка" },
-  { value: "compliance", label: "Консультация по 152фз" },
+  { value: "compliance", label: "Консультация по AI-автоматизация" },
   { value: "integration", label: "API и интеграция" },
-  { value: "partnership", label: "Партнерство" },
+  { value: "partnership", label: "Партнёрство" },
   { value: "other", label: "Другое" }
 ];
 
@@ -129,26 +129,26 @@ export default function BusinessContact() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/ContactPage">
       <BusinessSEO 
-        title="Контакты и техподдержка — Персональные данные 152фз | GrandHub Business"
-        description="Техподдержка 24/7 для защиты персональных данных. Контакты разработчика GrandHub Business, консультации по 152фз, юридическая информация компании."
+        title="Контакты и техподдержка — Персональные данные AI-автоматизация | GrandHub Business"
+        description="Техподдержка 24/7 для защиты персональных данных. Контакты разработчика GrandHub Business, консультации по AI-автоматизации, информация о компании."
         pageCategory="contact"
         neuralSignals={{
-          primaryKeywords: ['техподдержка персональные данные', 'контакты разработчика 152фз', 'консультации защита данных'],
+          primaryKeywords: ['поддержка AI-автоматизация', 'контакты команды GrandHub', 'консультации AI-интеграция'],
           searchIntent: 'transactional',
           contentDepth: 'comprehensive',
           expertiseLevel: 7,
-          authoritySignals: ['поддержка 24/7', 'персональные консультации', 'юридическая информация']
+          authoritySignals: ['поддержка 24/7', 'AI-консультации', 'юридическая информация']
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['контакты техподдержки персональных данных', 'консультации по 152 фз разработчик', 'поддержка систем защиты данных'],
-            semantic: ['техническая поддержка compliance', 'консультации по автоматизации 152фз', 'контакты разработчика GDPR'],
+            primary: ['контакты техподдержки персональных данных', 'консультации по AI-автоматизация разработчик', 'поддержка систем защиты данных'],
+            semantic: ['техническая поддержка compliance', 'консультации по автоматизации AI-автоматизация', 'контакты разработчика GDPR'],
             longTail: ['круглосуточная техподдержка по вопросам защиты персональных данных российских компаний']
           }
         }}
         organizationSchema={{
           name: "GrandHub Business",
-          description: "Платформа автоматизации соблюдения 152фз",
+          description: "Платформа автоматизации соблюдения AI-автоматизация",
           contactPoints: [
             {
               telephone: "+7 (495) 123-45-67",
@@ -168,7 +168,7 @@ export default function BusinessContact() {
               <div className="flex justify-center mb-6">
                 <Badge variant="outline" className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  Экспертная поддержка
+                  Поддержка команды
                 </Badge>
               </div>
               
@@ -178,7 +178,7 @@ export default function BusinessContact() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Получите профессиональную консультацию по автоматизации соблюдения 152фз 
+                Получите профессиональную консультацию по автоматизации соблюдения AI-автоматизация 
                 от ведущих экспертов в области защиты персональных данных в России. 
                 Мы готовы обсудить ваш проект и подобрать оптимальное решение.
               </p>
@@ -239,11 +239,11 @@ export default function BusinessContact() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="text-sm font-semibold">sales@grandhub.ru</div>
-                    <div className="text-sm text-muted-foreground">Коммерческие вопросы</div>
+                    <div className="text-sm text-muted-foreground">Продажи и партнёрство</div>
                     <div className="text-sm font-semibold">support@grandhub.ru</div>
                     <div className="text-sm text-muted-foreground">Техническая поддержка</div>
                     <div className="text-sm font-semibold">partners@grandhub.ru</div>
-                    <div className="text-sm text-muted-foreground">Партнерство</div>
+                    <div className="text-sm text-muted-foreground">Партнёрство</div>
                   </div>
                 </CardContent>
               </Card>
@@ -253,7 +253,7 @@ export default function BusinessContact() {
                   <div className="mx-auto rounded-lg bg-green-500/10 p-3 w-fit">
                     <MessageSquare className="h-8 w-8 text-green-600" />
                   </div>
-                  <CardTitle className="text-lg">Онлайн-чат</CardTitle>
+                  <CardTitle className="text-lg">Telegram-чат</CardTitle>
                   <CardDescription>Мгновенные ответы</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -364,12 +364,12 @@ export default function BusinessContact() {
                           <SelectValue placeholder="Выберите тему" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="consultation">Консультация по 152фз</SelectItem>
+                          <SelectItem value="consultation">Консультация по AI-автоматизация</SelectItem>
                           <SelectItem value="demo">Демонстрация решений</SelectItem>
                           <SelectItem value="pricing">Тарифы и стоимость</SelectItem>
                           <SelectItem value="integration">Техническая интеграция</SelectItem>
                           <SelectItem value="support">Техническая поддержка</SelectItem>
-                          <SelectItem value="partnership">Партнерство</SelectItem>
+                          <SelectItem value="partnership">Партнёрство</SelectItem>
                           <SelectItem value="other">Другой вопрос</SelectItem>
                         </SelectContent>
                       </Select>
@@ -496,7 +496,7 @@ export default function BusinessContact() {
                     <CardContent>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm">Коммерческие вопросы</span>
+                          <span className="text-sm">Продажи и партнёрство</span>
                           <Badge variant="default">2 часа</Badge>
                         </div>
                         <div className="flex justify-between items-center">
@@ -528,19 +528,19 @@ export default function BusinessContact() {
                         <div>
                           <div className="font-medium">15+ экспертов</div>
                           <div className="text-sm text-muted-foreground">
-                            Юристы, специалисты по ИБ, разработчики
+                            AI-инженеры, продуктовые менеджеры, разработчики
                           </div>
                         </div>
                         <div>
                           <div className="font-medium">8+ лет опыта</div>
                           <div className="text-sm text-muted-foreground">
-                            В области защиты персональных данных
+                            В области AI и автоматизации бизнеса
                           </div>
                         </div>
                         <div>
                           <div className="font-medium">500+ проектов</div>
                           <div className="text-sm text-muted-foreground">
-                            Успешно реализованных решений
+                            Внедрённых AI-решений
                           </div>
                         </div>
                       </div>
@@ -568,11 +568,11 @@ export default function BusinessContact() {
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Сколько времени занимает внедрение?</CardTitle>
+                    <CardTitle className="text-lg">Сколько времени занимает подключение GrandHub??</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      Стандартное внедрение занимает 2-4 недели. Для enterprise проектов 
+                      Стандартное подключение занимает 1-3 дня. Для enterprise проектов 
                       с кастомными интеграциями - до 8 недель. Простые случаи могут быть 
                       реализованы за 3-5 дней.
                     </div>
@@ -585,8 +585,8 @@ export default function BusinessContact() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      Мы гарантируем 100% соответствие 152фз, SLA 99.9% для Enterprise клиентов, 
-                      возврат средств в течение 30 дней при неудовлетворенности результатом.
+                      Мы гарантируем 100% соответствие AI-автоматизация, SLA 99.9% для Enterprise клиентов, 
+                      возврат средств в течение 14 дней при неудовлетворённости результатом.
                     </div>
                   </CardContent>
                 </Card>
@@ -597,7 +597,7 @@ export default function BusinessContact() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      У нас есть 150+ готовых интеграций и возможность создания 
+                      У нас есть готовые интеграции с 1С, Битрикс24, AmoCRM, Telegram и возможность создания 
                       индивидуальных коннекторов для любых систем через REST API, webhooks 
                       или прямые интеграции.
                     </div>
@@ -612,7 +612,7 @@ export default function BusinessContact() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      Да, мы предоставляем 30-дневный бесплатный период для всех тарифов. 
+                      Да, мы предоставляем 14-дневный бесплатный период для всех тарифов. 
                       Также доступна demo-версия и персональная консультация без обязательств.
                     </div>
                   </CardContent>
@@ -620,7 +620,7 @@ export default function BusinessContact() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Где хранятся данные?</CardTitle>
+                    <CardTitle className="text-lg">Какие интеграции поддерживаются??</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
@@ -637,7 +637,7 @@ export default function BusinessContact() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-sm text-muted-foreground">
-                      24/7 чат поддержка, email support, персональный менеджер для Enterprise, 
+                      24/7 поддержка в Telegram, email, персональный менеджер для Business/Enterprise, 
                       техническая документация, обучающие материалы и регулярные вебинары.
                     </div>
                   </CardContent>
@@ -651,10 +651,10 @@ export default function BusinessContact() {
         <section className="py-16 lg:py-24 bg-primary text-primary-foreground">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Готовы начать работу?
+              Готовы автоматизировать бизнес с AI??
             </h2>
             <p className="mt-4 text-lg opacity-90">
-              Получите персональную консультацию и начните автоматизировать compliance уже сегодня
+              Получите персональную консультацию и запустите AI-ассистента уже сегодня
             </p>
             
             <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">
@@ -672,8 +672,8 @@ export default function BusinessContact() {
             
             <div className="mt-8 flex justify-center gap-8 text-sm opacity-75">
               <div>📞 Ответим в течение 2 часов</div>
-              <div>🛡️ Бесплатная консультация</div>
-              <div>⚡ Быстрый старт проекта</div>
+              <div>🛡️ Бесплатная демонстрация</div>
+              <div>⚡ Быстрый запуск AI</div>
             </div>
           </div>
         </section>

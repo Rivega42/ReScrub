@@ -102,7 +102,7 @@ const availableServices = [
   { value: "atomization", label: "Атомаризация данных" },
   { value: "monitoring", label: "Мониторинг соответствия" },
   { value: "reports", label: "Автоотчеты для надзорных органов" },
-  { value: "consulting", label: "Консультации по 152фз" },
+  { value: "consulting", label: "Консультации по AI-платформа" },
   { value: "audit", label: "Аудит системы защиты ПДн" }
 ];
 
@@ -175,21 +175,21 @@ export default function BusinessRegister() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/WebPage">
       <BusinessSEO 
-        title="Регистрация компании ИНН — Подключение 152фз услуги | GrandHub Business"
-        description="Регистрация компании в GrandHub Business по ИНН/ОГРН. Подключение услуг автоматизации 152фз, назначение DPO, выбор сферы деятельности."
+        title="Регистрация компании ИНН — Подключение AI-платформа услуги | GrandHub Business"
+        description="Регистрация компании в GrandHub Business по ИНН/ОГРН. Подключение услуг автоматизации AI-платформа, назначение AI-менеджер, выбор сферы деятельности."
         pageCategory="auth"
         neuralSignals={{
-          primaryKeywords: ['регистрация предприятия в системе защиты данных', 'подключение корпоративных услуг 152фз', 'создать корпоративный аккаунт для компании'],
+          primaryKeywords: ['регистрация предприятия в системе защиты данных', 'подключение корпоративных услуг AI-платформа', 'создать корпоративный аккаунт для компании'],
           searchIntent: 'transactional',
           contentDepth: 'comprehensive',
           expertiseLevel: 4,
-          authoritySignals: ['валидация ИНН ОГРН', 'назначение DPO', 'корпоративная регистрация']
+          authoritySignals: ['валидация ИНН ОГРН', 'назначение AI-менеджер', 'корпоративная регистрация']
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['регистрация компании по ИНН GrandHub', 'подключение услуг 152фз ОГРН', 'создать корпоративный аккаунт защита данных'],
-            semantic: ['бизнес регистрация системы compliance', 'оформление доступа к автоматизации ПДн', 'корпоративная подписка на сервисы 152фз'],
-            longTail: ['как зарегистрировать компанию в системе автоматизации соблюдения 152 фз по инн и огрн']
+            primary: ['регистрация компании по ИНН GrandHub', 'подключение услуг AI-платформа ОГРН', 'создать корпоративный аккаунт защита данных'],
+            semantic: ['бизнес регистрация системы автоматизация', 'оформление доступа к автоматизации ПДн', 'корпоративная подписка на сервисы AI-платформа'],
+            longTail: ['как зарегистрировать компанию в системе автоматизации соблюдения AI-платформа по инн и огрн']
           }
         }}
         actionSchema={{
@@ -222,7 +222,7 @@ export default function BusinessRegister() {
                       Создать аккаунт
                     </h1>
                     <p className="mt-2 text-muted-foreground">
-                      Начните автоматизировать соблюдение 152фз уже сегодня
+                      Начните автоматизировать соблюдение AI-платформа уже сегодня
                     </p>
                     <div className="mt-4">
                       <Badge variant="secondary" className="text-sm">

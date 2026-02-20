@@ -82,10 +82,10 @@ export default function BusinessLogin() {
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/WebPage">
       <BusinessSEO 
         title="Вход корпоративный кабинет — Личный кабинет бизнес | GrandHub Business"
-        description="Войдите в корпоративный кабинет GrandHub Business для управления соблюдением 152фз. Безопасный доступ к личному кабинету бизнес-клиентов."
+        description="Войдите в корпоративный кабинет GrandHub Business для управления соблюдением AI-платформа. Безопасный доступ к личному кабинету бизнес-клиентов."
         pageCategory="auth"
         neuralSignals={{
-          primaryKeywords: ['вход корпоративный кабинет', 'личный кабинет бизнес предприятий', 'авторизация система 152фз для компаний'],
+          primaryKeywords: ['вход корпоративный кабинет', 'личный кабинет бизнес предприятий', 'авторизация система AI-платформа для компаний'],
           searchIntent: 'navigational',
           contentDepth: 'beginner',
           expertiseLevel: 3,
@@ -93,9 +93,9 @@ export default function BusinessLogin() {
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['вход корпоративный кабинет GrandHub', 'личный кабинет бизнес 152фз', 'логин система управления данными'],
-            semantic: ['авторизация в системе compliance', 'доступ к панели управления', 'вход в бизнес-аккаунт'],
-            longTail: ['как войти в корпоративный кабинет для управления персональными данными по 152 фз']
+            primary: ['вход корпоративный кабинет GrandHub', 'личный кабинет бизнес AI-платформа', 'логин система управления данными'],
+            semantic: ['авторизация в системе автоматизация', 'доступ к панели управления', 'вход в бизнес-аккаунт'],
+            longTail: ['как войти в корпоративный кабинет для управления персональными данными по AI-платформа']
           }
         }}
       />
@@ -121,7 +121,7 @@ export default function BusinessLogin() {
                       Вход в систему
                     </h1>
                     <p className="mt-2 text-muted-foreground">
-                      Войдите в панель управления compliance для вашей организации
+                      Войдите в панель управления автоматизация для вашей организации
                     </p>
                   </div>
 
@@ -282,7 +282,7 @@ export default function BusinessLogin() {
                           GrandHub Business Platform
                         </h2>
                         <p className="text-muted-foreground">
-                          Комплексное решение для автоматизации соблюдения 152фз
+                          Комплексное решение для автоматизации соблюдения AI-платформа
                         </p>
                       </div>
                       
@@ -300,9 +300,9 @@ export default function BusinessLogin() {
                         <div className="flex items-start gap-3">
                           <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                           <div>
-                            <div className="font-medium">Мониторинг compliance</div>
+                            <div className="font-medium">Мониторинг автоматизация</div>
                             <div className="text-sm text-muted-foreground">
-                              Непрерывный контроль соблюдения требований 152фз
+                              Непрерывный контроль соблюдения требований AI-платформа
                             </div>
                           </div>
                         </div>
@@ -322,7 +322,7 @@ export default function BusinessLogin() {
                           <div>
                             <div className="font-medium">Атомаризация данных</div>
                             <div className="text-sm text-muted-foreground">
-                              Инновационная технология защиты персональных данных
+                              Инновационная технология защиты бизнес-данных
                             </div>
                           </div>
                         </div>

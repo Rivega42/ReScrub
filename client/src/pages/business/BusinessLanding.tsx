@@ -3,18 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Shield, 
+  Bot, 
   Building2, 
   BarChart3, 
   Zap, 
   CheckCircle,
   ArrowRight,
   Users,
-  Lock,
   Database,
   Settings,
   Monitor,
-  FileText,
+  MessageSquare,
   Globe,
   Smartphone
 } from "lucide-react";
@@ -26,10 +25,10 @@ export default function BusinessLanding() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessLandingSEO 
-        title="GrandHub Business — Защита персональных данных для бизнеса"
-        description="Защита персональных данных для бизнеса: автоматизация 152фз, управление согласиями клиентов B2B, корпоративная безопасность данных для предприятий."
+        title="GrandHub Business — AI-помощник для бизнеса в России"
+        description="GrandHub — AI-помощник для автоматизации бизнеса: интеграция с 1С, Битрикс24, AmoCRM, Telegram. CRM-автоматизация, аналитика и AI для российских компаний."
         neuralSignals={{
-          primaryKeywords: ['защита персональных данных для бизнеса', '152фз что такое', 'соответствие 152фз для компаний'],
+          primaryKeywords: ['AI-помощник для бизнеса', 'автоматизация CRM 1С', 'AI аналитика для компаний'],
           searchIntent: 'commercial',
           contentDepth: 'comprehensive',
           expertiseLevel: 9
@@ -37,9 +36,9 @@ export default function BusinessLanding() {
         russianSEO={{
           yaTheme: 'корпоративные технологии',
           russianKeywords: {
-            primary: ['защита персональных данных для бизнеса', '152фз что такое', 'корпоративная безопасность данных'],
-            semantic: ['автоматизация compliance в компании', 'DPO услуги для организаций', 'управление согласиями клиентов B2B'],
-            longTail: ['внедрение защиты данных в бизнес процессы компании', 'консультации по 152фз для предприятий']
+            primary: ['AI-помощник для бизнеса в России', 'автоматизация 1С Битрикс24', 'CRM AI аналитика'],
+            semantic: ['интеграция 1С и AI', 'автоматизация бизнес-процессов', 'умная CRM для компании'],
+            longTail: ['AI-помощник для автоматизации бизнеса с интеграцией 1С и CRM']
           }
         }}
       />
@@ -54,35 +53,35 @@ export default function BusinessLanding() {
               <div className="relative z-10 mx-auto max-w-2xl lg:col-span-7 lg:max-w-none lg:pt-6 xl:col-span-6" itemScope itemType="https://schema.org/Organization">
                 <div className="flex items-center gap-2 mb-6">
                   <Badge variant="outline" className="flex items-center gap-1">
-                    <Shield className="h-3 w-3" />
-                    152фз Compliance
+                    <Bot className="h-3 w-3" />
+                    AI-платформа
                   </Badge>
                   <Badge variant="secondary">
-                    Enterprise Ready
+                    B2B Russia
                   </Badge>
                 </div>
                 
                 <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-5xl xl:text-6xl" itemProp="name">
-                  Корпоративная защита 
-                  <span className="text-primary"> персональных данных</span>
+                  AI-помощник для 
+                  <span className="text-primary"> вашего бизнеса</span>
                 </h1>
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl" itemProp="description">
-                  Автоматизируйте соблюдение 152фз в вашей компании. 
-                  Управление согласиями клиентов, защита корпоративных данных и 
-                  непрерывный мониторинг compliance для российских предприятий.
+                  GrandHub — умный AI-ассистент, который автоматизирует бизнес-процессы, 
+                  интегрируется с 1С, Битрикс24, AmoCRM и Telegram. 
+                  Аналитика, CRM и AI в единой платформе для российских компаний.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
                   <Link href="/business/register">
                     <Button size="lg" className="gap-2" data-testid="button-start-trial">
-                      Начать бесплатно
+                      Попробовать бесплатно
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                   <Link href="/business/contact">
                     <Button variant="outline" size="lg" data-testid="button-contact-sales">
-                      Связаться с экспертом
+                      Связаться с командой
                     </Button>
                   </Link>
                 </div>
@@ -90,15 +89,15 @@ export default function BusinessLanding() {
                 <div className="mt-8 flex items-center gap-x-6 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    Бесплатная интеграция
+                    Интеграция за 1 день
                   </div>
                   <div className="flex items-center gap-1">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    30 дней тестирования
+                    14 дней бесплатно
                   </div>
                   <div className="flex items-center gap-1">
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                    Российская локализация
+                    Российская разработка
                   </div>
                 </div>
               </div>
@@ -108,7 +107,7 @@ export default function BusinessLanding() {
                   <Card className="p-6 shadow-2xl border-2">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-primary" />
+                        <Bot className="h-5 w-5 text-primary" />
                         <span className="font-semibold" itemProp="name">GrandHub Business</span>
                       </div>
                       <Badge variant="default">Live</Badge>
@@ -116,20 +115,20 @@ export default function BusinessLanding() {
                     
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span>Активные согласия</span>
-                        <span className="font-mono text-green-600">127,439</span>
+                        <span>Автоматизированных задач</span>
+                        <span className="font-mono text-green-600">12,847</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span>Обработано запросов</span>
-                        <span className="font-mono">2,847</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span>Compliance Score</span>
-                        <span className="font-mono text-green-600">98.7%</span>
+                        <span>Интеграций активно</span>
+                        <span className="font-mono">4 системы</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span>Экономия времени</span>
-                        <span className="font-mono text-blue-600">156 часов</span>
+                        <span className="font-mono text-green-600">68%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Рост продаж</span>
+                        <span className="font-mono text-blue-600">+34%</span>
                       </div>
                     </div>
                   </Card>
@@ -144,10 +143,10 @@ export default function BusinessLanding() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Корпоративные решения для 152фз
+                Продукты GrandHub для бизнеса
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Все инструменты для автоматизации compliance в одной платформе
+                Все инструменты для AI-автоматизации в одной платформе
               </p>
             </div>
             
@@ -156,31 +155,31 @@ export default function BusinessLanding() {
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-primary/10 p-2">
-                      <Settings className="h-6 w-6 text-primary" />
+                      <Bot className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle>Виджет согласий</CardTitle>
+                      <CardTitle>AI-ассистент</CardTitle>
                       <Badge variant="secondary" className="mt-1">Готовое решение</Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Готовый виджет для сбора согласий на обработку персональных данных 
-                    в соответствии с требованиями 152фз. Простая интеграция и настройка.
+                    Умный AI-помощник для сотрудников и клиентов. Отвечает на вопросы, 
+                    обрабатывает заявки, интегрируется в Telegram и веб-чат.
                   </CardDescription>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Cookie consent и персонализация
+                      Telegram и веб-чат
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Российская правовая база
+                      Интеграция с CRM
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      API для интеграции
+                      Обучение на ваших данных
                     </div>
                   </div>
                   <div className="mt-6">
@@ -201,28 +200,28 @@ export default function BusinessLanding() {
                       <Database className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <CardTitle>Атомаризация данных</CardTitle>
+                      <CardTitle>AI-аналитика</CardTitle>
                       <Badge variant="secondary" className="mt-1">Инновации</Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Революционная технология распределенного хранения персональных данных. 
-                    Максимальная безопасность через фрагментацию и децентрализацию.
+                    Умная аналитика продаж, клиентов и операций. AI анализирует данные 
+                    из 1С, CRM и строит прогнозы и рекомендации.
                   </CardDescription>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Распределенное хранение
+                      Данные из 1С и CRM
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Криптографическая защита
+                      Прогнозирование продаж
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Право на забвение
+                      Дашборды в реальном времени
                     </div>
                   </div>
                   <div className="mt-6">
@@ -243,35 +242,37 @@ export default function BusinessLanding() {
                       <Monitor className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                      <CardTitle>Мониторинг</CardTitle>
+                      <CardTitle>Мониторинг бизнеса</CardTitle>
                       <Badge variant="secondary" className="mt-1">24/7</Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base">
-                    Непрерывный мониторинг соблюдения 152фз, контроль утечек данных 
-                    и автоматические уведомления о нарушениях compliance.
+                    Непрерывный мониторинг KPI, контроль исполнения задач и 
+                    автоматические уведомления о важных событиях в бизнесе.
                   </CardDescription>
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Мониторинг утечек
+                      Отслеживание KPI
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Аудит обработки данных
+                      Уведомления в Telegram
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      Отчеты для регуляторов
+                      Отчёты для руководства
                     </div>
                   </div>
                   <div className="mt-6">
-                    <Button variant="outline" className="w-full gap-2" disabled>
-                      Скоро
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <Link href="/business/monitoring">
+                      <Button variant="outline" className="w-full gap-2">
+                        Подробнее
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
@@ -287,7 +288,7 @@ export default function BusinessLanding() {
                 Почему GrandHub Business?
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Единственная платформа, созданная специально для российского бизнеса
+                Единственный AI-помощник, созданный специально для российского бизнеса
               </p>
             </div>
             
@@ -296,16 +297,16 @@ export default function BusinessLanding() {
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
                     <div className="rounded-lg bg-primary/10 p-2">
-                      <Shield className="h-6 w-6 text-primary" />
+                      <Bot className="h-6 w-6 text-primary" />
                     </div>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">
-                      100% соответствие 152фз для бизнеса
+                      Интеграция с 1С и российскими системами
                     </h3>
                     <p className="mt-2 text-muted-foreground">
-                      Корпоративные решения разработаны с учетом всех требований 
-                      152фз для предприятий и российского бизнеса
+                      Готовые коннекторы для 1С:Предприятие, Битрикс24, AmoCRM 
+                      и Telegram — без программирования
                     </p>
                   </div>
                 </div>
@@ -318,11 +319,11 @@ export default function BusinessLanding() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">
-                      Быстрая интеграция
+                      Быстрый запуск
                     </h3>
                     <p className="mt-2 text-muted-foreground">
-                      Настройка за 1 день. API, SDK и готовые интеграции 
-                      с популярными CRM и системами
+                      Настройка и запуск за 1 день. API, SDK и готовые 
+                      интеграции с популярными бизнес-системами
                     </p>
                   </div>
                 </div>
@@ -338,8 +339,8 @@ export default function BusinessLanding() {
                       Экономия ресурсов
                     </h3>
                     <p className="mt-2 text-muted-foreground">
-                      Автоматизация снижает затраты на compliance 
-                      до 80% и освобождает время юристов
+                      AI автоматизирует до 70% рутинных задач и 
+                      освобождает время сотрудников для важных дел
                     </p>
                   </div>
                 </div>
@@ -354,11 +355,11 @@ export default function BusinessLanding() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">
-                      Экспертная поддержка
+                      Поддержка и обучение
                     </h3>
                     <p className="mt-2 text-muted-foreground">
-                      Команда экспертов по российскому праву и информационной 
-                      безопасности всегда готова помочь
+                      Персональный менеджер, обучение команды и 
+                      техподдержка 24/7 на русском языке
                     </p>
                   </div>
                 </div>
@@ -375,7 +376,7 @@ export default function BusinessLanding() {
                     </h3>
                     <p className="mt-2 text-muted-foreground">
                       Продукт разработан в России для российского рынка 
-                      с учетом локальной специфики
+                      с учетом локальной специфики и требований
                     </p>
                   </div>
                 </div>
@@ -383,16 +384,16 @@ export default function BusinessLanding() {
                 <div className="flex gap-4">
                   <div className="flex-shrink-0">
                     <div className="rounded-lg bg-red-500/10 p-2">
-                      <Lock className="h-6 w-6 text-red-600" />
+                      <MessageSquare className="h-6 w-6 text-red-600" />
                     </div>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">
-                      Enterprise Security
+                      Telegram-первый подход
                     </h3>
                     <p className="mt-2 text-muted-foreground">
-                      Банковский уровень безопасности, сертификация 
-                      по российским стандартам ИБ
+                      AI-бот в Telegram для сотрудников и клиентов, 
+                      уведомления и отчёты прямо в мессенджер
                     </p>
                   </div>
                 </div>
@@ -405,16 +406,16 @@ export default function BusinessLanding() {
         <section className="py-16 lg:py-24 bg-primary text-primary-foreground">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Готовы автоматизировать compliance?
+              Готовы автоматизировать бизнес с AI?
             </h2>
             <p className="mt-4 text-lg opacity-90">
-              Начните бесплатное тестирование и убедитесь в эффективности решений
+              Начните бесплатное тестирование и убедитесь в эффективности GrandHub
             </p>
             
             <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">
               <Link href="/business/register">
                 <Button size="lg" variant="secondary" className="gap-2">
-                  Начать бесплатно
+                  Попробовать бесплатно
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

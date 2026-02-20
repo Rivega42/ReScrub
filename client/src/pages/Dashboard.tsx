@@ -1,4 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/lib/authContext";
+import { SiTelegram } from "react-icons/si";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +23,9 @@ import {
   Copy,
   Share2,
   Gift,
-  TrendingUp
+  TrendingUp,
+
+  User
 } from "lucide-react";
 
 interface DeletionRequest {
@@ -84,6 +88,20 @@ const statusConfig = {
 } as const;
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  const getUserDisplayName = () => {
+    if (user?.profile?.firstName && user?.profile?.lastName) {
+      return `${user.profile.firstName} ${user.profile.lastName}`;
+    }
+    if (user?.profile?.firstName) {
+      return user.profile.firstName;
+    }
+    if (user?.email) {
+      return user.email.split("@")[0];
+    }
+    return "Пользователь";
+  };
   const { toast } = useToast();
 
   // Fetch deletion requests
@@ -337,6 +355,86 @@ export default function Dashboard() {
           </AlertDescription>
         </Alert>
       )}
+
+
+      {/* User Profile Card */}
+      <Card className="mb-6" data-testid="card-user-profile">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Профиль
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Name */}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Имя</p>
+              <p className="font-medium" data-testid="text-user-name">
+                {getUserDisplayName()}
+              </p>
+            </div>
+
+            {/* Telegram Username */}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Telegram</p>
+              {user?.telegramUsername ? (
+                <a
+                  href={`https://t.me/${user.telegramUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-600 hover:text-blue-500 flex items-center gap-1"
+                  data-testid="link-telegram-username"
+                >
+                  <SiTelegram className="h-4 w-4" />
+                  @{user.telegramUsername}
+                </a>
+              ) : (
+                <p className="text-muted-foreground text-sm">Не привязан</p>
+              )}
+            </div>
+
+            {/* GH-ID */}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">GH-ID</p>
+              <p className="font-mono font-medium" data-testid="text-gh-id">
+                {user?.ghId || user?.id?.slice(0, 8) || '—'}
+              </p>
+            </div>
+
+            {/* Plan */}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Тариф</p>
+              <div className="flex items-center gap-2">
+                <Badge variant={(subscription?.plan?.displayName || 'Free') === 'Free' ? 'outline' : 'default'} data-testid="badge-plan">
+                  {subscription?.plan?.displayName || 'Free'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Go to Bot Button */}
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto"
+              asChild
+              data-testid="button-goto-bot"
+            >
+              <a
+                href="https://t.me/Grandhub_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <SiTelegram className="h-4 w-4 mr-2" />
+                Перейти в бот
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

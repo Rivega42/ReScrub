@@ -28,12 +28,12 @@ export default function BusinessMonitoring() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Мониторинг персональных данных 152фз — GrandHub Business"
-        description="Непрерывный мониторинг утечек данных, контроль обработки персональных данных, SIEM система для соблюдения 152фз. Защита данных в режиме реального времени."
+        title="Мониторинг бизнес-данных KPI-мониторинг — GrandHub Business"
+        description="Непрерывный мониторинг KPI и бизнес-показателей, контроль исполнения задач, AI-дашборды. Управление бизнесом в режиме реального времени."
         productType="monitoring"
         productData={{
-          name: "Система мониторинга персональных данных 152фз",
-          description: "Профессиональная система для непрерывного контроля и мониторинга персональных данных",
+          name: "Система мониторинга бизнес-данных KPI-мониторинг",
+          description: "Профессиональная система для непрерывного контроля и мониторинга бизнес-данных",
           category: "Security Monitoring Software",
           url: "/business/monitoring",
           offers: {
@@ -43,16 +43,16 @@ export default function BusinessMonitoring() {
           }
         }}
         neuralSignals={{
-          primaryKeywords: ['мониторинг утечек данных', 'контроль персональных данных 152фз', 'SIEM система персональные данные'],
+          primaryKeywords: ['мониторинг KPI бизнеса', 'контроль бизнес-показателей AI', 'AI-дашборды для бизнеса'],
           searchIntent: 'transactional',
           contentDepth: 'expert',
           expertiseLevel: 9
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['мониторинг утечек данных для бизнеса', 'корпоративный SIEM мониторинг 152фз', 'аудит персональных данных предприятий'],
-            semantic: ['enterprise data breach monitoring', 'непрерывный аудит compliance', 'контроль персональных данных предприятий'],
-            longTail: ['как настроить корпоративный мониторинг персональных данных в компании']
+            primary: ['мониторинг KPI бизнеса для бизнеса', 'AI-мониторинг бизнеса в реальном времени', 'аналитика и отчёты для руководства'],
+            semantic: ['enterprise data breach monitoring', 'непрерывный аудит эффективность', 'контроль бизнес-данных предприятий'],
+            longTail: ['как настроить корпоративный мониторинг бизнес-данных в компании']
           }
         }}
       />
@@ -71,7 +71,7 @@ export default function BusinessMonitoring() {
                     Мониторинг 24/7
                   </Badge>
                   <Badge variant="secondary">
-                    152фз Compliance
+                    KPI-мониторинг Эффективность
                   </Badge>
                   <Badge variant="outline">
                     Real-time
@@ -80,13 +80,13 @@ export default function BusinessMonitoring() {
                 
                 <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
                   Мониторинг 
-                  <span className="text-primary"> персональных данных</span>
+                  <span className="text-primary"> бизнес-данных</span>
                 </h1>
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
                   Профессиональная система мониторинга для непрерывного контроля 
-                  обработки персональных данных. Выявление утечек, нарушений 
-                  и несоответствий 152фз в режиме реального времени.
+                  обработки бизнес-данных. Выявление отклонений, нарушений 
+                  и несоответствий KPI-мониторинг в режиме реального времени.
                 </p>
                 
                 <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
@@ -155,7 +155,7 @@ export default function BusinessMonitoring() {
                           <div className="text-sm font-medium">Последние события:</div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <div>15:32 - Доступ к базе данных пользователей</div>
-                            <div>15:28 - Экспорт персональных данных</div>
+                            <div>15:28 - Экспорт бизнес-данных</div>
                             <div>15:15 - Изменение настроек согласий</div>
                           </div>
                         </div>
@@ -176,7 +176,7 @@ export default function BusinessMonitoring() {
                 Возможности системы мониторинга
               </h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                Комплексная система контроля персональных данных для полного соответствия 152фз
+                Комплексная система контроля бизнес-данных для полного соответствия KPI-мониторинг
               </p>
             </div>
 
@@ -242,7 +242,7 @@ export default function BusinessMonitoring() {
                 </div>
                 <p className="text-muted-foreground">
                   Интеграция с существующими SIEM системами для централизованного 
-                  мониторинга безопасности и compliance.
+                  мониторинга безопасности и эффективность.
                 </p>
               </Card>
 
@@ -251,11 +251,11 @@ export default function BusinessMonitoring() {
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold">Compliance отчеты</h3>
+                  <h3 className="text-lg font-semibold">Эффективность отчеты</h3>
                 </div>
                 <p className="text-muted-foreground">
                   Автоматическая генерация отчетов для соответствия требованиям 
-                  152фз и подготовки к проверкам регулятора.
+                  KPI-мониторинг и подготовки к проверкам регулятора.
                 </p>
               </Card>
             </div>
@@ -385,7 +385,7 @@ export default function BusinessMonitoring() {
               Начните мониторинг сегодня
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Обеспечьте безопасность персональных данных вашей компании с помощью 
+              Обеспечьте безопасность бизнес-данных вашей компании с помощью 
               профессиональной системы мониторинга
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">

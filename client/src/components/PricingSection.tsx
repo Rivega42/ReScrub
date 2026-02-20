@@ -1,145 +1,135 @@
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import { Link } from "wouter";
+
+const TG_BOT = "https://t.me/Grandhub_bot";
+
+const PLANS = [
+  {
+    name: "Free",
+    price: "0₽",
+    priceNote: "навсегда",
+    badge: null,
+    features: [
+      "5 запросов в день",
+      "Базовые навыки",
+      "Работает в Telegram",
+      "История чата 7 дней",
+    ],
+    cta: "Начать бесплатно",
+    highlight: false,
+  },
+  {
+    name: "Старт",
+    price: "990₽",
+    priceNote: "/мес",
+    badge: "790₽ для первых 500",
+    features: [
+      "100 запросов в день",
+      "30 навыков",
+      "RAG-память 30 дней",
+      "Распознавание чеков",
+      "Голосовые сообщения",
+    ],
+    cta: "Подключить",
+    highlight: false,
+  },
+  {
+    name: "Про",
+    price: "2 490₽",
+    priceNote: "/мес",
+    badge: "Популярный",
+    features: [
+      "Безлимитные запросы",
+      "Все 169 навыков",
+      "RAG-память навсегда",
+      "AI-секретарь",
+      "Trading Hub",
+      "Приоритетная поддержка",
+    ],
+    cta: "Подключить",
+    highlight: true,
+  },
+  {
+    name: "Бизнес",
+    price: "7 990₽",
+    priceNote: "/мес",
+    badge: null,
+    features: [
+      "До 10 пользователей",
+      "Командный аккаунт",
+      "Все возможности Про",
+      "API доступ",
+      "Аналитика команды",
+      "SLA поддержка",
+    ],
+    cta: "Подключить",
+    highlight: false,
+  },
+];
 
 export default function PricingSection() {
-  // Функция для форматирования российских цен
-  const formatRussianPrice = (price: string) => {
-    return price.replace(',', ' ') + '₽';
-  };
-
-  const plans = [
-    {
-      name: 'Базовый',
-      price: '1,790',
-      period: 'месяц',
-      description: 'Для частных лиц',
-      features: [
-        'Мониторинг 150+ брокеров данных',
-        'Автоматическое удаление данных',
-        'Соответствие 152-ФЗ "О персональных данных"',
-        'Ежемесячные отчеты о прогрессе',
-        'Email поддержка (2 рабочих дня)'
-      ],
-      popular: false,
-      buttonText: 'Начать защиту'
-    },
-    {
-      name: 'Семейный',
-      price: '2,990',
-      period: 'месяц',
-      description: 'Для семьи до 5 человек',
-      features: [
-        'Все функции Базового плана',
-        'Защита до 5 членов семьи',
-        'Объединенный семейный дашборд',
-        'Родительский контроль данных детей',
-        'Приоритетная поддержка (1 рабочий день)'
-      ],
-      popular: true,
-      buttonText: 'Защитить семью'
-    },
-    {
-      name: 'Профессиональный',
-      price: '4,990',
-      period: 'месяц',
-      description: 'Максимальная защита',
-      features: [
-        'Все функции Семейного плана',
-        'Мониторинг 300+ источников данных',
-        'Ручное удаление сложных случаев',
-        'API доступ для интеграции',
-        'Персональный менеджер',
-        'SLA поддержка 24/7 (4 часа ответ)'
-      ],
-      popular: false,
-      buttonText: 'Максимальная защита'
-    }
-  ];
-
   return (
-    <section id="pricing" className="py-16 sm:py-20 md:py-24">
+    <section id="pricing" className="py-16 sm:py-24 bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header - Mobile optimized */}
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-            Прозрачное ценообразование
+        <div className="text-center mb-12 scroll-reveal">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+            Выбери свой тариф
           </h2>
-          <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-            Выберите тариф для автоматической защиты ваших персональных данных в интернете
+          <p className="mt-3 text-muted-foreground text-lg max-w-xl mx-auto">
+            Начни бесплатно, вырасти до безлимита
           </p>
         </div>
 
-        {/* Mobile-responsive pricing grid */}
-        <div className="mx-auto mt-12 sm:mt-16 grid max-w-lg grid-cols-1 gap-6 sm:gap-8 lg:max-w-4xl lg:grid-cols-3">
-          {plans.map((plan) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+          {PLANS.map((plan, i) => (
             <div
-              key={plan.name}
-              className={`rounded-2xl border border-border p-8 ${
-                plan.popular ? 'border-foreground bg-muted/50' : ''
+              key={i}
+              className={`scroll-reveal relative rounded-2xl border bg-background p-6 flex flex-col gap-4 transition-all ${
+                plan.highlight
+                  ? "border-muted-foreground/50 shadow-md"
+                  : "border-border"
               }`}
-              data-testid={`plan-${plan.name.toLowerCase()}`}
+              style={{ transitionDelay: `${i * 80}ms` }}
             >
-              {plan.popular && (
-                <div className="mb-4">
-                  <span 
-                    className="inline-flex items-center rounded-full bg-foreground px-3 py-1 text-sm font-medium text-background"
-                    data-testid="badge-popular"
-                  >
-                    Популярный
-                  </span>
+              {plan.badge && (
+                <div
+                  className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-0.5 text-xs font-semibold whitespace-nowrap border ${
+                    plan.highlight
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-background text-foreground border-border"
+                  }`}
+                >
+                  {plan.badge}
                 </div>
               )}
-              
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold leading-8 text-foreground">
-                  {plan.name}
-                </h3>
-                <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                  {plan.description}
-                </p>
-                <p className="mt-6 flex items-baseline gap-x-1">
-                  <span 
-                    className="text-4xl font-bold tracking-tight text-foreground"
-                    data-testid={`text-price-${plan.name.toLowerCase()}`}
-                  >
-                    {formatRussianPrice(plan.price)}
-                  </span>
-                  <span className="text-sm font-semibold leading-6 text-muted-foreground">
-                    /{plan.period}
-                  </span>
-                </p>
+
+              <div>
+                <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-foreground">{plan.price}</span>
+                  <span className="text-sm text-muted-foreground">{plan.priceNote}</span>
+                </div>
               </div>
-              
-              <ul className="mb-8 space-y-3 text-sm leading-6 text-muted-foreground">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex gap-x-3">
-                    <Check className="h-5 w-5 flex-none text-foreground" />
-                    {feature}
+
+              <ul className="flex flex-col gap-2 flex-1">
+                {plan.features.map((feat, j) => (
+                  <li key={j} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    {feat}
                   </li>
                 ))}
               </ul>
-              
-              <Button 
-                asChild
-                size="lg"
-                className="w-full touch-target"
-                variant={plan.popular ? 'default' : 'outline'}
-                data-testid={`button-${plan.name.toLowerCase()}`}
-              >
-                <Link href="/reports">
-                  {plan.buttonText}
-                </Link>
-              </Button>
+
+              <a href={TG_BOT} target="_blank" rel="noopener noreferrer">
+                <Button
+                  className="w-full"
+                  variant={plan.highlight ? "default" : "outline"}
+                >
+                  {plan.cta}
+                </Button>
+              </a>
             </div>
           ))}
-        </div>
-        
-        {/* Simple footer note */}
-        <div className="mt-16 text-center">
-          <p className="text-sm leading-6 text-muted-foreground">
-            Все цены в рублях с НДС. 30-дневная гарантия возврата средств. Отмена в любое время.
-          </p>
         </div>
       </div>
     </section>

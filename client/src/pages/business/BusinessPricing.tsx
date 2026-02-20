@@ -28,18 +28,18 @@ export default function BusinessPricing() {
     <div className="min-h-screen bg-background">
       <BusinessPricingSEO 
         title="Тарифы GrandHub Business — Корпоративные планы защиты данных"
-        description="Гибкие тарифные планы GrandHub Business для автоматизации 152фз. От стартапов до enterprise: виджет согласий, атомаризация данных, техподдержка 24/7."
+        description="Гибкие тарифные планы GrandHub Business для автоматизации AI-ассистент. От стартапов до enterprise: виджет согласий, атомаризация данных, техподдержка 24/7."
         neuralSignals={{
-          primaryKeywords: ['тарифы защита персональных данных', 'цены compliance автоматизация', 'стоимость 152фз решений'],
+          primaryKeywords: ['тарифы AI-автоматизация бизнеса', 'цены AI для бизнеса', 'стоимость AI-ассистента для компании'],
           searchIntent: 'commercial',
           contentDepth: 'comprehensive',
           expertiseLevel: 6
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['тарифы корпоративной защиты данных', 'цены business compliance решений', 'стоимость автоматизации 152фз для предприятий'],
-            semantic: ['корпоративные планы защиты данных', 'enterprise тарифы 152фз', 'цены на DPO услуги для организаций'],
-            longTail: ['сколько стоит корпоративная автоматизация соблюдения 152фз для предприятий и компаний']
+            primary: ['тарифы корпоративной защиты данных', 'цены business автоматизация решений', 'стоимость автоматизации AI-ассистент для предприятий'],
+            semantic: ['корпоративные планы защиты данных', 'enterprise тарифы AI-ассистент', 'цены на DPO услуги для организаций'],
+            longTail: ['сколько стоит корпоративная автоматизация соблюдения AI-ассистент для предприятий и компаний']
           }
         }}
       />
@@ -64,13 +64,13 @@ export default function BusinessPricing() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Выберите оптимальный план для автоматизации соблюдения 152фз в вашей компании. 
+                Выберите оптимальный план для автоматизации соблюдения AI-ассистент в вашей компании. 
                 От стартапов до enterprise корпораций — у нас есть решение для каждого бизнеса.
               </p>
               
               <div className="mt-8 flex justify-center">
                 <Badge variant="secondary" className="text-sm">
-                  🎯 Экономия до 80% на compliance процессах
+                  🎯 Экономия до 70% рабочего времени сотрудников
                 </Badge>
               </div>
             </div>
@@ -98,18 +98,18 @@ export default function BusinessPricing() {
                         <CardTitle>Starter</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">9 900</span>
+                        <span className="text-3xl font-bold">7 990</span>
                         <span className="text-sm text-muted-foreground">₽/мес</span>
                       </div>
                       <CardDescription>
-                        Для стартапов и малого бизнеса. Основные функции compliance.
+                        Для стартапов и малого бизнеса. AI-ассистент и базовые интеграции.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Виджет согласий (базовый)</span>
+                          <span className="text-sm">AI-ассистент (базовый)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -117,7 +117,7 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Базовая аналитика</span>
+                          <span className="text-sm">Базовая аналитика и отчёты</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -125,11 +125,11 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">152фз compliance</span>
+                          <span className="text-sm">AI-автоматизация</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <X className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Атомаризация данных</span>
+                          <span className="text-sm text-muted-foreground">Расширенная AI-аналитика</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <X className="h-4 w-4 text-muted-foreground" />
@@ -162,18 +162,18 @@ export default function BusinessPricing() {
                         <CardTitle>Professional</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">29 900</span>
+                        <span className="text-3xl font-bold">27 990</span>
                         <span className="text-sm text-muted-foreground">₽/мес</span>
                       </div>
                       <CardDescription>
-                        Для средних компаний. Расширенные возможности и интеграции.
+                        Для растущего бизнеса. Расширенные AI-функции и интеграции.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Виджет согласий (расширенный)</span>
+                          <span className="text-sm">AI-ассистент (расширенный)</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -181,7 +181,7 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Продвинутая аналитика</span>
+                          <span className="text-sm">Продвинутая AI-аналитика</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -189,15 +189,15 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">API доступ</span>
+                          <span className="text-sm">API для 1С и CRM</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">CRM интеграции</span>
+                          <span className="text-sm">1С, Битрикс24, AmoCRM</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Мониторинг нарушений</span>
+                          <span className="text-sm">AI-мониторинг KPI</span>
                         </div>
                       </div>
                       
@@ -221,18 +221,18 @@ export default function BusinessPricing() {
                         <CardTitle>Enterprise</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">99 900</span>
+                        <span className="text-3xl font-bold">97 990</span>
                         <span className="text-sm text-muted-foreground">₽/мес</span>
                       </div>
                       <CardDescription>
-                        Для крупного бизнеса. Атомаризация данных и enterprise SLA.
+                        Для крупного бизнеса. Полная AI-автоматизация и enterprise SLA.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Все функции Professional</span>
+                          <span className="text-sm">Все функции Business</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -240,7 +240,7 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">Атомаризация данных</span>
+                          <span className="text-sm">Расширенная AI-аналитика</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -252,7 +252,7 @@ export default function BusinessPricing() {
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">On-premise развертывание</span>
+                          <span className="text-sm">On-premise развёртывание</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -347,15 +347,15 @@ export default function BusinessPricing() {
                         <CardTitle>Starter</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">95 040</span>
+                        <span className="text-3xl font-bold">76 704</span>
                         <span className="text-sm text-muted-foreground">₽/год</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        <span className="line-through">118 800 ₽</span>
-                        <span className="text-green-600 ml-2">экономия 23 760 ₽</span>
+                        <span className="line-through">95 880 ₽</span>
+                        <span className="text-green-600 ml-2">экономия 19 176 ₽</span>
                       </div>
                       <CardDescription>
-                        Для стартапов и малого бизнеса. Основные функции compliance.
+                        Для стартапов и малого бизнеса. AI-ассистент и базовые интеграции.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -384,15 +384,15 @@ export default function BusinessPricing() {
                         <CardTitle>Professional</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">269 100</span>
+                        <span className="text-3xl font-bold">224 910</span>
                         <span className="text-sm text-muted-foreground">₽/год</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        <span className="line-through">358 800 ₽</span>
-                        <span className="text-green-600 ml-2">экономия 89 700 ₽</span>
+                        <span className="line-through">299 880 ₽</span>
+                        <span className="text-green-600 ml-2">экономия 74 970 ₽</span>
                       </div>
                       <CardDescription>
-                        Для средних компаний. Расширенные возможности и интеграции.
+                        Для растущего бизнеса. Расширенные AI-функции и интеграции.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -416,15 +416,15 @@ export default function BusinessPricing() {
                         <CardTitle>Enterprise</CardTitle>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">839 160</span>
+                        <span className="text-3xl font-bold">719 910</span>
                         <span className="text-sm text-muted-foreground">₽/год</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        <span className="line-through">1 198 800 ₽</span>
-                        <span className="text-green-600 ml-2">экономия 359 640 ₽</span>
+                        <span className="line-through">959 880 ₽</span>
+                        <span className="text-green-600 ml-2">экономия 239 970 ₽</span>
                       </div>
                       <CardDescription>
-                        Для крупного бизнеса. Атомаризация данных и enterprise SLA.
+                        Для крупного бизнеса. Полная AI-автоматизация и enterprise SLA.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -502,14 +502,14 @@ export default function BusinessPricing() {
                     <td className="text-center py-4 px-4">Неограниченно</td>
                   </tr>
                   <tr>
-                    <td className="py-4 px-4 font-medium">Атомаризация данных</td>
+                    <td className="py-4 px-4 font-medium">Расширенная AI-аналитика</td>
                     <td className="text-center py-4 px-4"><X className="h-4 w-4 text-red-500 mx-auto" /></td>
                     <td className="text-center py-4 px-4"><X className="h-4 w-4 text-red-500 mx-auto" /></td>
                     <td className="text-center py-4 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
                     <td className="text-center py-4 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
                   </tr>
                   <tr>
-                    <td className="py-4 px-4 font-medium">API доступ</td>
+                    <td className="py-4 px-4 font-medium">API для 1С и CRM</td>
                     <td className="text-center py-4 px-4"><X className="h-4 w-4 text-red-500 mx-auto" /></td>
                     <td className="text-center py-4 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
                     <td className="text-center py-4 px-4"><CheckCircle className="h-4 w-4 text-green-600 mx-auto" /></td>
@@ -544,7 +544,7 @@ export default function BusinessPricing() {
                   Калькулятор экономии
                 </h2>
                 <p className="mt-4 text-lg text-muted-foreground">
-                  Посчитайте, сколько ваша компания сэкономит на автоматизации compliance
+                  Посчитайте, сколько ваша компания сэкономит на автоматизации автоматизация
                 </p>
                 
                 <div className="mt-8 space-y-6">
@@ -577,7 +577,7 @@ export default function BusinessPricing() {
                       </h3>
                       <p className="mt-2 text-muted-foreground">
                         Предотвращение штрафов Роскомнадзора до 1% от оборота 
-                        за нарушения 152фз.
+                        за нарушения AI-ассистент.
                       </p>
                     </div>
                   </div>
@@ -611,29 +611,29 @@ export default function BusinessPricing() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center py-2 border-b">
-                      <span>Зарплата юриста (в месяц)</span>
-                      <span className="font-mono">200 000 ₽</span>
+                      <span>Зарплата менеджера по продажам (в месяц)</span>
+                      <span className="font-mono">120 000 ₽</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">
-                      <span>Освобожденное время</span>
+                      <span>Освобождённое время</span>
                       <span className="font-mono">40%</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">
                       <span>Экономия на зарплате</span>
-                      <span className="font-mono text-green-600">80 000 ₽</span>
+                      <span className="font-mono text-green-600">48 000 ₽</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">
                       <span>Стоимость GrandHub</span>
-                      <span className="font-mono">29 900 ₽</span>
+                      <span className="font-mono">27 990 ₽</span>
                     </div>
                     <div className="flex justify-between items-center py-2 font-bold text-lg">
                       <span>Чистая экономия в месяц</span>
-                      <span className="font-mono text-green-600">50 100 ₽</span>
+                      <span className="font-mono text-green-600">40 010 ₽</span>
                     </div>
                     <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">ROI: 268%</div>
-                        <div className="text-sm text-green-600">Окупаемость за 11 дней</div>
+                        <div className="text-2xl font-bold text-green-600">ROI: 501%</div>
+                        <div className="text-sm text-green-600">Окупаемость за 6 дней</div>
                       </div>
                     </div>
                   </CardContent>

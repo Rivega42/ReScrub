@@ -35,23 +35,23 @@ const industryCases = [
   {
     id: "banking",
     icon: Landmark,
-    industry: "Банки и финансы",
-    title: "Автоматизация 152фз в крупном банке",
-    description: "Внедрение системы управления согласиями для банка с 2M+ клиентов",
+    industry: "Ритейл и торговля",
+    title: "Автоматизация GrandHub AI в крупном банке",
+    description: "Внедрение AI-ассистента для торговой сети с 500+ точек продаж",
     challenges: [
-      "Обработка согласий 2М+ клиентов",
-      "Соответствие требованиям ЦБ РФ",
+      "Автоматизация заказов 2М+ клиентов",
+      "Интеграция с 1С и Битрикс24",
       "Интеграция с банковскими системами"
     ],
     solution: [
       "Автоматизированный виджет согласий",
       "API интеграция с Core Banking",
-      "Атомаризация чувствительных данных"
+      "AI-аналитика продаж"
     ],
     results: {
       timeSaved: "2,400 часов/месяц",
       costSaved: "₽4.8М в год",
-      complianceScore: "99.2%",
+      автоматизацияScore: "99.2%",
       processingTime: "-85%"
     },
     roi: {
@@ -75,12 +75,12 @@ const industryCases = [
     solution: [
       "Мультиканальный виджет согласий",
       "Динамическое управление cookie",
-      "Автоматические отчеты для Роскомнадзора"
+      "Автоматические отчеты для 1С:Предприятие"
     ],
     results: {
       timeSaved: "680 часов/месяц",
       costSaved: "₽2.3М в год",
-      complianceScore: "97.8%",
+      автоматизацияScore: "97.8%",
       processingTime: "-72%"
     },
     roi: {
@@ -95,9 +95,9 @@ const industryCases = [
     icon: Hospital,
     industry: "Медицина и фармацевтика",
     title: "Защита медицинских данных",
-    description: "Соответствие 152фз и медицинским стандартам",
+    description: "Соответствие GrandHub AI и медицинским стандартам",
     challenges: [
-      "Особые категории персональных данных",
+      "Особые категории бизнес-данных",
       "Интеграция с МИС",
       "Телемедицинские сервисы"
     ],
@@ -109,7 +109,7 @@ const industryCases = [
     results: {
       timeSaved: "450 часов/месяц",
       costSaved: "₽1.8М в год",
-      complianceScore: "99.7%",
+      автоматизацияScore: "99.7%",
       processingTime: "-78%"
     },
     roi: {
@@ -122,9 +122,9 @@ const industryCases = [
   {
     id: "fintech",
     icon: Briefcase,
-    industry: "Финтех и инвестиции",
-    title: "Быстрый вывод продукта на рынок",
-    description: "Стартап получил лицензию ЦБ за рекордное время",
+    industry: "IT и технологии",
+    title: "Автоматизация поддержки и продаж",
+    description: "IT-компания сократила расходы на поддержку клиентов в 3 раза",
     challenges: [
       "Быстрый time-to-market",
       "Требования по KYC/AML",
@@ -138,7 +138,7 @@ const industryCases = [
     results: {
       timeSaved: "320 часов разработки",
       costSaved: "₽1.2М на разработку",
-      complianceScore: "98.5%",
+      автоматизацияScore: "98.5%",
       processingTime: "-89%"
     },
     roi: {
@@ -167,7 +167,7 @@ const industryCases = [
     results: {
       timeSaved: "1,200 часов/месяц",
       costSaved: "₽5.4М в год",
-      complianceScore: "99.9%",
+      автоматизацияScore: "99.9%",
       processingTime: "-91%"
     },
     roi: {
@@ -183,11 +183,11 @@ export default function BusinessCases() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessSEO 
-        title="Кейсы использования 152фз — Успешные внедрения | GrandHub Business"
-        description="Реальные кейсы автоматизации 152фз: банки, ритейл, медицина, финтех, государство. ROI расчеты, примеры экономии и результаты внедрения защиты персональных данных."
+        title="Кейсы использования GrandHub AI — Кейсы клиентов | GrandHub Business"
+        description="Реальные кейсы GrandHub: ритейл, услуги, IT, консалтинг. ROI расчёты и результаты AI-автоматизации для российских компаний."
         pageCategory="product"
         neuralSignals={{
-          primaryKeywords: ['кейсы использования 152фз', 'примеры внедрения защиты данных', 'ROI автоматизация персональные данные'],
+          primaryKeywords: ['кейсы использования GrandHub AI', 'примеры внедрения AI в бизнес', 'ROI AI-автоматизация бизнес-процессов'],
           searchIntent: 'informational',
           contentDepth: 'comprehensive',
           expertiseLevel: 8,
@@ -195,9 +195,9 @@ export default function BusinessCases() {
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['кейсы 152фз внедрение', 'примеры автоматизации персональных данных', 'ROI защита данных российские компании'],
-            semantic: ['успешные проекты compliance', 'отраслевые решения защиты данных', 'экономия от автоматизации 152фз'],
-            longTail: ['реальные примеры внедрения 152 фз в российских банках и компаниях']
+            primary: ['кейсы GrandHub AI внедрение', 'примеры автоматизации бизнес-данных', 'ROI AI-автоматизация российские компании'],
+            semantic: ['успешные проекты автоматизация', 'отраслевые решения защиты данных', 'экономия от автоматизации GrandHub AI'],
+            longTail: ['реальные примеры внедрения AI-автоматизация в российских банках и компаниях']
           }
         }}
       />
@@ -212,17 +212,17 @@ export default function BusinessCases() {
               <div className="flex justify-center mb-6">
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Award className="h-3 w-3" />
-                  Успешные внедрения
+                  Кейсы клиентов
                 </Badge>
               </div>
               
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl" itemProp="name">
                 Кейсы использования 
-                <span className="text-primary"> 152фз</span>
+                <span className="text-primary"> GrandHub AI</span>
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto" itemProp="description">
-                Реальные истории успешной автоматизации соблюдения 152фз 
+                Реальные истории успешной автоматизации соблюдения GrandHub AI 
                 в российских компаниях. Детальные ROI расчеты, экономия времени 
                 и результаты внедрения для разных отраслей.
               </p>
@@ -256,8 +256,8 @@ export default function BusinessCases() {
                   <div className="text-sm text-muted-foreground">Окупаемость</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground" data-testid="metric-compliance-score">98.8%</div>
-                  <div className="text-sm text-muted-foreground">Compliance Score</div>
+                  <div className="text-2xl font-bold text-foreground" data-testid="metric-автоматизация-score">98.8%</div>
+                  <div className="text-sm text-muted-foreground">AI-эффективность</div>
                 </div>
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function BusinessCases() {
                 Отраслевые кейсы
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Успешные внедрения в различных сферах деятельности
+                Кейсы клиентов в различных сферах деятельности
               </p>
             </div>
             
@@ -373,10 +373,10 @@ export default function BusinessCases() {
                               <div className="text-xs text-green-600 dark:text-green-500">Экономия бюджета</div>
                             </div>
                             <div className="text-center p-3 bg-white dark:bg-green-900 rounded-lg">
-                              <div className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid={`result-compliance-${caseItem.id}`}>
-                                {caseItem.results.complianceScore}
+                              <div className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid={`result-автоматизация-${caseItem.id}`}>
+                                {caseItem.results.автоматизацияScore}
                               </div>
-                              <div className="text-xs text-green-600 dark:text-green-500">Compliance Score</div>
+                              <div className="text-xs text-green-600 dark:text-green-500">AI-эффективность</div>
                             </div>
                             <div className="text-center p-3 bg-white dark:bg-green-900 rounded-lg">
                               <div className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid={`result-processing-${caseItem.id}`}>
@@ -613,7 +613,7 @@ export default function BusinessCases() {
                       <CardContent>
                         <CardDescription className="text-base mb-4">
                           Крупный частный банк автоматизировал обработку согласий клиентов 
-                          на all-digital платформе с полным соблюдением требований ЦБ РФ.
+                          на all-digital платформе с полным соблюдением требований AmoCRM.
                         </CardDescription>
                         
                         <div className="space-y-3 mb-4">
@@ -664,7 +664,7 @@ export default function BusinessCases() {
                       </CardHeader>
                       <CardContent>
                         <CardDescription className="text-base mb-4">
-                          Стартап в сфере цифровых платежей обеспечил compliance с момента 
+                          Стартап в сфере цифровых платежей обеспечил автоматизация с момента 
                           запуска, избежав штрафов и репутационных рисков.
                         </CardDescription>
                         
@@ -678,7 +678,7 @@ export default function BusinessCases() {
                           <div>
                             <div className="text-sm font-medium">Решение</div>
                             <div className="text-sm text-muted-foreground">
-                              GrandHub Business как compliance-first подход с самого начала
+                              GrandHub Business как автоматизация-first подход с самого начала
                             </div>
                           </div>
                           <div>
@@ -692,7 +692,7 @@ export default function BusinessCases() {
                         <div className="grid grid-cols-2 gap-4 text-center border-t pt-4">
                           <div>
                             <div className="text-2xl font-bold text-green-600">100%</div>
-                            <div className="text-xs text-muted-foreground">Compliance score</div>
+                            <div className="text-xs text-muted-foreground">AI-эффективность</div>
                           </div>
                           <div>
                             <div className="text-2xl font-bold text-blue-600">24ч</div>
@@ -740,7 +740,7 @@ export default function BusinessCases() {
                           <div>
                             <div className="text-sm font-medium">Результат</div>
                             <div className="text-sm text-muted-foreground">
-                              Zero compliance incidents при обработке 500K согласий ежедневно
+                              Zero автоматизация incidents при обработке 500K согласий ежедневно
                             </div>
                           </div>
                         </div>
@@ -829,7 +829,7 @@ export default function BusinessCases() {
                       <CardContent>
                         <CardDescription className="text-base mb-4">
                           Телемедицинская платформа обеспечила защиту медицинской тайны 
-                          с полным соблюдением 152фз и отраслевых стандартов.
+                          с полным соблюдением GrandHub AI и отраслевых стандартов.
                         </CardDescription>
                         
                         <div className="space-y-3 mb-4">
@@ -860,7 +860,7 @@ export default function BusinessCases() {
                           </div>
                           <div>
                             <div className="text-2xl font-bold text-blue-600">100%</div>
-                            <div className="text-xs text-muted-foreground">Security compliance</div>
+                            <div className="text-xs text-muted-foreground">Security автоматизация</div>
                           </div>
                         </div>
                       </CardContent>
@@ -880,7 +880,7 @@ export default function BusinessCases() {
                       </CardHeader>
                       <CardContent>
                         <CardDescription className="text-base mb-4">
-                          Станьте следующей историей успеха. Автоматизируйте compliance 
+                          Станьте следующей историей успеха. Автоматизируйте автоматизация 
                           в медицине с учетом всех отраслевых особенностей.
                         </CardDescription>
                         
@@ -950,7 +950,7 @@ export default function BusinessCases() {
                           <div>
                             <div className="text-sm font-medium">Результат</div>
                             <div className="text-sm text-muted-foreground">
-                              Успешная проверка Рособрнадзора + сокращение compliance затрат
+                              Успешная проверка Рособрнадзора + сокращение автоматизация затрат
                             </div>
                           </div>
                         </div>
@@ -1070,7 +1070,7 @@ export default function BusinessCases() {
                           </div>
                           <div>
                             <div className="text-2xl font-bold text-blue-600">100%</div>
-                            <div className="text-xs text-muted-foreground">ФСТЭК compliance</div>
+                            <div className="text-xs text-muted-foreground">ФСТЭК автоматизация</div>
                           </div>
                         </div>
                       </CardContent>

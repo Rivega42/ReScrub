@@ -10,9 +10,11 @@ import {
   Users, 
   ChevronDown,
   ExternalLink,
-  Shield,
+  Bot,
   Settings,
-  BarChart3
+  BarChart3,
+  ShoppingCart,
+  BookOpen
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -75,7 +77,7 @@ function PlatformSwitcher() {
           ) : (
             <>
               <Users className="h-4 w-4" />
-              Classic
+              Personal
             </>
           )}
           <ChevronDown className="h-3 w-3" />
@@ -89,9 +91,9 @@ function PlatformSwitcher() {
           <Link href="/" className="flex items-center gap-2 w-full" data-testid="link-platform-classic">
             <Users className="h-4 w-4" />
             <div className="flex flex-col">
-              <span className="font-medium">GrandHub Classic</span>
+              <span className="font-medium">GrandHub Personal</span>
               <span className="text-xs text-muted-foreground">
-                Для частных лиц
+                Для частных пользователей
               </span>
             </div>
             {!isBusiness && <Badge variant="secondary" className="ml-auto text-xs">Текущая</Badge>}
@@ -136,23 +138,24 @@ export default function BusinessHeader() {
   
   const isActive = (path: string) => location === path || location.startsWith(path + '/');
   
-  // Business platform navigation
   const navigation = [
     { 
       name: 'Продукты', 
       href: '/business', 
-      icon: Shield,
+      icon: Bot,
       dropdown: [
-        { name: 'Виджет согласий', href: '/business/consent', description: '152-ФЗ compliance виджет' },
-        { name: 'Атомаризация данных', href: '/business/atomization', description: 'Распределенное хранение' },
-        { name: 'Мониторинг', href: '/business/monitoring', description: 'Контроль нарушений' }
+        { name: 'AI-помощник', href: '/business/consent', description: 'Умный ассистент для бизнеса' },
+        { name: 'AI-аналитика', href: '/business/atomization', description: 'Бизнес-аналитика на основе ИИ' },
+        { name: 'Мониторинг', href: '/business/monitoring', description: 'Дашборд показателей в реальном времени' }
       ]
     },
     { name: 'Тарифы', href: '/business/pricing', icon: BarChart3 },
     { name: 'API', href: '/business/api', icon: Settings },
     { name: 'Интеграции', href: '/business/integrations', icon: Building2 },
     { name: 'Кейсы', href: '/business/cases', icon: Users },
-    { name: 'Документация', href: '/business/whitepaper', icon: Shield }
+    { name: 'Документация', href: '/business/whitepaper', icon: Bot },
+    { name: 'Trading Hub', href: '/trading', icon: ShoppingCart },
+    { name: 'Навыки', href: '/skills', icon: BookOpen }
   ];
 
   const secondaryNavigation = [
@@ -165,11 +168,10 @@ export default function BusinessHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo - Business branding */}
           <div className="flex items-center gap-4">
             <Link href="/business" data-testid="link-business-home" className="flex items-center gap-2">
               <div className="flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
+                <Bot className="h-6 w-6 text-primary" />
                 <div className="flex flex-col">
                   <span className="text-lg font-bold text-foreground">GrandHub</span>
                   <span className="text-xs text-primary font-medium -mt-1">Business</span>
@@ -178,11 +180,10 @@ export default function BusinessHeader() {
             </Link>
             
             <Badge variant="outline" className="hidden sm:flex text-xs">
-              Корпоративные решения 152-ФЗ
+              AI-помощник для бизнеса
             </Badge>
           </div>
 
-          {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1">
             {navigation.map((item) => (
               item.dropdown ? (
@@ -236,7 +237,6 @@ export default function BusinessHeader() {
               )
             ))}
             
-            {/* Secondary navigation */}
             <div className="h-4 w-px bg-border mx-2" />
             {secondaryNavigation.map((item) => (
               <Link
@@ -257,7 +257,6 @@ export default function BusinessHeader() {
             ))}
           </nav>
 
-          {/* Desktop Actions */}
           <div className="hidden lg:flex items-center space-x-2">
             <PlatformSwitcher />
             <ThemeToggle />
@@ -276,7 +275,6 @@ export default function BusinessHeader() {
             </Link>
           </div>
 
-          {/* Mobile menu button */}
           <div className="lg:hidden flex items-center space-x-2">
             <PlatformSwitcher />
             <ThemeToggle />
@@ -292,11 +290,9 @@ export default function BusinessHeader() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="lg:hidden">
             <div className="space-y-1 border-t border-border px-2 py-4">
-              {/* Main navigation */}
               {navigation.map((item) => (
                 <div key={item.name}>
                   <Link
@@ -316,7 +312,6 @@ export default function BusinessHeader() {
                     </Button>
                   </Link>
                   
-                  {/* Dropdown items for mobile */}
                   {item.dropdown && (
                     <div className="ml-6 mt-1 space-y-1">
                       {item.dropdown.map((subItem) => (
@@ -330,7 +325,6 @@ export default function BusinessHeader() {
                             variant="ghost"
                             size="sm"
                             className="w-full justify-start text-xs text-muted-foreground hover-elevate"
-                            data-testid={`button-mobile-dropdown-${subItem.name.toLowerCase().replace(/\s+/g, '-')}`}
                           >
                             {subItem.name}
                           </Button>
@@ -341,20 +335,17 @@ export default function BusinessHeader() {
                 </div>
               ))}
               
-              {/* Secondary navigation */}
               <div className="border-t border-border pt-3 mt-3 space-y-1">
                 {secondaryNavigation.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    data-testid={`link-mobile-secondary-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <Button
                       variant="ghost"
                       size="sm"
                       className="w-full justify-start hover-elevate"
-                      data-testid={`button-mobile-secondary-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
                       {item.name}
                     </Button>
@@ -362,15 +353,14 @@ export default function BusinessHeader() {
                 ))}
               </div>
               
-              {/* Auth buttons */}
               <div className="border-t border-border pt-3 mt-3 space-y-1">
-                <Link href="/business/login" onClick={() => setMobileMenuOpen(false)} data-testid="link-mobile-business-login">
-                  <Button variant="ghost" size="sm" className="w-full justify-start" data-testid="button-mobile-business-login">
-                    Войти в Business
+                <Link href="/business/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start">
+                    Войти в GrandHub Business
                   </Button>
                 </Link>
-                <Link href="/business/register" onClick={() => setMobileMenuOpen(false)} data-testid="link-mobile-business-register">
-                  <Button size="sm" className="w-full" data-testid="button-mobile-business-register">
+                <Link href="/business/register" onClick={() => setMobileMenuOpen(false)}>
+                  <Button size="sm" className="w-full">
                     Начать работу
                   </Button>
                 </Link>
@@ -379,20 +369,10 @@ export default function BusinessHeader() {
           </div>
         )}
       </div>
-      
-      {/* Subdomain detection indicator (for development) */}
-      {typeof window !== 'undefined' && window.location.hostname.startsWith('business.') && (
-        <div className="hidden" data-business-subdomain="true" aria-hidden="true">
-          Business subdomain detected: {window.location.hostname}
-        </div>
-      )}
     </header>
   );
 }
 
-/**
- * Subdomain detection utility
- */
 export function useSubdomainDetection() {
   const [isBusiness, setIsBusiness] = useState(false);
   
@@ -401,8 +381,6 @@ export function useSubdomainDetection() {
       const hostname = window.location.hostname;
       const isBusinessSubdomain = hostname.startsWith('business.');
       setIsBusiness(isBusinessSubdomain);
-      
-      // Set global CSS variable for business theme
       if (isBusinessSubdomain) {
         document.documentElement.classList.add('business-platform');
       } else {
@@ -418,9 +396,6 @@ export function useSubdomainDetection() {
   };
 }
 
-/**
- * Business platform route detector
- */
 export function useBusinessRoute() {
   const [location] = useLocation();
   

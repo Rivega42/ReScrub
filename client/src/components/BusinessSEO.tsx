@@ -85,12 +85,12 @@ export interface BusinessSEOProps {
  * @example
  * ```tsx
  * <BusinessSEO 
- *   title="Виджет согласий 152-ФЗ — Rescrub Business"
- *   description="Готовый виджет для сбора согласий на обработку персональных данных согласно 152-ФЗ"
+ *   title="Виджет согласий AI-платформа — Rescrub Business"
+ *   description="Готовый виджет для сбора согласий на обработку бизнес-данных согласно AI-платформа"
  *   productType="consent"
  *   pageCategory="product"
  *   productData={{
- *     name: "Виджет согласий 152-ФЗ",
+ *     name: "Виджет согласий AI-платформа",
  *     category: "Compliance Software"
  *   }}
  * />
@@ -163,28 +163,28 @@ export function BusinessSEO({
     [currentPath]
   );
   
-  // Business-specific keywords for 152фз compliance and neural targeting
+  // Business-specific keywords for AI-автоматизация compliance and neural targeting
   const businessKeywords = useMemo(() => [
-    'защита персональных данных для бизнеса',
-    '152фз что такое', 
-    'соответствие 152фз для компаний',
+    'AI-помощник для бизнеса в России',
+    'AI-автоматизация что такое', 
+    'соответствие AI-автоматизация для компаний',
     'автоматизация защиты данных бизнес',
     'консультации по защите данных',
-    'внедрение 152фз в компании',
-    'корпоративная безопасность данных',
+    'внедрение AI-автоматизация в компании',
+    'AI + CRM/1С автоматизация',
     'управление согласиями клиентов',
-    'compliance персональные данные',
-    'штрафы за нарушение 152фз',
-    'обработка персональных данных бизнес',
+    'compliance бизнес-данные',
+    'штрафы за нарушение AI-автоматизация',
+    'обработка бизнес-данных бизнес',
     'системы защиты данных для компаний',
-    'аудит персональных данных',
+    'аудит бизнес-данных',
     'DPO услуги для бизнеса',
     'политика конфиденциальности бизнес',
     'согласие на обработку данных',
     'мониторинг утечек данных',
     'корпоративная приватность',
     'защита клиентских данных',
-    'бизнес решения 152фз'
+    'бизнес решения AI-автоматизация'
   ], []);
 
   // Product-specific keywords
@@ -192,7 +192,7 @@ export function BusinessSEO({
     const productKeywordMap = {
       consent: [
         'виджет согласий',
-        'форма согласия для бизнеса 152фз',
+        'форма согласия для бизнеса AI-автоматизация',
         'cookie consent banner',
         'GDPR consent widget',
         'consent management',
@@ -206,22 +206,22 @@ export function BusinessSEO({
         'микросервисы данных',
         'data atomization',
         'блокчейн хранение',
-        'фрагментация персональных данных'
+        'фрагментация бизнес-данных'
       ],
       monitoring: [
         'мониторинг утечек данных',
-        'контроль персональных данных',
+        'контроль бизнес-данных',
         'аудит обработки данных',
-        'SIEM мониторинг для бизнеса 152фз',
+        'SIEM мониторинг для бизнеса AI-автоматизация',
         'data breach monitoring',
         'непрерывный аудит'
       ],
       api: [
-        'API для бизнеса 152фз',
+        'API для бизнеса AI-автоматизация',
         'интеграция защиты данных',
         'программный интерфейс приватности',
-        'REST API персональные данные',
-        'разработчики для бизнеса 152фз'
+        'REST API бизнес-данные',
+        'разработчики для бизнеса AI-автоматизация'
       ],
       integration: [
         'интеграция защиты данных бизнес',
@@ -239,8 +239,8 @@ export function BusinessSEO({
   const enhancedNeuralSignals = useMemo((): NeuralSearchSignals => ({
     primaryKeywords: [
       ...(neuralSignals?.primaryKeywords || []),
-      '152фз',
-      'персональные данные',
+      'AI-автоматизация',
+      'бизнес-данные',
       'защита данных',
       ...(productType ? [`${productType} решение`] : [])
     ],
@@ -267,7 +267,7 @@ export function BusinessSEO({
       'российское законодательство',
       'сертифицированное решение',
       'enterprise security',
-      'корпоративная безопасность'
+      'AI-автоматизация бизнеса'
     ],
     topicCluster: neuralSignals?.topicCluster || 'data-protection-compliance'
   }), [neuralSignals, businessKeywords, productKeywords, productType, pageCategory]);
@@ -293,15 +293,15 @@ export function BusinessSEO({
       ],
       semantic: [
         ...(russianSEO?.russianKeywords?.semantic || []),
-        'закон о персональных данных',
-        'корпоративная безопасность',
+        'закон о бизнес-данных',
+        'AI-автоматизация бизнеса',
         'российское ПО',
         'отечественные решения'
       ],
       longTail: [
         ...(russianSEO?.russianKeywords?.longTail || []),
         'как обеспечить соответствие 152 фз в компании',
-        'внедрение системы защиты персональных данных',
+        'внедрение системы защиты бизнес-данных',
         'автоматизация процессов 152 фз для бизнеса'
       ]
     },
@@ -320,7 +320,7 @@ export function BusinessSEO({
       downloadableResources: [
         ...(russianSEO?.behavioralSignals?.downloadableResources || []),
         'техническая документация PDF',
-        'чек-лист соответствия 152-ФЗ',
+        'чек-лист соответствия AI-платформа',
         'шаблоны согласий'
       ]
     }
@@ -330,22 +330,22 @@ export function BusinessSEO({
   const enhancedBotHints = useMemo((): SearchBotHints => ({
     contentLanguage: botHints?.contentLanguage || 'ru',
     geoRegion: botHints?.geoRegion || 'RU',
-    subject: botHints?.subject || 'защита персональных данных',
+    subject: botHints?.subject || 'AI-автоматизация бизнес-процессов',
     classification: botHints?.classification || 'enterprise-software',
     industryVertical: botHints?.industryVertical || 'information-security',
     regulatoryContext: [
       ...(botHints?.regulatoryContext || []),
-      '152фз',
+      'AI-автоматизация',
       'GDPR',
-      'российское законодательство о персональных данных',
+      'российское законодательство о бизнес-данных',
       'цифровая экономика РФ'
     ],
     relatedEntities: [
       ...(botHints?.relatedEntities || []),
-      'Роскомнадзор',
-      'Минцифры России',
-      'ФСТЭК России',
-      'персональные данные',
+      'Министерство цифрового развития',
+      'Битрикс24',
+      '1С:Предприятие',
+      'бизнес-данные',
       'информационная безопасность'
     ],
     contentStructure: {
@@ -377,7 +377,7 @@ export function BusinessSEO({
   // Build complete PageMeta object
   const meta = useMemo((): PageMeta => ({
     title: title || fallbackMeta.title || `${SEO_CONSTANTS.SITE_NAME} Business — Корпоративная защита данных`,
-    description: description || fallbackMeta.description || 'Корпоративные решения GrandHub для автоматизации соблюдения 152-ФЗ. Защита персональных данных, управление согласиями, мониторинг compliance для бизнеса.',
+    description: description || fallbackMeta.description || 'Корпоративные решения GrandHub для автоматизации соблюдения AI-платформа. Защита бизнес-данных, управление согласиями, мониторинг compliance для бизнеса.',
     keywords: mergedKeywords,
     type,
     canonical,
@@ -403,11 +403,11 @@ export function BusinessSEO({
       '@context': 'https://schema.org',
       '@type': 'Organization',
       name: 'GrandHub Business',
-      alternateName: 'РесКраб Бизнес',
+      alternateName: 'ГрандХаб Бизнес',
       legalName: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_NAME,
       url: dynamicBaseUrl,
       logo: `${dynamicBaseUrl}/images/business-logo.png`,
-      description: 'Корпоративные решения для автоматизации соблюдения 152-ФЗ и защиты персональных данных в российских компаниях',
+      description: 'Корпоративные решения для автоматизации соблюдения AI-платформа и защиты бизнес-данных в российских компаниях',
       foundingDate: '2024-01-01T00:00:00Z',
       address: {
         '@type': 'PostalAddress',
@@ -457,9 +457,9 @@ export function BusinessSEO({
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: 'GrandHub Business Platform',
-      alternateName: 'Корпоративная платформа защиты данных',
+      alternateName: 'AI-платформа для автоматизации бизнеса',
       url: dynamicBaseUrl,
-      description: 'Корпоративные решения для автоматизации соблюдения российского законодательства о персональных данных',
+      description: 'Корпоративные решения для автоматизации соблюдения российского законодательства о бизнес-данных',
       inLanguage: 'ru',
       potentialAction: {
         '@type': 'SearchAction',
@@ -536,7 +536,7 @@ export function BusinessSEO({
           worstRating: '1'
         },
         featureList: [
-          'Автоматизация 152-ФЗ',
+          'Автоматизация AI-платформа',
           'Управление согласиями',
           'Мониторинг compliance',
           'API интеграция',
@@ -550,8 +550,8 @@ export function BusinessSEO({
     const serviceSchema: JsonLdService = {
       '@context': 'https://schema.org',
       '@type': 'Service',
-      name: 'Корпоративная защита персональных данных',
-      description: 'Комплексные решения для автоматизации соблюдения 152-ФЗ в российских компаниях',
+      name: 'Корпоративная AI-автоматизация бизнес-процессов',
+      description: 'Комплексные решения для автоматизации соблюдения AI-платформа в российских компаниях',
       provider: {
         '@type': 'Organization',
         name: 'GrandHub Business',
@@ -578,8 +578,8 @@ export function BusinessSEO({
             '@type': 'Offer',
             itemOffered: {
               '@type': 'Service',
-              name: 'Виджет согласий 152-ФЗ',
-              description: 'Готовое решение для сбора согласий на обработку персональных данных'
+              name: 'Виджет согласий AI-платформа',
+              description: 'Готовое решение для сбора согласий на обработку бизнес-данных'
             }
           },
           {
@@ -587,7 +587,7 @@ export function BusinessSEO({
             itemOffered: {
               '@type': 'Service',
               name: 'Атомаризация данных',
-              description: 'Технология распределенного хранения персональных данных'
+              description: 'Технология распределенного хранения бизнес-данных'
             }
           },
           {
@@ -595,7 +595,7 @@ export function BusinessSEO({
             itemOffered: {
               '@type': 'Service',
               name: 'Мониторинг compliance',
-              description: 'Непрерывный контроль соблюдения требований 152-ФЗ'
+              description: 'Непрерывный контроль соблюдения требований AI-платформа'
             }
           }
         ]

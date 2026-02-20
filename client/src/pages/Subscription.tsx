@@ -90,7 +90,7 @@ export default function Subscription() {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
       
       if (data.paymentUrl && data.paymentUrl !== '#') {
-        // Перенаправляем на Robokassa для оплаты
+        // Перенаправляем на ЮKassa / Robokassa для оплаты
         window.location.href = data.paymentUrl;
       } else {
         // Подписка оплачена баллами и активирована
@@ -208,8 +208,8 @@ export default function Subscription() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" data-testid="text-subscription-title">Подписка</h1>
-        <p className="text-muted-foreground">Управление вашим планом защиты данных</p>
+        <h1 className="text-2xl font-bold" data-testid="text-subscription-title">Подписка GrandHub</h1>
+        <p className="text-muted-foreground">Управление вашей подпиской GrandHub</p>
       </div>
 
       {/* Текущая подписка */}
@@ -356,28 +356,28 @@ export default function Subscription() {
                       <>
                         <li>• Сканирование 50+ сайтов</li>
                         <li>• Базовые запросы на удаление</li>
-                        <li>• Ежемесячные отчеты</li>
-                        <li>• Email поддержка</li>
+                        <li>• 3 навыка на выбор</li>
+                        <li>• Базовая память</li>
                       </>
                     )}
                     {plan.name === 'premium' && (
                       <>
                         <li>• Сканирование 200+ сайтов</li>
                         <li>• Приоритетные запросы на удаление</li>
-                        <li>• Еженедельные отчеты</li>
-                        <li>• Мониторинг в реальном времени</li>
-                        <li>• Приоритетная поддержка</li>
-                        <li>• Защита семьи (до 5 человек)</li>
+                        <li>• Расширенная память</li>
+                        <li>• Приоритетный ответ</li>
+                        <li>• Приоритетная поддержка GrandHub</li>
+                        <li>• Семейный доступ (до 3 человек)</li>
                       </>
                     )}
                     {plan.name === 'enterprise' && (
                       <>
-                        <li>• Сканирование 500+ сайтов</li>
-                        <li>• Персональный менеджер</li>
-                        <li>• API доступ</li>
-                        <li>• Кастомные интеграции</li>
-                        <li>• SLA 99.9%</li>
-                        <li>• 24/7 поддержка</li>
+                        <li>• Безлимит Pro-запросов</li>
+                        <li>• Персональный менеджер GrandHub</li>
+                        <li>• API-доступ и Trading Hub</li>
+                        <li>• Корпоративный Trading Hub</li>
+                        <li>• SLA и приоритет</li>
+                        <li>• Выделенная поддержка 24/7</li>
                       </>
                     )}
                   </ul>
@@ -419,8 +419,8 @@ export default function Subscription() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Платежная система:</span>
-            <span className="font-medium">Robokassa</span>
+            <span className="text-muted-foreground">Платёжные системы:</span>
+            <span className="font-medium">ЮKassa / Robokassa</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Поддерживаемые методы:</span>
@@ -434,7 +434,7 @@ export default function Subscription() {
           <Separator />
           
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>• Платеж обрабатывается через защищенный шлюз Robokassa</p>
+            <p>• Платеж обрабатывается через защищенный шлюз ЮKassa / Robokassa</p>
             <p>• Ваши банковские данные не сохраняются на наших серверах</p>
             <p>• Возможна отмена подписки в любое время</p>
             <p>• При отмене доступ сохраняется до конца оплаченного периода</p>

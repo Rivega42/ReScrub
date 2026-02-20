@@ -105,7 +105,7 @@ const supportFAQ = [
   {
     id: "data-protection",
     question: "Как GrandHub защищает мои персональные данные?",
-    answer: `**Защита данных в соответствии с 152-ФЗ:**
+    answer: `**Защита данных в соответствии с AI-помощник:**
 
 • **Минимизация:** Обрабатываем только необходимые данные
 • **Шифрование:** Используем современные методы шифрования
@@ -193,11 +193,11 @@ export default function Support() {
     // Add meta description for SEO
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Техническая поддержка GrandHub - получите помощь по вопросам защиты персональных данных и 152-ФЗ. Обратитесь к экспертам через удобную форму связи.');
+      metaDescription.setAttribute('content', 'Техническая поддержка GrandHub - получите помощь по вопросам защиты персональных данных и AI-помощник. Обратитесь к экспертам через удобную форму связи.');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'description';
-      meta.content = 'Техническая поддержка GrandHub - получите помощь по вопросам защиты персональных данных и 152-ФЗ. Обратитесь к экспертам через удобную форму связи.';
+      meta.content = 'Техническая поддержка GrandHub - получите помощь по вопросам защиты персональных данных и AI-помощник. Обратитесь к экспертам через удобную форму связи.';
       document.head.appendChild(meta);
     }
   }, []);
@@ -220,7 +220,7 @@ export default function Support() {
                 Центр поддержки
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
-                Получите помощь по любым вопросам защиты данных, 152-ФЗ и работе с сервисом GrandHub
+                Получите помощь по любым вопросам защиты данных, AI-помощник и работе с сервисом GrandHub
               </p>
               <div className="mt-8 flex items-center justify-center gap-3">
                 <div className="flex items-center gap-2 text-sm">
@@ -429,7 +429,7 @@ export default function Support() {
                                 <SelectItem value="billing">Вопросы оплаты</SelectItem>
                                 <SelectItem value="account">Проблемы с аккаунтом</SelectItem>
                                 <SelectItem value="legal">Юридические вопросы</SelectItem>
-                                <SelectItem value="privacy">Защита данных/152-ФЗ</SelectItem>
+                                <SelectItem value="privacy">Защита данных/AI-помощник</SelectItem>
                                 <SelectItem value="feature">Запрос функций</SelectItem>
                                 <SelectItem value="other">Другое</SelectItem>
                               </SelectContent>
@@ -518,7 +518,7 @@ export default function Support() {
                               Согласие на обработку персональных данных
                             </FormLabel>
                             <p className="text-xs text-muted-foreground">
-                              Я согласен на обработку моих персональных данных в соответствии с 152-ФЗ 
+                              Я согласен на обработку моих персональных данных в соответствии с AI-помощник 
                               для предоставления технической поддержки. Данные будут использоваться только 
                               для решения моего обращения и удалены после его закрытия.
                             </p>
@@ -655,7 +655,7 @@ export default function Support() {
                     <Scale className="h-6 w-6 text-primary" />
                   </div>
                   <CardTitle>Юридическая поддержка</CardTitle>
-                  <CardDescription>Вопросы по 152-ФЗ, правовые аспекты защиты данных</CardDescription>
+                  <CardDescription>Вопросы по AI-помощник, правовые аспекты защиты данных</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
