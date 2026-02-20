@@ -1,3 +1,31 @@
+
+import React from "react";
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: any) {
+    console.error("React Error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{padding: "40px", fontFamily: "monospace", color: "red", background: "#111", minHeight: "100vh"}}>
+          <h1>Runtime Error</h1>
+          <pre style={{whiteSpace: "pre-wrap", wordBreak: "break-all"}}>{this.state.error?.message}</pre>
+          <pre style={{whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: "12px", marginTop: "20px"}}>{this.state.error?.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -24,7 +52,6 @@ const Support = lazy(() => import("@/pages/Support"));
 const Contacts = lazy(() => import("@/pages/Contacts"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
-const Security = lazy(() => import("@/pages/Security"));
 const InvitePage = lazy(() => import("@/pages/InvitePage"));
 
 // Тяжелые статичные страницы
@@ -44,6 +71,7 @@ const AdminUsers = lazy(() => import("@/pages/AdminUsers"));
 const AdminDataBrokers = lazy(() => import("@/pages/AdminDataBrokers"));
 const AdminEmailTemplates = lazy(() => import("@/pages/AdminEmailTemplates"));
 const AdminSecurityLogs = lazy(() => import("@/pages/AdminSecurityLogs"));
+const Security = lazy(() => import("@/pages/Security"));
 const AdminSystemMonitoring = lazy(() => import("@/pages/AdminSystemMonitoring"));
 const AdminBlog = lazy(() => import("@/pages/AdminBlog"));
 
@@ -76,6 +104,27 @@ const BusinessLogin = lazy(() => import("@/pages/business/BusinessLogin"));
 const BusinessRegister = lazy(() => import("@/pages/business/BusinessRegister"));
 const BusinessMonitoring = lazy(() => import("@/pages/business/BusinessMonitoring"));
 const BusinessSupport = lazy(() => import("@/pages/business/BusinessSupport"));
+// Feature pages — 20 страниц
+const FeatureAiAssistant = lazy(() => import("@/pages/features/AiAssistant"));
+const FeatureTelegramBot = lazy(() => import("@/pages/features/TelegramBot"));
+const FeatureOnboarding = lazy(() => import("@/pages/features/Onboarding"));
+const FeatureMultimodal = lazy(() => import("@/pages/features/Multimodal"));
+const FeatureRagMemory = lazy(() => import("@/pages/features/RagMemory"));
+const FeatureSkillsMarketplace = lazy(() => import("@/pages/features/SkillsMarketplace"));
+const FeatureAiSecretary = lazy(() => import("@/pages/features/AiSecretary"));
+const FeatureReceiptsAi = lazy(() => import("@/pages/features/ReceiptsAi"));
+const FeatureSubscriptions = lazy(() => import("@/pages/features/Subscriptions"));
+const FeatureBilling = lazy(() => import("@/pages/features/Billing"));
+const FeatureFamilyBudget = lazy(() => import("@/pages/features/FamilyBudget"));
+const FeatureNoCodeBuilder = lazy(() => import("@/pages/features/NoCodeBuilder"));
+const FeatureVoiceAudio = lazy(() => import("@/pages/features/VoiceAudio"));
+const FeatureImageGeneration = lazy(() => import("@/pages/features/ImageGeneration"));
+const FeatureTradingHub = lazy(() => import("@/pages/features/TradingHub"));
+const FeatureB2bPlatform = lazy(() => import("@/pages/features/B2bPlatform"));
+const FeatureSmartHome = lazy(() => import("@/pages/features/SmartHome"));
+const FeatureMobileApp = lazy(() => import("@/pages/features/MobileApp"));
+const FeatureCrossSkillEcosystem = lazy(() => import("@/pages/features/CrossSkillEcosystem"));
+const FeatureA2aProtocol = lazy(() => import("@/pages/features/A2aProtocol"));
 import { AppSidebar } from "@/components/AppSidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -120,7 +169,15 @@ function AdminLoadingFallback() {
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  console.log("[GH-DEBUG] Router render: location=" + location + " pathname=" + window.location.pathname + " isLoading=" + isLoading + " isAuth=" + isAuthenticated);
+  
+  // Debug: test if useRoute works for feature paths
+  if (location.startsWith("/features/")) {
+    console.log("[GH-DEBUG] On features page, testing direct route match...");
+    // Just render the right component directly
+  }
 
   return (
     <>
@@ -248,6 +305,108 @@ function Router() {
       <Route path="/business/roadmap">
         <Suspense fallback={<PageLoadingFallback />}>
           <BusinessRoadmap />
+        </Suspense>
+      </Route>
+
+      {/* Feature pages — 20 routes */}
+      <Route path="/features/ai-assistant">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureAiAssistant />
+        </Suspense>
+      </Route>
+      <Route path="/features/telegram-bot">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureTelegramBot />
+        </Suspense>
+      </Route>
+      <Route path="/features/onboarding">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureOnboarding />
+        </Suspense>
+      </Route>
+      <Route path="/features/multimodal">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureMultimodal />
+        </Suspense>
+      </Route>
+      <Route path="/features/rag-memory">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureRagMemory />
+        </Suspense>
+      </Route>
+      <Route path="/features/skills-marketplace">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureSkillsMarketplace />
+        </Suspense>
+      </Route>
+      <Route path="/features/ai-secretary">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureAiSecretary />
+        </Suspense>
+      </Route>
+      <Route path="/features/receipts-ai">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureReceiptsAi />
+        </Suspense>
+      </Route>
+      <Route path="/features/subscriptions">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureSubscriptions />
+        </Suspense>
+      </Route>
+      <Route path="/features/billing">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureBilling />
+        </Suspense>
+      </Route>
+      <Route path="/features/family-budget">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureFamilyBudget />
+        </Suspense>
+      </Route>
+      <Route path="/features/no-code-builder">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureNoCodeBuilder />
+        </Suspense>
+      </Route>
+      <Route path="/features/voice-audio">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureVoiceAudio />
+        </Suspense>
+      </Route>
+      <Route path="/features/image-generation">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureImageGeneration />
+        </Suspense>
+      </Route>
+      <Route path="/features/trading-hub">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureTradingHub />
+        </Suspense>
+      </Route>
+      <Route path="/features/b2b-platform">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureB2bPlatform />
+        </Suspense>
+      </Route>
+      <Route path="/features/smart-home">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureSmartHome />
+        </Suspense>
+      </Route>
+      <Route path="/features/mobile-app">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureMobileApp />
+        </Suspense>
+      </Route>
+      <Route path="/features/cross-skill-ecosystem">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureCrossSkillEcosystem />
+        </Suspense>
+      </Route>
+      <Route path="/features/a2a-protocol">
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FeatureA2aProtocol />
         </Suspense>
       </Route>
       <Route path="/business/pricing">
