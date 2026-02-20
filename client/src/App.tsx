@@ -385,24 +385,17 @@ function Router() {
       </Route>
       
       {/* Main landing/home route */}
-      {isLoading || !isAuthenticated ? (
-        <Route path="/">
-          {(params) => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const inviteCode = urlParams.get('invite');
-            
-            if (inviteCode) {
-              // Redirect to proper invite page using wouter navigation
-              setLocation(`/invite/${inviteCode}`);
-              return null;
-            }
-            
-            return <Landing />;
-          }}
-        </Route>
-      ) : (
-        <Route path="/" component={Home} />
-      )}
+      <Route path="/">
+        {() => {
+          const urlParams = new URLSearchParams(window.location.search);
+          const inviteCode = urlParams.get('invite');
+          if (inviteCode) {
+            setLocation(`/invite/${inviteCode}`);
+            return null;
+          }
+          return (!isLoading && isAuthenticated) ? <Home /> : <Landing />;
+        }}
+      </Route>
       
       <Route component={NotFound} />
     </Switch>
