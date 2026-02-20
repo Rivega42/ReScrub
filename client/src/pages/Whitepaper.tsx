@@ -11,7 +11,7 @@ import { FileText, Download, Shield, Search, Database, CheckCircle, AlertTriangl
 export default function Whitepaper() {
   // Add SEO metadata for whitepaper page
   useEffect(() => {
-    document.title = "Техническое исследование ReScrub - Защита персональных данных в России";
+    document.title = "Техническое исследование GrandHub - Защита персональных данных в России";
     
     // Update meta description
     const metaDescription = document.querySelector('meta[name="description"]');
@@ -30,12 +30,12 @@ export default function Whitepaper() {
       metaTag.setAttribute('content', content);
     };
     
-    addMetaTag('og:title', 'ReScrub: Техническое исследование защиты персональных данных');
+    addMetaTag('og:title', 'GrandHub: Техническое исследование защиты персональных данных');
     addMetaTag('og:description', 'Анализ методологии защиты персональных данных российских граждан в соответствии с 152-ФЗ');
     addMetaTag('og:type', 'article');
     
     return () => {
-      document.title = "ResCrub - Защита ваших персональных данных";
+      document.title = "GrandHub - Защита ваших персональных данных";
     };
   }, []);
 
@@ -62,7 +62,7 @@ export default function Whitepaper() {
               Техническая документация
             </Badge>
             <h1 className="text-display text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
-              ReScrub: Автоматизированная защита персональных данных в России
+              GrandHub: Автоматизированная защита персональных данных в России
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
               Комплексное исследование проблем конфиденциальности персональных данных 
@@ -86,7 +86,7 @@ export default function Whitepaper() {
               </div>
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                Команда ReScrub Research
+                Команда GrandHub Research
               </div>
               <div className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
@@ -138,7 +138,7 @@ export default function Whitepaper() {
                     требуют индивидуальных запросов на удаление, что создает значительные барьеры для обычных пользователей.
                   </p>
                   <p>
-                    ReScrub представляет концепцию автоматизированной платформы для обнаружения и запроса удаления 
+                    GrandHub представляет концепцию автоматизированной платформы для обнаружения и запроса удаления 
                     персональных данных с российских интернет-ресурсов. Планируемая система предусматривает использование комбинации 
                     веб-сканирования, алгоритмов анализа данных и автоматизированной отправки запросов в соответствии с 
                     требованиями российского законодательства.
@@ -317,7 +317,7 @@ export default function Whitepaper() {
           <section id="methodology" className="mb-16" data-testid="section-methodology">
             <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
               <Target className="h-6 w-6" />
-              3. Техническая методология ReScrub
+              3. Техническая методология GrandHub
             </h2>
 
             <div className="space-y-6">

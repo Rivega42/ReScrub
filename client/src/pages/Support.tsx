@@ -89,7 +89,7 @@ const supportFAQ = [
 3. **Очистите кэш:** Очистите кэш браузера и cookies
 4. **Попробуйте другой браузер:** Иногда помогает смена браузера
 
-**Если проблема остается:** Напишите нам на support@rescrub.ru с указанием вашего email для регистрации.`
+**Если проблема остается:** Напишите нам на support@grandhub.ru с указанием вашего email для регистрации.`
   },
   {
     id: "billing-questions",
@@ -104,7 +104,7 @@ const supportFAQ = [
   },
   {
     id: "data-protection",
-    question: "Как ReScrub защищает мои персональные данные?",
+    question: "Как GrandHub защищает мои персональные данные?",
     answer: `**Защита данных в соответствии с 152-ФЗ:**
 
 • **Минимизация:** Обрабатываем только необходимые данные
@@ -137,7 +137,7 @@ export default function Support() {
     onError: (error: any) => {
       toast({
         title: "Ошибка отправки",
-        description: error.message || "Не удалось отправить обращение. Попробуйте еще раз или напишите на support@rescrub.ru",
+        description: error.message || "Не удалось отправить обращение. Попробуйте еще раз или напишите на support@grandhub.ru",
         variant: "destructive",
       });
     },
@@ -188,16 +188,16 @@ export default function Support() {
   };
 
   useEffect(() => {
-    document.title = "Поддержка - ReScrub";
+    document.title = "Поддержка - GrandHub";
     
     // Add meta description for SEO
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Техническая поддержка ReScrub - получите помощь по вопросам защиты персональных данных и 152-ФЗ. Обратитесь к экспертам через удобную форму связи.');
+      metaDescription.setAttribute('content', 'Техническая поддержка GrandHub - получите помощь по вопросам защиты персональных данных и 152-ФЗ. Обратитесь к экспертам через удобную форму связи.');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'description';
-      meta.content = 'Техническая поддержка ReScrub - получите помощь по вопросам защиты персональных данных и 152-ФЗ. Обратитесь к экспертам через удобную форму связи.';
+      meta.content = 'Техническая поддержка GrandHub - получите помощь по вопросам защиты персональных данных и 152-ФЗ. Обратитесь к экспертам через удобную форму связи.';
       document.head.appendChild(meta);
     }
   }, []);
@@ -220,7 +220,7 @@ export default function Support() {
                 Центр поддержки
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
-                Получите помощь по любым вопросам защиты данных, 152-ФЗ и работе с сервисом ReScrub
+                Получите помощь по любым вопросам защиты данных, 152-ФЗ и работе с сервисом GrandHub
               </p>
               <div className="mt-8 flex items-center justify-center gap-3">
                 <div className="flex items-center gap-2 text-sm">
@@ -263,21 +263,21 @@ export default function Support() {
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Общие вопросы:</p>
                     <a 
-                      href="mailto:support@rescrub.ru" 
+                      href="mailto:support@grandhub.ru" 
                       className="font-medium text-primary hover:text-primary/80"
                       data-testid="link-email-support"
                     >
-                      support@rescrub.ru
+                      support@grandhub.ru
                     </a>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Продажи и тарифы:</p>
                     <a 
-                      href="mailto:sales@rescrub.ru" 
+                      href="mailto:sales@grandhub.ru" 
                       className="font-medium text-primary hover:text-primary/80"
                       data-testid="link-email-sales"
                     >
-                      sales@rescrub.ru
+                      sales@grandhub.ru
                     </a>
                   </div>
                 </CardContent>
@@ -639,7 +639,7 @@ export default function Support() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Email:</span>
-                      <a href="mailto:tech@rescrub.ru" className="text-primary hover:text-primary/80">tech@rescrub.ru</a>
+                      <a href="mailto:tech@grandhub.ru" className="text-primary hover:text-primary/80">tech@grandhub.ru</a>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Телефон:</span>
@@ -661,7 +661,7 @@ export default function Support() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Email:</span>
-                      <a href="mailto:legal@rescrub.ru" className="text-primary hover:text-primary/80">legal@rescrub.ru</a>
+                      <a href="mailto:legal@grandhub.ru" className="text-primary hover:text-primary/80">legal@grandhub.ru</a>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Телефон:</span>
@@ -683,7 +683,7 @@ export default function Support() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Email:</span>
-                      <a href="mailto:sales@rescrub.ru" className="text-primary hover:text-primary/80">sales@rescrub.ru</a>
+                      <a href="mailto:sales@grandhub.ru" className="text-primary hover:text-primary/80">sales@grandhub.ru</a>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Телефон:</span>

@@ -111,7 +111,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-sidebar-foreground">
-              ReScrub
+              GrandHub
             </span>
             <span className="text-xs text-sidebar-foreground/70">
               Защита данных

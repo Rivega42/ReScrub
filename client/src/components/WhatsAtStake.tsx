@@ -152,7 +152,7 @@ export default function WhatsAtStake() {
             Не позволяйте вашим данным подвергать вас риску
           </h3>
           <p className="text-muted-foreground mb-8">
-            ResCrub автоматически защищает вас от всех этих угроз, удаляя ваши данные с сайтов брокеров.
+            GrandHub автоматически защищает вас от всех этих угроз, удаляя ваши данные с сайтов брокеров.
           </p>
           <Link href="#pricing">
             <Button data-testid="button-whats-at-stake-get-started">

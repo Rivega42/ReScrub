@@ -118,7 +118,7 @@ const variableGroups: VariableGroup[] = [
         name: 'renewalUrl',
         label: 'Ссылка продления',
         description: 'URL для продления подписки',
-        example: 'https://rescrub.ru/subscription',
+        example: 'https://grandhub.ru/subscription',
       },
       {
         name: 'daysRemaining',
@@ -135,13 +135,13 @@ const variableGroups: VariableGroup[] = [
         name: 'verificationUrl',
         label: 'Ссылка верификации',
         description: 'URL для подтверждения email',
-        example: 'https://rescrub.ru/verify?token=abc123',
+        example: 'https://grandhub.ru/verify?token=abc123',
       },
       {
         name: 'resetPasswordUrl',
         label: 'Сброс пароля',
         description: 'URL для сброса пароля',
-        example: 'https://rescrub.ru/reset?token=xyz789',
+        example: 'https://grandhub.ru/reset?token=xyz789',
       },
       {
         name: 'currentYear',

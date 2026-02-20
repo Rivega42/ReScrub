@@ -257,8 +257,8 @@ export default function AdminSystemMonitoring() {
   return (
     <>
       <SEO 
-        title="Системный мониторинг - ReScrub Admin"
-        description="Мониторинг состояния систем и сервисов ReScrub"
+        title="Системный мониторинг - GrandHub Admin"
+        description="Мониторинг состояния систем и сервисов GrandHub"
       />
       <div className="min-h-screen bg-background">
         <Header />

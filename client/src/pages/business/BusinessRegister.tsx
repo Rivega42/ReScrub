@@ -175,8 +175,8 @@ export default function BusinessRegister() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/WebPage">
       <BusinessSEO 
-        title="Регистрация компании ИНН — Подключение 152фз услуги | ResCrub Business"
-        description="Регистрация компании в ResCrub Business по ИНН/ОГРН. Подключение услуг автоматизации 152фз, назначение DPO, выбор сферы деятельности."
+        title="Регистрация компании ИНН — Подключение 152фз услуги | GrandHub Business"
+        description="Регистрация компании в GrandHub Business по ИНН/ОГРН. Подключение услуг автоматизации 152фз, назначение DPO, выбор сферы деятельности."
         pageCategory="auth"
         neuralSignals={{
           primaryKeywords: ['регистрация предприятия в системе защиты данных', 'подключение корпоративных услуг 152фз', 'создать корпоративный аккаунт для компании'],
@@ -187,7 +187,7 @@ export default function BusinessRegister() {
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['регистрация компании по ИНН ResCrub', 'подключение услуг 152фз ОГРН', 'создать корпоративный аккаунт защита данных'],
+            primary: ['регистрация компании по ИНН GrandHub', 'подключение услуг 152фз ОГРН', 'создать корпоративный аккаунт защита данных'],
             semantic: ['бизнес регистрация системы compliance', 'оформление доступа к автоматизации ПДн', 'корпоративная подписка на сервисы 152фз'],
             longTail: ['как зарегистрировать компанию в системе автоматизации соблюдения 152 фз по инн и огрн']
           }
@@ -214,7 +214,7 @@ export default function BusinessRegister() {
                     <div className="flex items-center justify-center gap-2 mb-4">
                       <Shield className="h-8 w-8 text-primary" />
                       <div className="flex flex-col items-start">
-                        <span className="text-2xl font-bold text-foreground">ResCrub</span>
+                        <span className="text-2xl font-bold text-foreground">GrandHub</span>
                         <span className="text-sm text-primary font-medium -mt-1">Business</span>
                       </div>
                     </div>
@@ -424,7 +424,7 @@ export default function BusinessRegister() {
                               <Link href="/privacy" className="text-primary hover:underline">
                                 политикой конфиденциальности
                               </Link>{" "}
-                              ResCrub Business *
+                              GrandHub Business *
                             </Label>
                           </div>
                           
@@ -436,7 +436,7 @@ export default function BusinessRegister() {
                             />
                             <Label htmlFor="marketing" className="text-sm leading-5">
                               Я согласен на получение информации о продуктах, обновлениях 
-                              и специальных предложениях ResCrub Business
+                              и специальных предложениях GrandHub Business
                             </Label>
                           </div>
                         </div>
@@ -614,7 +614,7 @@ export default function BusinessRegister() {
                         Быстрый старт
                       </CardTitle>
                       <CardDescription>
-                        Начните использовать ResCrub через 15 минут
+                        Начните использовать GrandHub через 15 минут
                       </CardDescription>
                     </CardHeader>
                     <CardContent>

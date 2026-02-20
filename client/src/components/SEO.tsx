@@ -62,7 +62,7 @@ export interface SEOProps {
  * ```tsx
  * // Basic usage
  * <SEO 
- *   title="Панель управления — ResCrub"
+ *   title="Панель управления — GrandHub"
  *   description="Управление запросами на удаление персональных данных"
  * />
  * 
@@ -71,7 +71,7 @@ export interface SEOProps {
  *   title="Как защитить данные по 152-ФЗ"
  *   description="Полное руководство по защите персональных данных"
  *   type="article"
- *   author="ResCrub Team"
+ *   author="GrandHub Team"
  *   publishedTime="2025-01-15"
  *   includeOrganizationSchema
  *   articleJsonLd={{
@@ -255,7 +255,7 @@ export function LandingSEO({
 export function BlogSEO({
   title,
   description,
-  author = "ResCrub Team",
+  author = "GrandHub Team",
   publishedTime,
   modifiedTime,
   ...props
@@ -289,7 +289,7 @@ export function BlogSEO({
  */
 export function AuthSEO({
   title = "Вход в систему",
-  description = "Войдите в личный кабинет ResCrub для управления защитой персональных данных",
+  description = "Войдите в личный кабинет GrandHub для управления защитой персональных данных",
   ...props
 }: Omit<SEOProps, 'robots'> = {}) {
   return (

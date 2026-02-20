@@ -28,8 +28,8 @@ export default function BusinessIntegrations() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
-        title="Интеграции — ResCrub Business Platform"
-        description="Готовые интеграции ResCrub Business с CRM, ERP, системами аналитики и популярными бизнес-приложениями. 150+ готовых коннекторов для автоматизации 152фз compliance."
+        title="Интеграции — GrandHub Business Platform"
+        description="Готовые интеграции GrandHub Business с CRM, ERP, системами аналитики и популярными бизнес-приложениями. 150+ готовых коннекторов для автоматизации 152фз compliance."
         neuralSignals={{
           primaryKeywords: ['интеграция 152фз CRM', 'подключение системы защиты данных', 'автоматизация compliance интеграция'],
           searchIntent: 'informational',
@@ -65,7 +65,7 @@ export default function BusinessIntegrations() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Подключите ResCrub Business к вашим существующим системам: CRM, ERP, 
+                Подключите GrandHub Business к вашим существующим системам: CRM, ERP, 
                 маркетинговым платформам и бизнес-приложениям. Автоматизируйте compliance 
                 процессы без изменения привычных рабочих процессов.
               </p>
@@ -732,7 +732,7 @@ export default function BusinessIntegrations() {
                 Процесс интеграции
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Простые шаги для подключения любой системы к ResCrub Business
+                Простые шаги для подключения любой системы к GrandHub Business
               </p>
             </div>
             
@@ -930,7 +930,7 @@ export default function BusinessIntegrations() {
               Начните интеграцию сегодня
             </h2>
             <p className="mt-4 text-lg opacity-90">
-              Подключите ResCrub Business к вашим системам за несколько дней
+              Подключите GrandHub Business к вашим системам за несколько дней
             </p>
             
             <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-4">

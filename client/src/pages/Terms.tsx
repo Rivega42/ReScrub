@@ -8,16 +8,16 @@ import { useEffect } from "react";
 
 export default function Terms() {
   useEffect(() => {
-    document.title = "Пользовательское соглашение - ReScrub";
+    document.title = "Пользовательское соглашение - GrandHub";
     
     // Add meta description for SEO
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Пользовательское соглашение ReScrub - условия предоставления услуг защиты персональных данных в соответствии с российским законодательством.');
+      metaDescription.setAttribute('content', 'Пользовательское соглашение GrandHub - условия предоставления услуг защиты персональных данных в соответствии с российским законодательством.');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'description';
-      meta.content = 'Пользовательское соглашение ReScrub - условия предоставления услуг защиты персональных данных в соответствии с российским законодательством.';
+      meta.content = 'Пользовательское соглашение GrandHub - условия предоставления услуг защиты персональных данных в соответствии с российским законодательством.';
       document.head.appendChild(meta);
     }
   }, []);
@@ -64,7 +64,7 @@ export default function Terms() {
                       Важное уведомление
                     </h3>
                     <p className="text-sm text-amber-700 dark:text-amber-300">
-                      Настоящее соглашение является юридически обязательным документом. Использование сервиса ReScrub 
+                      Настоящее соглашение является юридически обязательным документом. Использование сервиса GrandHub 
                       означает полное согласие с изложенными условиями. Внимательно ознакомьтесь с документом перед началом использования услуг.
                     </p>
                   </div>
@@ -141,7 +141,7 @@ export default function Terms() {
                   <p>
                     1.1. Настоящее Пользовательское соглашение (далее — Соглашение) регулирует отношения между 
 ИП Гудков Роман Владимирович (далее — Оператор, Исполнитель) и физическим или юридическим лицом 
-                    (далее — Пользователь, Заказчик) при использовании сервиса ReScrub.
+                    (далее — Пользователь, Заказчик) при использовании сервиса GrandHub.
                   </p>
                   <p>
                     1.2. Соглашение является публичной офертой в соответствии со статьей 437 Гражданского кодекса 
@@ -151,7 +151,7 @@ export default function Terms() {
                     1.3. Согласие с условиями Соглашения выражается путем:
                   </p>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li>Регистрации в сервисе ReScrub</li>
+                    <li>Регистрации в сервисе GrandHub</li>
                     <li>Начала использования любых функций сервиса</li>
                     <li>Оплаты услуг сервиса</li>
                     <li>Любых иных действий, свидетельствующих о намерении использовать сервис</li>
@@ -166,7 +166,7 @@ export default function Terms() {
                     1.5. Уведомление об изменениях направляется Пользователям посредством:
                   </p>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li>Размещения уведомления на главной странице сайта rescrub.ru</li>
+                    <li>Размещения уведомления на главной странице сайта grandhub.ru</li>
                     <li>Отправки email-уведомления на указанный при регистрации адрес электронной почты</li>
                     <li>Уведомления в личном кабинете пользователя</li>
                   </ul>
@@ -192,13 +192,13 @@ export default function Terms() {
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-3 text-sm">
                           <div>
-                            <strong className="text-foreground">ReScrub (Сервис)</strong> — 
+                            <strong className="text-foreground">GrandHub (Сервис)</strong> — 
                             интернет-сервис по защите персональных данных, предоставляемый Оператором 
-                            по адресу rescrub.ru и связанных доменах.
+                            по адресу grandhub.ru и связанных доменах.
                           </div>
                           <div>
                             <strong className="text-foreground">Пользователь (Заказчик)</strong> — 
-                            дееспособное физическое лицо или юридическое лицо, использующее сервис ReScrub.
+                            дееспособное физическое лицо или юридическое лицо, использующее сервис GrandHub.
                           </div>
                           <div>
                             <strong className="text-foreground">Личный кабинет</strong> — 
@@ -229,7 +229,7 @@ export default function Terms() {
                 <div className="space-y-4 text-muted-foreground">
                   <p>
                     3.1. Оператор обязуется предоставить, а Пользователь обязуется принять и оплатить 
-                    следующие услуги в рамках сервиса ReScrub:
+                    следующие услуги в рамках сервиса GrandHub:
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -734,7 +734,7 @@ export default function Terms() {
                 <div className="space-y-4 text-muted-foreground">
                   <p>
                     11.1. Все объекты интеллектуальной собственности, включая программное обеспечение, 
-                    базы данных, товарные знаки, логотипы, тексты, изображения и иные материалы сервиса ReScrub, 
+                    базы данных, товарные знаки, логотипы, тексты, изображения и иные материалы сервиса GrandHub, 
                     принадлежат Оператору или используются на законных основаниях.
                   </p>
                   
@@ -746,7 +746,7 @@ export default function Terms() {
                       </div>
                       <ul className="space-y-2 text-sm">
                         <li>• Исключительные права на программное обеспечение сервиса</li>
-                        <li>• Права на товарный знак "ReScrub" и связанные обозначения</li>
+                        <li>• Права на товарный знак "GrandHub" и связанные обозначения</li>
                         <li>• Авторские права на содержание сайта и документацию</li>
                         <li>• Права на методологию и алгоритмы поиска и удаления данных</li>
                       </ul>
@@ -930,7 +930,7 @@ export default function Terms() {
                   <div className="mt-8 p-6 bg-muted rounded-lg">
                     <h4 className="font-semibold text-foreground mb-3">Контактная информация для вопросов по соглашению:</h4>
                     <div className="space-y-2 text-sm">
-                      <p><strong>Email:</strong> legal@rescrub.ru</p>
+                      <p><strong>Email:</strong> legal@grandhub.ru</p>
                       <p><strong>Телефон:</strong> +7 (495) 123-45-67</p>
                       <p><strong>Адрес:</strong> ИП Гудков Роман Владимирович, Москва</p>
                       <p><strong>Время работы:</strong> Понедельник-пятница, 9:00-18:00 МСК</p>

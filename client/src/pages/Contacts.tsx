@@ -104,7 +104,7 @@ export default function Contacts() {
     onError: (error: any) => {
       toast({
         title: "Ошибка отправки",
-        description: "Не удалось отправить сообщение. Попробуйте еще раз или напишите на info@rescrub.ru",
+        description: "Не удалось отправить сообщение. Попробуйте еще раз или напишите на info@grandhub.ru",
         variant: "destructive",
       });
     },
@@ -152,16 +152,16 @@ export default function Contacts() {
   };
 
   useEffect(() => {
-    document.title = "Контакты - ReScrub";
+    document.title = "Контакты - GrandHub";
     
     // Add meta description for SEO
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Контакты ReScrub - свяжитесь с нами по вопросам защиты персональных данных. Московский офис, телефоны, email, онлайн-чат. Работаем с соблюдением 152-ФЗ.');
+      metaDescription.setAttribute('content', 'Контакты GrandHub - свяжитесь с нами по вопросам защиты персональных данных. Московский офис, телефоны, email, онлайн-чат. Работаем с соблюдением 152-ФЗ.');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'description';
-      meta.content = 'Контакты ReScrub - свяжитесь с нами по вопросам защиты персональных данных. Московский офис, телефоны, email, онлайн-чат. Работаем с соблюдением 152-ФЗ.';
+      meta.content = 'Контакты GrandHub - свяжитесь с нами по вопросам защиты персональных данных. Московский офис, телефоны, email, онлайн-чат. Работаем с соблюдением 152-ФЗ.';
       document.head.appendChild(meta);
     }
   }, []);
@@ -184,7 +184,7 @@ export default function Contacts() {
                 Свяжитесь с нами
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
-                Готовы ответить на любые вопросы о защите персональных данных, 152-ФЗ и работе с ReScrub
+                Готовы ответить на любые вопросы о защите персональных данных, 152-ФЗ и работе с GrandHub
               </p>
               <div className="mt-8 flex items-center justify-center gap-3">
                 <div className="flex items-center gap-2 text-sm">
@@ -322,16 +322,16 @@ export default function Contacts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <a 
-                        href="mailto:info@rescrub.ru" 
+                        href="mailto:info@grandhub.ru" 
                         className="text-primary hover:text-primary/80 font-medium"
                         data-testid="link-email-info"
                       >
-                        info@rescrub.ru
+                        info@grandhub.ru
                       </a>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => copyToClipboard("info@rescrub.ru", "Email", toast)}
+                        onClick={() => copyToClipboard("info@grandhub.ru", "Email", toast)}
                         data-testid="button-copy-email-info"
                       >
                         <Copy className="h-3 w-3" />
@@ -374,16 +374,16 @@ export default function Contacts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <a 
-                        href="mailto:sales@rescrub.ru" 
+                        href="mailto:sales@grandhub.ru" 
                         className="text-primary hover:text-primary/80 font-medium"
                         data-testid="link-email-sales"
                       >
-                        sales@rescrub.ru
+                        sales@grandhub.ru
                       </a>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => copyToClipboard("sales@rescrub.ru", "Email", toast)}
+                        onClick={() => copyToClipboard("sales@grandhub.ru", "Email", toast)}
                         data-testid="button-copy-email-sales"
                       >
                         <Copy className="h-3 w-3" />
@@ -426,16 +426,16 @@ export default function Contacts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <a 
-                        href="mailto:support@rescrub.ru" 
+                        href="mailto:support@grandhub.ru" 
                         className="text-primary hover:text-primary/80 font-medium"
                         data-testid="link-email-support"
                       >
-                        support@rescrub.ru
+                        support@grandhub.ru
                       </a>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => copyToClipboard("support@rescrub.ru", "Email", toast)}
+                        onClick={() => copyToClipboard("support@grandhub.ru", "Email", toast)}
                         data-testid="button-copy-email-support"
                       >
                         <Copy className="h-3 w-3" />
@@ -478,16 +478,16 @@ export default function Contacts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <a 
-                        href="mailto:legal@rescrub.ru" 
+                        href="mailto:legal@grandhub.ru" 
                         className="text-primary hover:text-primary/80 font-medium"
                         data-testid="link-email-legal"
                       >
-                        legal@rescrub.ru
+                        legal@grandhub.ru
                       </a>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => copyToClipboard("legal@rescrub.ru", "Email", toast)}
+                        onClick={() => copyToClipboard("legal@grandhub.ru", "Email", toast)}
                         data-testid="button-copy-email-legal"
                       >
                         <Copy className="h-3 w-3" />
@@ -530,16 +530,16 @@ export default function Contacts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <a 
-                        href="mailto:press@rescrub.ru" 
+                        href="mailto:press@grandhub.ru" 
                         className="text-primary hover:text-primary/80 font-medium"
                         data-testid="link-email-press"
                       >
-                        press@rescrub.ru
+                        press@grandhub.ru
                       </a>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => copyToClipboard("press@rescrub.ru", "Email", toast)}
+                        onClick={() => copyToClipboard("press@grandhub.ru", "Email", toast)}
                         data-testid="button-copy-email-press"
                       >
                         <Copy className="h-3 w-3" />
@@ -565,16 +565,16 @@ export default function Contacts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <a 
-                        href="mailto:security@rescrub.ru" 
+                        href="mailto:security@grandhub.ru" 
                         className="text-primary hover:text-primary/80 font-medium"
                         data-testid="link-email-security"
                       >
-                        security@rescrub.ru
+                        security@grandhub.ru
                       </a>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => copyToClipboard("security@rescrub.ru", "Email", toast)}
+                        onClick={() => copyToClipboard("security@grandhub.ru", "Email", toast)}
                         data-testid="button-copy-email-security"
                       >
                         <Copy className="h-3 w-3" />
@@ -616,25 +616,25 @@ export default function Contacts() {
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Официальный канал:</p>
                     <a 
-                      href="https://t.me/rescruboffficial" 
+                      href="https://t.me/grandhuboffficial" 
                       className="font-medium text-blue-500 hover:text-blue-400"
                       target="_blank"
                       rel="noopener noreferrer"
                       data-testid="link-telegram-channel"
                     >
-                      @rescruboffficial
+                      @grandhuboffficial
                     </a>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Поддержка:</p>
                     <a 
-                      href="https://t.me/rescrub_support" 
+                      href="https://t.me/grandhub_support" 
                       className="font-medium text-blue-500 hover:text-blue-400"
                       target="_blank"
                       rel="noopener noreferrer"
                       data-testid="link-telegram-support"
                     >
-                      @rescrub_support
+                      @grandhub_support
                     </a>
                   </div>
                   <Button 
@@ -644,7 +644,7 @@ export default function Contacts() {
                     data-testid="button-telegram-chat"
                   >
                     <a 
-                      href="https://t.me/rescrub_support" 
+                      href="https://t.me/grandhub_support" 
                       target="_blank" 
                       rel="noopener noreferrer"
                     >
@@ -687,7 +687,7 @@ export default function Contacts() {
                     data-testid="button-whatsapp-chat"
                   >
                     <a 
-                      href="https://wa.me/79261234567?text=Здравствуйте! У меня вопрос по ReScrub" 
+                      href="https://wa.me/79261234567?text=Здравствуйте! У меня вопрос по GrandHub" 
                       target="_blank" 
                       rel="noopener noreferrer"
                     >

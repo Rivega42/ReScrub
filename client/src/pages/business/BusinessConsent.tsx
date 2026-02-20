@@ -25,7 +25,7 @@ export default function BusinessConsent() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Корпоративный виджет согласий 152фз — ResCrub Business"
+        title="Корпоративный виджет согласий 152фз — GrandHub Business"
         description="Виджет согласий для бизнеса: автоматизация сбора согласий на обработку персональных данных согласно 152фз. Корпоративный consent management, API интеграция для предприятий."
         productType="consent"
         productData={{
@@ -309,7 +309,7 @@ export default function BusinessConsent() {
                           <h4 className="text-sm font-medium mb-2">1. Подключите скрипт</h4>
                           <div className="bg-muted p-4 rounded-lg">
                             <code className="text-sm">
-                              {`<script src="https://widget.rescrub.ru/consent.js" 
+                              {`<script src="https://widget.grandhub.ru/consent.js" 
        data-site-id="your-site-id"></script>`}
                             </code>
                           </div>
@@ -355,7 +355,7 @@ export default function BusinessConsent() {
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">3</div>
-                          <span>Введите API ключ ResCrub Business</span>
+                          <span>Введите API ключ GrandHub Business</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">4</div>

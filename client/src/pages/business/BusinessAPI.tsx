@@ -29,9 +29,9 @@ export default function BusinessAPI() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
-        title="API документация — ResCrub Business Platform"
-        description="Полная REST API документация ResCrub Business. OpenAPI 3.0 спецификация, SDK библиотеки, webhook интеграции для автоматизации 152фз compliance в ваших системах."
-        author="ResCrub API Team"
+        title="API документация — GrandHub Business Platform"
+        description="Полная REST API документация GrandHub Business. OpenAPI 3.0 спецификация, SDK библиотеки, webhook интеграции для автоматизации 152фз compliance в ваших системах."
+        author="GrandHub API Team"
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
@@ -80,12 +80,12 @@ export default function BusinessAPI() {
                 </div>
                 
                 <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                  ResCrub Business 
+                  GrandHub Business 
                   <span className="text-primary"> API</span>
                 </h1>
                 
                 <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-                  Полная REST API документация для интеграции ResCrub Business в ваши системы. 
+                  Полная REST API документация для интеграции GrandHub Business в ваши системы. 
                   OpenAPI 3.0 спецификация, официальные SDK, webhook endpoints и примеры кода 
                   для автоматизации соблюдения 152фз.
                 </p>
@@ -169,7 +169,7 @@ export default function BusinessAPI() {
                 Быстрый старт
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                Начните интеграцию с ResCrub API за 5 минут
+                Начните интеграцию с GrandHub API за 5 минут
               </p>
             </div>
             
@@ -188,7 +188,7 @@ export default function BusinessAPI() {
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-base mb-4">
-                    Зарегистрируйтесь в ResCrub Business и создайте API ключ 
+                    Зарегистрируйтесь в GrandHub Business и создайте API ключ 
                     в разделе настроек интеграций.
                   </CardDescription>
                   <div className="bg-muted p-3 rounded-lg text-sm font-mono">
@@ -214,7 +214,7 @@ export default function BusinessAPI() {
                     Используйте официальные SDK или напрямую работайте с REST API.
                   </CardDescription>
                   <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                    <code>npm install @rescrub/business-sdk</code>
+                    <code>npm install @grandhub/business-sdk</code>
                   </div>
                 </CardContent>
               </Card>
@@ -532,7 +532,7 @@ export default function BusinessAPI() {
                             <div className="bg-muted p-4 rounded-lg text-sm font-mono overflow-x-auto">
                               <code>
 {`{
-  "url": "https://your-app.com/webhooks/rescrub",
+  "url": "https://your-app.com/webhooks/grandhub",
   "events": [
     "compliance.violation.detected",
     "data.request.received",
@@ -694,7 +694,7 @@ export default function BusinessAPI() {
                   </CardDescription>
                   <div className="space-y-3">
                     <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                      <code>npm install @rescrub/business-sdk</code>
+                      <code>npm install @grandhub/business-sdk</code>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="gap-1">
@@ -728,7 +728,7 @@ export default function BusinessAPI() {
                   </CardDescription>
                   <div className="space-y-3">
                     <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                      <code>pip install rescrub-business</code>
+                      <code>pip install grandhub-business</code>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="gap-1">
@@ -762,7 +762,7 @@ export default function BusinessAPI() {
                   </CardDescription>
                   <div className="space-y-3">
                     <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                      <code>go get github.com/rescrub/business-go</code>
+                      <code>go get github.com/grandhub/business-go</code>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="gap-1">
@@ -830,7 +830,7 @@ export default function BusinessAPI() {
                   </CardDescription>
                   <div className="space-y-3">
                     <div className="bg-muted p-3 rounded-lg text-sm font-mono">
-                      <code>{'<dependency>rescrub-business</dependency>'}</code>
+                      <code>{'<dependency>grandhub-business</dependency>'}</code>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="gap-1">
@@ -972,7 +972,7 @@ export default function BusinessAPI() {
 {`curl -X GET \\
   -H "Authorization: Bearer rscb_live_1234567890abcdef" \\
   -H "Content-Type: application/json" \\
-  https://api.rescrub.ru/v2/consent/usr_12345`}
+  https://api.grandhub.ru/v2/consent/usr_12345`}
                               </code>
                             </div>
                           </div>
@@ -1015,7 +1015,7 @@ export default function BusinessAPI() {
         <section className="py-16 lg:py-24 bg-primary text-primary-foreground">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Начните интеграцию с ResCrub API
+              Начните интеграцию с GrandHub API
             </h2>
             <p className="mt-4 text-lg opacity-90">
               Полная документация, готовые SDK и техническая поддержка для разработчиков

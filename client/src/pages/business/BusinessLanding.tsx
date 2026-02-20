@@ -26,7 +26,7 @@ export default function BusinessLanding() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessLandingSEO 
-        title="ResCrub Business — Защита персональных данных для бизнеса"
+        title="GrandHub Business — Защита персональных данных для бизнеса"
         description="Защита персональных данных для бизнеса: автоматизация 152фз, управление согласиями клиентов B2B, корпоративная безопасность данных для предприятий."
         neuralSignals={{
           primaryKeywords: ['защита персональных данных для бизнеса', '152фз что такое', 'соответствие 152фз для компаний'],
@@ -109,7 +109,7 @@ export default function BusinessLanding() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <Shield className="h-5 w-5 text-primary" />
-                        <span className="font-semibold" itemProp="name">ResCrub Business</span>
+                        <span className="font-semibold" itemProp="name">GrandHub Business</span>
                       </div>
                       <Badge variant="default">Live</Badge>
                     </div>
@@ -284,7 +284,7 @@ export default function BusinessLanding() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Почему ResCrub Business?
+                Почему GrandHub Business?
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 Единственная платформа, созданная специально для российского бизнеса

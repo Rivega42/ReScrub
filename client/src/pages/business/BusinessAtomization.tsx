@@ -27,7 +27,7 @@ export default function BusinessAtomization() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Атомаризация данных — Революционная защита | ResCrub Business"
+        title="Атомаризация данных — Революционная защита | GrandHub Business"
         description="Инновационная технология распределенного хранения персональных данных. Максимальная безопасность через фрагментацию, шифрование и децентрализацию для российского бизнеса."
         productType="atomization"
         productData={{

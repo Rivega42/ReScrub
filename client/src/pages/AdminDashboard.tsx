@@ -107,7 +107,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-background">
         <SEO
           title="Ошибка доступа - Админская панель"
-          description="Ошибка доступа к админской панели ResCrub"
+          description="Ошибка доступа к админской панели GrandHub"
         />
         <Header />
         <main className="container mx-auto px-4 py-8">
@@ -132,8 +132,8 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Админская панель - ResCrub"
-        description="Панель управления платформой ResCrub: пользователи, блог, система мониторинга"
+        title="Админская панель - GrandHub"
+        description="Панель управления платформой GrandHub: пользователи, блог, система мониторинга"
       />
       <Header />
       
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
               Админская панель
             </h1>
             <p className="text-muted-foreground">
-              Управление платформой ResCrub
+              Управление платформой GrandHub
             </p>
           </div>
           

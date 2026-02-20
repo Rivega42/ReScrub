@@ -29,9 +29,9 @@ export default function BusinessRoadmap() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
-        title="Дорожная карта развития — ResCrub Business Platform"
-        description="Стратегический план развития ResCrub Business на 2025-2027 годы. Новые продукты, технологии ИИ, расширение compliance возможностей и международная экспансия."
-        author="ResCrub Product Team"
+        title="Дорожная карта развития — GrandHub Business Platform"
+        description="Стратегический план развития GrandHub Business на 2025-2027 годы. Новые продукты, технологии ИИ, расширение compliance возможностей и международная экспансия."
+        author="GrandHub Product Team"
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
@@ -69,7 +69,7 @@ export default function BusinessRoadmap() {
               </h1>
               
               <p className="mt-6 text-lg text-muted-foreground sm:text-xl max-w-3xl mx-auto">
-                Стратегический план развития ResCrub Business Platform на ближайшие три года. 
+                Стратегический план развития GrandHub Business Platform на ближайшие три года. 
                 Новые продукты, интеграция ИИ-технологий, расширение compliance возможностей 
                 и международная экспансия российского стандарта защиты данных.
               </p>

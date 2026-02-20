@@ -12,7 +12,7 @@ interface StickyBottomCTAProps {
 }
 
 // Utility functions for localStorage with TTL
-const STORAGE_KEY = 'rescrub-sticky-cta-dismissed';
+const STORAGE_KEY = 'grandhub-sticky-cta-dismissed';
 const TTL_HOURS = 24;
 
 const setStorageWithTTL = (key: string, value: any, ttlHours: number) => {

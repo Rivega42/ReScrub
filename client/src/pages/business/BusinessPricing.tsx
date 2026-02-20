@@ -27,8 +27,8 @@ export default function BusinessPricing() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessPricingSEO 
-        title="Тарифы ResCrub Business — Корпоративные планы защиты данных"
-        description="Гибкие тарифные планы ResCrub Business для автоматизации 152фз. От стартапов до enterprise: виджет согласий, атомаризация данных, техподдержка 24/7."
+        title="Тарифы GrandHub Business — Корпоративные планы защиты данных"
+        description="Гибкие тарифные планы GrandHub Business для автоматизации 152фз. От стартапов до enterprise: виджет согласий, атомаризация данных, техподдержка 24/7."
         neuralSignals={{
           primaryKeywords: ['тарифы защита персональных данных', 'цены compliance автоматизация', 'стоимость 152фз решений'],
           searchIntent: 'commercial',
@@ -623,7 +623,7 @@ export default function BusinessPricing() {
                       <span className="font-mono text-green-600">80 000 ₽</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">
-                      <span>Стоимость ResCrub</span>
+                      <span>Стоимость GrandHub</span>
                       <span className="font-mono">29 900 ₽</span>
                     </div>
                     <div className="flex justify-between items-center py-2 font-bold text-lg">

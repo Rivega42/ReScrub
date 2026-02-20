@@ -89,7 +89,7 @@ function PlatformSwitcher() {
           <Link href="/" className="flex items-center gap-2 w-full" data-testid="link-platform-classic">
             <Users className="h-4 w-4" />
             <div className="flex flex-col">
-              <span className="font-medium">ResCrub Classic</span>
+              <span className="font-medium">GrandHub Classic</span>
               <span className="text-xs text-muted-foreground">
                 Для частных лиц
               </span>
@@ -102,7 +102,7 @@ function PlatformSwitcher() {
           <Link href="/business" className="flex items-center gap-2 w-full" data-testid="link-platform-business">
             <Building2 className="h-4 w-4" />
             <div className="flex flex-col">
-              <span className="font-medium">ResCrub Business</span>
+              <span className="font-medium">GrandHub Business</span>
               <span className="text-xs text-muted-foreground">
                 Для компаний и организаций
               </span>
@@ -115,7 +115,7 @@ function PlatformSwitcher() {
         
         <DropdownMenuItem asChild>
           <a 
-            href="https://rescrub.ru" 
+            href="https://grandhub.ru" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 w-full"
@@ -171,7 +171,7 @@ export default function BusinessHeader() {
               <div className="flex items-center gap-2">
                 <Shield className="h-6 w-6 text-primary" />
                 <div className="flex flex-col">
-                  <span className="text-lg font-bold text-foreground">ResCrub</span>
+                  <span className="text-lg font-bold text-foreground">GrandHub</span>
                   <span className="text-xs text-primary font-medium -mt-1">Business</span>
                 </div>
               </div>

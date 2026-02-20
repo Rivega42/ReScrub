@@ -38,7 +38,7 @@ export default function VerifyEmail() {
         
         toast({
           title: 'Email подтвержден',
-          description: 'Ваш аккаунт активирован. Добро пожаловать в ReScrub!',
+          description: 'Ваш аккаунт активирован. Добро пожаловать в GrandHub!',
         });
 
         // Auto-login and redirect to dashboard after 3 seconds

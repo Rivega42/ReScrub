@@ -63,8 +63,8 @@ export default function AdminSetup() {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Настройка админа - ResCrub"
-        description="Настройка администратора для платформы ResCrub"
+        title="Настройка админа - GrandHub"
+        description="Настройка администратора для платформы GrandHub"
       />
       <Header />
       
@@ -97,7 +97,7 @@ export default function AdminSetup() {
                 Demo администратор
               </CardTitle>
               <CardDescription>
-                Назначить права superadmin для пользователя demo@rescrub.ru
+                Назначить права superadmin для пользователя demo@grandhub.ru
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -107,7 +107,7 @@ export default function AdminSetup() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Email:</span>
                       <Badge variant="outline" data-testid="badge-demo-email">
-                        demo@rescrub.ru
+                        demo@grandhub.ru
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
@@ -203,7 +203,7 @@ export default function AdminSetup() {
             <CardContent className="prose prose-sm max-w-none">
               <ol className="space-y-2">
                 <li>Нажмите кнопку "Назначить администратором" выше</li>
-                <li>Войдите в систему используя email <code>demo@rescrub.ru</code> и пароль <code>demo123</code></li>
+                <li>Войдите в систему используя email <code>demo@grandhub.ru</code> и пароль <code>demo123</code></li>
                 <li>После входа перейдите по ссылке <code>/admin</code></li>
                 <li>Теперь у вас есть доступ ко всем админским функциям</li>
               </ol>

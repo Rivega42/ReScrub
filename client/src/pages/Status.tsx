@@ -213,7 +213,7 @@ export default function Status() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/" className="text-display text-lg font-semibold text-foreground" data-testid="link-home">
-                ReScrub
+                GrandHub
               </Link>
               <Separator orientation="vertical" className="h-6" />
               <h1 className="text-lg font-medium text-foreground">Статус системы</h1>
@@ -472,7 +472,7 @@ export default function Status() {
                 </p>
                 <div className="space-y-2 text-sm">
                   <div data-testid="text-support-email">
-                    <strong>Email:</strong> support@rescrub.ru
+                    <strong>Email:</strong> support@grandhub.ru
                   </div>
                   <div data-testid="text-support-phone">
                     <strong>Телефон:</strong> +7 (495) 123-45-67

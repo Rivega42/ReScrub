@@ -80,19 +80,19 @@ export default function CategoryBlog() {
   return (
     <>
       <SEO 
-        title={`${categoryInfo.displayName} - Блог ResCrub | Защита персональных данных`}
+        title={`${categoryInfo.displayName} - Блог GrandHub | Защита персональных данных`}
         description={categoryInfo.seoDescription}
         canonical={getCategoryCanonicalUrl(categorySlug || '')}
         openGraph={{
           title: `${categoryInfo.displayName} - Экспертные статьи по защите данных`,
           description: categoryInfo.seoDescription,
           type: 'website',
-          url: `https://rescrub.com/blog/category/${categorySlug}`,
+          url: `https://grandhub.com/blog/category/${categorySlug}`,
           images: [{
-            url: `https://rescrub.com/api/og/category/${categorySlug}`,
+            url: `https://grandhub.com/api/og/category/${categorySlug}`,
             width: 1200,
             height: 630,
-            alt: `${categoryInfo.displayName} - ResCrub`
+            alt: `${categoryInfo.displayName} - GrandHub`
           }]
         }}
         jsonLd={generateBreadcrumbJsonLd([

@@ -20,7 +20,7 @@ export default function Hero() {
           
           {/* Mobile-optimized subtitle */}
           <p className="mt-4 sm:mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
-            ResCrub автоматически удаляет ваши персональные данные из интернета и помогает управлять личной информацией в соответствии с требованиями 152ФЗ.
+            GrandHub автоматически удаляет ваши персональные данные из интернета и помогает управлять личной информацией в соответствии с требованиями 152ФЗ.
           </p>
           
           {/* Mobile-friendly CTA buttons */}

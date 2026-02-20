@@ -224,7 +224,7 @@ export default function AdminBlog() {
             Управление блогом
           </h1>
           <p className="text-muted-foreground">
-            Генерация и управление статьями блога ResCrub
+            Генерация и управление статьями блога GrandHub
           </p>
         </div>
         <div className="flex gap-2">
@@ -341,7 +341,7 @@ export default function AdminBlog() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {article.authorName || 'ResCrub AI'}
+                        {article.authorName || 'GrandHub AI'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {format(new Date(article.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}

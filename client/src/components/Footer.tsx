@@ -14,7 +14,7 @@ export default function Footer() {
           {/* Logo and description */}
           <div className="space-y-8 xl:col-span-1">
             <Link href="/" className="text-display text-lg font-semibold text-foreground">
-              ReScrub
+              GrandHub
             </Link>
             <p className="text-sm leading-6 text-muted-foreground">
               Защита персональных данных в соответствии с 152-ФЗ
@@ -161,7 +161,7 @@ export default function Footer() {
         {/* Bottom section - Cal.com style */}
         <div className="mt-16 border-t border-border pt-8 sm:mt-20 lg:mt-24">
           <p className="text-xs leading-5 text-muted-foreground text-center">
-            &copy; {currentYear} ReScrub. Все права защищены.
+            &copy; {currentYear} GrandHub. Все права защищены.
           </p>
         </div>
       </div>

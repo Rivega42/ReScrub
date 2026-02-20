@@ -14,7 +14,7 @@ import { z } from "zod";
 import { useAuth } from '@/lib/authContext';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
-import heroShieldImage from '@assets/generated_images/ResCrub_hero_shield_illustration_17021890.webp';
+import heroShieldImage from '@assets/generated_images/GrandHub_hero_shield_illustration_17021890.webp';
 
 type FormMode = 'login' | 'register' | 'recovery' | 'check-email';
 
@@ -133,7 +133,7 @@ export default function Login() {
       
       toast({
         title: 'Успешный вход',
-        description: 'Добро пожаловать в ReScrub!',
+        description: 'Добро пожаловать в GrandHub!',
       });
       
       // Don't navigate immediately - let useEffect handle it after auth state updates
@@ -197,7 +197,7 @@ export default function Login() {
 
   const getTitle = () => {
     switch (mode) {
-      case 'login': return 'Добро пожаловать в ResCrub';
+      case 'login': return 'Добро пожаловать в GrandHub';
       case 'register': return 'Создать аккаунт';
       case 'recovery': return 'Восстановление пароля';
       case 'check-email': return 'Проверьте вашу почту';
@@ -682,7 +682,7 @@ export default function Login() {
                       Проверьте папку "Спам" если письмо не пришло в основную папку.
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Не получили письмо? Обратитесь в техподдержку: <strong>support@rescrub.ru</strong>
+                      Не получили письмо? Обратитесь в техподдержку: <strong>support@grandhub.ru</strong>
                     </p>
                   </div>
                   <Button 

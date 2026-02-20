@@ -130,13 +130,13 @@ export function BusinessSEO({
       const hostname = window.location.hostname;
       
       // Check if we're on business subdomain already
-      if (hostname.startsWith('business.') || hostname === 'business.rescrub.ru') {
+      if (hostname.startsWith('business.') || hostname === 'business.grandhub.ru') {
         return origin;
       }
       
-      // Production environment - use business.rescrub.ru
-      if (hostname === 'rescrub.ru') {
-        return 'https://business.rescrub.ru';
+      // Production environment - use business.grandhub.ru
+      if (hostname === 'grandhub.ru') {
+        return 'https://business.grandhub.ru';
       }
       
       // Development environments - keep same origin for proper local development
@@ -154,7 +154,7 @@ export function BusinessSEO({
     }
     
     // SSR fallback - use production URL
-    return 'https://business.rescrub.ru';
+    return 'https://business.grandhub.ru';
   }, [baseUrl]);
   
   // Get fallback meta from route configuration
@@ -377,12 +377,12 @@ export function BusinessSEO({
   // Build complete PageMeta object
   const meta = useMemo((): PageMeta => ({
     title: title || fallbackMeta.title || `${SEO_CONSTANTS.SITE_NAME} Business — Корпоративная защита данных`,
-    description: description || fallbackMeta.description || 'Корпоративные решения ResCrub для автоматизации соблюдения 152-ФЗ. Защита персональных данных, управление согласиями, мониторинг compliance для бизнеса.',
+    description: description || fallbackMeta.description || 'Корпоративные решения GrandHub для автоматизации соблюдения 152-ФЗ. Защита персональных данных, управление согласиями, мониторинг compliance для бизнеса.',
     keywords: mergedKeywords,
     type,
     canonical,
     ogImage: ogImage || fallbackMeta.ogImage || '/images/business-og.png',
-    author: author || fallbackMeta.author || 'ResCrub Business Team',
+    author: author || fallbackMeta.author || 'GrandHub Business Team',
     publishedTime,
     modifiedTime,
     robots: fallbackMeta.robots
@@ -402,7 +402,7 @@ export function BusinessSEO({
     const organizationSchema: JsonLdOrganization = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: 'ResCrub Business',
+      name: 'GrandHub Business',
       alternateName: 'РесКраб Бизнес',
       legalName: SEO_CONSTANTS.RUSSIAN_BUSINESS.LEGAL_NAME,
       url: dynamicBaseUrl,
@@ -418,7 +418,7 @@ export function BusinessSEO({
           '@type': 'ContactPoint',
           contactType: 'customer service',
           telephone: SEO_CONSTANTS.RUSSIAN_BUSINESS.PHONE,
-          email: 'business@rescrub.ru',
+          email: 'business@grandhub.ru',
           url: `${dynamicBaseUrl}/contact`,
           availableLanguage: ['Russian', 'English'],
           areaServed: {
@@ -435,7 +435,7 @@ export function BusinessSEO({
         {
           '@type': 'ContactPoint',
           contactType: 'technical support',
-          email: 'tech@rescrub.ru',
+          email: 'tech@grandhub.ru',
           url: `${dynamicBaseUrl}/api`,
           availableLanguage: ['Russian', 'English'],
           areaServed: {
@@ -445,9 +445,9 @@ export function BusinessSEO({
         }
       ],
       sameAs: [
-        'https://rescrub.ru',
-        'https://github.com/rescrub-ru',
-        'https://t.me/rescrub_ru'
+        'https://grandhub.ru',
+        'https://github.com/grandhub-ru',
+        'https://t.me/grandhub_ru'
       ]
     };
     schemas.push(organizationSchema);
@@ -456,7 +456,7 @@ export function BusinessSEO({
     const websiteSchema: JsonLdWebSite = {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'ResCrub Business Platform',
+      name: 'GrandHub Business Platform',
       alternateName: 'Корпоративная платформа защиты данных',
       url: dynamicBaseUrl,
       description: 'Корпоративные решения для автоматизации соблюдения российского законодательства о персональных данных',
@@ -471,13 +471,13 @@ export function BusinessSEO({
       },
       publisher: {
         '@type': 'Organization',
-        name: 'ResCrub Business',
+        name: 'GrandHub Business',
         url: dynamicBaseUrl
       },
       copyrightYear: 2024,
       copyrightHolder: {
         '@type': 'Organization',
-        name: 'ResCrub Business',
+        name: 'GrandHub Business',
         url: dynamicBaseUrl
       },
       audience: {
@@ -497,7 +497,7 @@ export function BusinessSEO({
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
         '@id': `${dynamicBaseUrl}/${productType}#software`,
-        name: productData.name || `ResCrub ${productType}`,
+        name: productData.name || `GrandHub ${productType}`,
         description: productData.description || meta.description,
         applicationCategory: 'BusinessApplication',
         applicationSubCategory: 'Compliance Software',
@@ -506,13 +506,13 @@ export function BusinessSEO({
         author: {
           '@type': 'Organization',
           '@id': `${dynamicBaseUrl}#organization`,
-          name: 'ResCrub Business',
+          name: 'GrandHub Business',
           url: dynamicBaseUrl
         },
         provider: {
           '@type': 'Organization',
           '@id': `${dynamicBaseUrl}#organization`,
-          name: 'ResCrub Business',
+          name: 'GrandHub Business',
           url: dynamicBaseUrl
         },
         offers: productData.offers ? {
@@ -524,7 +524,7 @@ export function BusinessSEO({
           seller: {
             '@type': 'Organization',
             '@id': `${dynamicBaseUrl}#organization`,
-            name: 'ResCrub Business',
+            name: 'GrandHub Business',
             url: dynamicBaseUrl
           }
         } : undefined,
@@ -554,7 +554,7 @@ export function BusinessSEO({
       description: 'Комплексные решения для автоматизации соблюдения 152-ФЗ в российских компаниях',
       provider: {
         '@type': 'Organization',
-        name: 'ResCrub Business',
+        name: 'GrandHub Business',
         url: dynamicBaseUrl
       },
       serviceType: 'Compliance Automation',
@@ -572,7 +572,7 @@ export function BusinessSEO({
       },
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
-        name: 'ResCrub Business Solutions',
+        name: 'GrandHub Business Solutions',
         itemListElement: [
           {
             '@type': 'Offer',

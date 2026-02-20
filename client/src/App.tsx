@@ -579,7 +579,7 @@ function AppRoutes() {
             <header className="flex items-center justify-between p-4 border-b bg-background sticky top-0 z-40">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="touch-target" />
               <div className="text-sm text-muted-foreground">
-                Личный кабинет ReScrub
+                Личный кабинет GrandHub
               </div>
             </header>
             <main className="flex-1 overflow-auto pb-20 md:pb-0">
@@ -640,7 +640,7 @@ function AppRoutesInner() {
       {/* Default app route */}
       <Route path="/app">
         <div className="p-8">
-          <h1 className="text-2xl font-bold">ReScrub Dashboard</h1>
+          <h1 className="text-2xl font-bold">GrandHub Dashboard</h1>
           <p className="text-muted-foreground">Выберите раздел из меню</p>
         </div>
       </Route>

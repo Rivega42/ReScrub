@@ -244,25 +244,25 @@ export default function BlogArticle() {
         "@type": "ListItem",
         "position": 1,
         "name": "Главная",
-        "item": "https://rescrub.com"
+        "item": "https://grandhub.com"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Блог",
-        "item": "https://rescrub.com/blog"
+        "item": "https://grandhub.com/blog"
       },
       ...(categoryInfo ? [{
         "@type": "ListItem",
         "position": 3,
         "name": categoryInfo.displayName,
-        "item": `https://rescrub.com/blog/category/${categoryInfo.slug}`
+        "item": `https://grandhub.com/blog/category/${categoryInfo.slug}`
       }] : []),
       {
         "@type": "ListItem",
         "position": categoryInfo ? 4 : 3,
         "name": article.title,
-        "item": `https://rescrub.com/blog/${article.slug}`
+        "item": `https://grandhub.com/blog/${article.slug}`
       }
     ]
   };

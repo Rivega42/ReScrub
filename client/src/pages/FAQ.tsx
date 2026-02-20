@@ -19,9 +19,9 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   {
-    id: "what-is-rescrub",
-    question: "Что такое ReScrub и как работает сервис?",
-    answer: `ReScrub — это автоматизированный сервис защиты персональных данных россиян в соответствии с 152-ФЗ "О персональных данных". 
+    id: "what-is-grandhub",
+    question: "Что такое GrandHub и как работает сервис?",
+    answer: `GrandHub — это автоматизированный сервис защиты персональных данных россиян в соответствии с 152-ФЗ "О персональных данных". 
 
 Мы автоматически сканируем сотни российских и международных сайтов брокеров данных, находим вашу персональную информацию (ФИО, адреса, номера телефонов, email) и отправляем официальные запросы на удаление в соответствии с российским законодательством.
 
@@ -29,7 +29,7 @@ const faqData: FAQItem[] = [
   },
   {
     id: "law-152-fz",
-    question: "Как ReScrub соблюдает требования 152-ФЗ?",
+    question: "Как GrandHub соблюдает требования 152-ФЗ?",
     answer: `Мы строго соблюдаем Федеральный закон №152-ФЗ "О персональных данных":
 
 • **Согласие субъекта**: Работаем только с данными, на обработку которых вы дали согласие
@@ -41,7 +41,7 @@ const faqData: FAQItem[] = [
   },
   {
     id: "what-sites-supported",
-    question: "С каких сайтов ReScrub удаляет персональные данные?",
+    question: "С каких сайтов GrandHub удаляет персональные данные?",
     answer: `Мы работаем с широким спектром российских и международных источников:
 
 **Российские сайты и базы данных:**
@@ -78,7 +78,7 @@ const faqData: FAQItem[] = [
   },
   {
     id: "pricing-plans",
-    question: "Сколько стоят услуги ReScrub?",
+    question: "Сколько стоят услуги GrandHub?",
     answer: `Мы предлагаем гибкие тарифные планы:
 
 **Базовый план — 1 990₽/месяц**
@@ -165,7 +165,7 @@ const faqData: FAQItem[] = [
     question: "Нужно ли обращаться в Роскомнадзор самостоятельно?",
     answer: `В большинстве случаев обращение в Роскомнадзор не требуется:
 
-**Когда ReScrub справляется сам:**
+**Когда GrandHub справляется сам:**
 • Сайты соблюдают требования 152-ФЗ
 • Есть четкие процедуры удаления данных
 • Ответственные администраторы ресурсов
@@ -228,10 +228,10 @@ const faqData: FAQItem[] = [
     answer: `Мы предлагаем несколько каналов связи:
 
 **Основные каналы:**
-• **Email:** support@rescrub.ru (ответ в течение 4 часов)
+• **Email:** support@grandhub.ru (ответ в течение 4 часов)
 • **Телефон:** +7 (495) 123-45-67 (будни 9:00-21:00)
 • **Онлайн-чат:** доступен в личном кабинете
-• **Telegram:** @ReScrubSupport
+• **Telegram:** @GrandHubSupport
 
 **Экстренная поддержка:**
 • Для премиум-клиентов: персональный менеджер
@@ -248,7 +248,7 @@ const faqData: FAQItem[] = [
 
 export default function FAQ() {
   useEffect(() => {
-    document.title = "Часто задаваемые вопросы - ReScrub";
+    document.title = "Часто задаваемые вопросы - GrandHub";
   }, []);
 
   return (
@@ -270,7 +270,7 @@ export default function FAQ() {
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
                 Ответы на основные вопросы о защите персональных данных, 
-                152-ФЗ и работе сервиса ReScrub
+                152-ФЗ и работе сервиса GrandHub
               </p>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function FAQ() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Получите помощь от наших экспертов по любым вопросам
                   </p>
-                  <a href="mailto:support@rescrub.ru">
+                  <a href="mailto:support@grandhub.ru">
                     <Button variant="outline" size="sm" className="w-full" data-testid="button-contact-support">
                       Связаться
                     </Button>

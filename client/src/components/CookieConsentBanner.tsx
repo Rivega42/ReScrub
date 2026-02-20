@@ -18,7 +18,7 @@ interface CookieConsentBannerProps {
 }
 
 const CONSENT_VERSION = "1.0";
-const STORAGE_KEY = "rescrub-cookie-consent";
+const STORAGE_KEY = "grandhub-cookie-consent";
 
 export default function CookieConsentBanner({ className }: CookieConsentBannerProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -138,7 +138,7 @@ export default function CookieConsentBanner({ className }: CookieConsentBannerPr
             <Alert>
               <FileText className="h-4 w-4" />
               <AlertDescription>
-                <span className="font-medium">ReScrub</span> использует технологии для обеспечения работы 
+                <span className="font-medium">GrandHub</span> использует технологии для обеспечения работы 
                 сайта и улучшения пользовательского опыта. Ваши данные обрабатываются в соответствии с 
                 Федеральным законом № 152-ФЗ "О персональных данных".
               </AlertDescription>

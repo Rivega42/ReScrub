@@ -28,7 +28,7 @@ export default function BusinessMonitoring() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessProductSEO 
-        title="Мониторинг персональных данных 152фз — ResCrub Business"
+        title="Мониторинг персональных данных 152фз — GrandHub Business"
         description="Непрерывный мониторинг утечек данных, контроль обработки персональных данных, SIEM система для соблюдения 152фз. Защита данных в режиме реального времени."
         productType="monitoring"
         productData={{

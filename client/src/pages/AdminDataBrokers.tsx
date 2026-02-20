@@ -312,7 +312,7 @@ export default function AdminDataBrokers() {
   return (
     <>
       <SEO 
-        title="Управление операторами данных | Админ-панель ReScrub"
+        title="Управление операторами данных | Админ-панель GrandHub"
         description="Управление базой операторов персональных данных"
         index={false}
       />

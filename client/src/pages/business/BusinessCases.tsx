@@ -183,7 +183,7 @@ export default function BusinessCases() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessSEO 
-        title="Кейсы использования 152фз — Успешные внедрения | ResCrub Business"
+        title="Кейсы использования 152фз — Успешные внедрения | GrandHub Business"
         description="Реальные кейсы автоматизации 152фз: банки, ритейл, медицина, финтех, государство. ROI расчеты, примеры экономии и результаты внедрения защиты персональных данных."
         pageCategory="product"
         neuralSignals={{
@@ -626,7 +626,7 @@ export default function BusinessCases() {
                           <div>
                             <div className="text-sm font-medium">Решение</div>
                             <div className="text-sm text-muted-foreground">
-                              Внедрение ResCrub Business с интеграцией в mobile app и интернет-банк
+                              Внедрение GrandHub Business с интеграцией в mobile app и интернет-банк
                             </div>
                           </div>
                           <div>
@@ -678,7 +678,7 @@ export default function BusinessCases() {
                           <div>
                             <div className="text-sm font-medium">Решение</div>
                             <div className="text-sm text-muted-foreground">
-                              ResCrub Business как compliance-first подход с самого начала
+                              GrandHub Business как compliance-first подход с самого начала
                             </div>
                           </div>
                           <div>

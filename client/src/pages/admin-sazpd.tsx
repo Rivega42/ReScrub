@@ -2067,7 +2067,7 @@ export default function AdminSAZPD() {
             description: 'Убедимся в корректности credentials для БД',
             severity: 'medium',
             actions: [
-              { type: 'config', label: 'Проверить права пользователя БД', details: 'GRANT ALL PRIVILEGES ON DATABASE rescrub TO user' },
+              { type: 'config', label: 'Проверить права пользователя БД', details: 'GRANT ALL PRIVILEGES ON DATABASE grandhub TO user' },
               { type: 'verify', label: 'Проверить SSL настройки', details: 'Убедитесь в корректности SSL конфигурации' },
               { type: 'check', label: 'Тестировать connection pool', details: 'Проверить настройки пула соединений' }
             ]
@@ -2078,7 +2078,7 @@ export default function AdminSAZPD() {
             description: 'Перезапуск для применения изменений',
             severity: 'low',
             actions: [
-              { type: 'command', label: 'Перезапустить приложение', details: 'npm run dev или systemctl restart rescrub' },
+              { type: 'command', label: 'Перезапустить приложение', details: 'npm run dev или systemctl restart grandhub' },
               { type: 'verify', label: 'Проверить восстановление подключения', details: 'Мониторинг логов на протяжении 2-3 минут' }
             ]
           }

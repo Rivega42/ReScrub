@@ -64,8 +64,8 @@ export default function EmailTemplateEditor({
     subject: template?.subject || '',
     htmlBody: template?.htmlBody || '',
     textBody: template?.textBody || '',
-    fromName: template?.fromName || 'ReScrub',
-    fromEmail: template?.fromEmail || 'noreply@rescrub.ru',
+    fromName: template?.fromName || 'GrandHub',
+    fromEmail: template?.fromEmail || 'noreply@grandhub.ru',
     replyTo: template?.replyTo || '',
     status: template?.status || 'draft',
     isActive: template?.isActive || false,
@@ -286,7 +286,7 @@ export default function EmailTemplateEditor({
           <Input
             value={formData.subject}
             onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-            placeholder="Добро пожаловать в ReScrub, {{firstName}}!"
+            placeholder="Добро пожаловать в GrandHub, {{firstName}}!"
             className="flex-1"
             data-testid="input-subject"
           />

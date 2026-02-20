@@ -13,7 +13,7 @@ interface PromoCodeBannerProps {
 }
 
 // Utility functions for localStorage with TTL
-const STORAGE_KEY_PROMO = 'rescrub-promo-banner-dismissed';
+const STORAGE_KEY_PROMO = 'grandhub-promo-banner-dismissed';
 const TTL_HOURS = 24;
 
 const setStorageWithTTL = (key: string, value: any, ttlHours: number) => {

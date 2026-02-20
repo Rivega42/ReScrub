@@ -276,11 +276,11 @@ export default function OperatorConfirm() {
                   <p>
                     Или напишите на{' '}
                     <a 
-                      href="mailto:support@rescrub.ru" 
+                      href="mailto:support@grandhub.ru" 
                       className="text-foreground hover:text-muted-foreground underline underline-offset-4"
                       data-testid="link-support-email"
                     >
-                      support@rescrub.ru
+                      support@grandhub.ru
                     </a>
                   </p>
                 </div>

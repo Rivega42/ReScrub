@@ -28,8 +28,8 @@ export default function BusinessSupport() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessSEO 
-        title="Техническая поддержка — ResCrub Business"
-        description="Профессиональная техническая поддержка ResCrub Business 24/7. Помощь в настройке 152фз решений, консультации экспертов, документация и обучение."
+        title="Техническая поддержка — GrandHub Business"
+        description="Профессиональная техническая поддержка GrandHub Business 24/7. Помощь в настройке 152фз решений, консультации экспертов, документация и обучение."
         pageCategory="contact"
         neuralSignals={{
           primaryKeywords: ['техническая поддержка 152фз', 'помощь настройка персональные данные', 'консультации юриста 152фз'],
@@ -142,7 +142,7 @@ export default function BusinessSupport() {
                 <p className="text-muted-foreground text-sm mb-4">
                   Подробные консультации и техническая помощь
                 </p>
-                <div className="text-sm font-medium mb-2">support@rescrub.ru</div>
+                <div className="text-sm font-medium mb-2">support@grandhub.ru</div>
                 <div className="text-xs text-muted-foreground mb-4">
                   Ответ в течение 4 часов
                 </div>

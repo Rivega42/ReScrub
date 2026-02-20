@@ -81,8 +81,8 @@ export default function BusinessLogin() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/WebPage">
       <BusinessSEO 
-        title="Вход корпоративный кабинет — Личный кабинет бизнес | ResCrub Business"
-        description="Войдите в корпоративный кабинет ResCrub Business для управления соблюдением 152фз. Безопасный доступ к личному кабинету бизнес-клиентов."
+        title="Вход корпоративный кабинет — Личный кабинет бизнес | GrandHub Business"
+        description="Войдите в корпоративный кабинет GrandHub Business для управления соблюдением 152фз. Безопасный доступ к личному кабинету бизнес-клиентов."
         pageCategory="auth"
         neuralSignals={{
           primaryKeywords: ['вход корпоративный кабинет', 'личный кабинет бизнес предприятий', 'авторизация система 152фз для компаний'],
@@ -93,7 +93,7 @@ export default function BusinessLogin() {
         }}
         russianSEO={{
           russianKeywords: {
-            primary: ['вход корпоративный кабинет ResCrub', 'личный кабинет бизнес 152фз', 'логин система управления данными'],
+            primary: ['вход корпоративный кабинет GrandHub', 'личный кабинет бизнес 152фз', 'логин система управления данными'],
             semantic: ['авторизация в системе compliance', 'доступ к панели управления', 'вход в бизнес-аккаунт'],
             longTail: ['как войти в корпоративный кабинет для управления персональными данными по 152 фз']
           }
@@ -113,7 +113,7 @@ export default function BusinessLogin() {
                     <div className="flex items-center justify-center gap-2 mb-4">
                       <Shield className="h-8 w-8 text-primary" />
                       <div className="flex flex-col items-start">
-                        <span className="text-2xl font-bold text-foreground">ResCrub</span>
+                        <span className="text-2xl font-bold text-foreground">GrandHub</span>
                         <span className="text-sm text-primary font-medium -mt-1">Business</span>
                       </div>
                     </div>
@@ -279,7 +279,7 @@ export default function BusinessLogin() {
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-bold text-foreground mb-2">
-                          ResCrub Business Platform
+                          GrandHub Business Platform
                         </h2>
                         <p className="text-muted-foreground">
                           Комплексное решение для автоматизации соблюдения 152фз

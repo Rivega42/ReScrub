@@ -8,16 +8,16 @@ import { useEffect } from "react";
 
 export default function Privacy() {
   useEffect(() => {
-    document.title = "Политика конфиденциальности - ReScrub";
+    document.title = "Политика конфиденциальности - GrandHub";
     
     // Add meta description for SEO
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Политика конфиденциальности ReScrub - информация об обработке персональных данных в соответствии с 152-ФЗ. Права субъектов данных и безопасность информации.');
+      metaDescription.setAttribute('content', 'Политика конфиденциальности GrandHub - информация об обработке персональных данных в соответствии с 152-ФЗ. Права субъектов данных и безопасность информации.');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'description';
-      meta.content = 'Политика конфиденциальности ReScrub - информация об обработке персональных данных в соответствии с 152-ФЗ. Права субъектов данных и безопасность информации.';
+      meta.content = 'Политика конфиденциальности GrandHub - информация об обработке персональных данных в соответствии с 152-ФЗ. Права субъектов данных и безопасность информации.';
       document.head.appendChild(meta);
     }
   }, []);
@@ -115,7 +115,7 @@ export default function Privacy() {
                 <div className="space-y-4 text-muted-foreground">
                   <p>
                     1.1. Настоящая Политика конфиденциальности (далее — Политика) определяет порядок обработки 
-                    персональных данных и меры по обеспечению безопасности персональных данных оператором ReScrub 
+                    персональных данных и меры по обеспечению безопасности персональных данных оператором GrandHub 
                     (далее — Оператор, Сервис) в целях соблюдения требований Федерального закона от 27.07.2006 
                     № 152-ФЗ «О персональных данных» и иных нормативных правовых актов в области защиты персональных данных.
                   </p>
@@ -128,7 +128,7 @@ export default function Privacy() {
                     установленными Федеральным законом «О персональных данных».
                   </p>
                   <p>
-                    1.4. Используя сервис ReScrub, вы соглашаетесь с условиями настоящей Политики и даете согласие 
+                    1.4. Используя сервис GrandHub, вы соглашаетесь с условиями настоящей Политики и даете согласие 
                     на обработку своих персональных данных в порядке и целях, определенных данной Политикой.
                   </p>
                 </div>
@@ -167,7 +167,7 @@ export default function Privacy() {
                             <p><strong>Почтовый адрес:</strong><br />
                             125009, г. Москва, ул. Тверская, д. 7, оф. 401</p>
                             <p><strong>Email для обращений по ПДн:</strong><br />
-                            privacy@rescrub.ru</p>
+                            privacy@grandhub.ru</p>
                             <p><strong>Телефон:</strong> +7 (495) 123-45-67</p>
                           </div>
                         </div>
@@ -192,7 +192,7 @@ export default function Privacy() {
 
                   <p>
                     2.2. Ответственным за организацию обработки персональных данных назначен сотрудник, с которым 
-                    можно связаться по электронному адресу: privacy@rescrub.ru
+                    можно связаться по электронному адресу: privacy@grandhub.ru
                   </p>
                   
                   <p>
@@ -282,7 +282,7 @@ export default function Privacy() {
 
                   <p>
                     3.4. Субъекты персональных данных имеют право получить информацию о любых случаях 
-                    трансграничной передачи их данных, направив соответствующий запрос по адресу: privacy@rescrub.ru
+                    трансграничной передачи их данных, направив соответствующий запрос по адресу: privacy@grandhub.ru
                   </p>
                 </div>
               </section>
@@ -557,7 +557,7 @@ export default function Privacy() {
                       <CardContent className="pt-6">
                         <Mail className="h-8 w-8 text-primary mx-auto mb-2" />
                         <h4 className="font-semibold text-foreground mb-1">Email</h4>
-                        <p className="text-sm">privacy@rescrub.ru</p>
+                        <p className="text-sm">privacy@grandhub.ru</p>
                       </CardContent>
                     </Card>
                     <Card className="text-center">
@@ -744,7 +744,7 @@ export default function Privacy() {
                 <h2 className="text-2xl font-semibold text-foreground mb-6">11. Политика использования cookies</h2>
                 <div className="space-y-4 text-muted-foreground">
                   <p>
-                    11.1. Сервис ReScrub использует технологию cookies для улучшения функциональности и удобства использования.
+                    11.1. Сервис GrandHub использует технологию cookies для улучшения функциональности и удобства использования.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -797,7 +797,7 @@ export default function Privacy() {
                         <div>
                           <h4 className="font-semibold text-foreground mb-3">Основные контакты:</h4>
                           <div className="space-y-2 text-sm">
-                            <p><strong>Email для обращений по ПДн:</strong><br />privacy@rescrub.ru</p>
+                            <p><strong>Email для обращений по ПДн:</strong><br />privacy@grandhub.ru</p>
                             <p><strong>Телефон:</strong> +7 (495) 123-45-67</p>
                             <p><strong>Почтовый адрес для обращений:</strong><br />125009, г. Москва, ул. Тверская, д. 7, оф. 401</p>
                             <p><strong>Время работы службы поддержки:</strong><br />Пн-Пт 9:00-18:00 (МСК)</p>
@@ -806,9 +806,9 @@ export default function Privacy() {
                         <div>
                           <h4 className="font-semibold text-foreground mb-3">Для экстренных обращений:</h4>
                           <div className="space-y-2 text-sm">
-                            <p><strong>Нарушения безопасности:</strong><br />security@rescrub.ru</p>
-                            <p><strong>Отзыв согласия:</strong><br />privacy@rescrub.ru</p>
-                            <p><strong>Общие вопросы:</strong><br />support@rescrub.ru</p>
+                            <p><strong>Нарушения безопасности:</strong><br />security@grandhub.ru</p>
+                            <p><strong>Отзыв согласия:</strong><br />privacy@grandhub.ru</p>
+                            <p><strong>Общие вопросы:</strong><br />support@grandhub.ru</p>
                             <p><strong>Макс. срок ответа:</strong> 30 календарных дней</p>
                           </div>
                         </div>
@@ -872,7 +872,7 @@ export default function Privacy() {
                   <p>
                     13.4. Действующая версия Политики конфиденциальности всегда доступна по адресу: 
                     <a href="/privacy" className="text-primary hover:text-primary/80 ml-1" data-testid="link-privacy-current">
-                      https://rescrub.ru/privacy
+                      https://grandhub.ru/privacy
                     </a>
                   </p>
                 </div>
@@ -893,7 +893,7 @@ export default function Privacy() {
                 наша команда готова предоставить разъяснения
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
-                <a href="mailto:privacy@rescrub.ru">
+                <a href="mailto:privacy@grandhub.ru">
                   <Button size="lg" data-testid="button-contact-privacy">
                     Задать вопрос
                   </Button>

@@ -129,8 +129,8 @@ export default function BusinessContact() {
   return (
     <div className="min-h-screen bg-background" itemScope itemType="https://schema.org/ContactPage">
       <BusinessSEO 
-        title="Контакты и техподдержка — Персональные данные 152фз | ResCrub Business"
-        description="Техподдержка 24/7 для защиты персональных данных. Контакты разработчика ResCrub Business, консультации по 152фз, юридическая информация компании."
+        title="Контакты и техподдержка — Персональные данные 152фз | GrandHub Business"
+        description="Техподдержка 24/7 для защиты персональных данных. Контакты разработчика GrandHub Business, консультации по 152фз, юридическая информация компании."
         pageCategory="contact"
         neuralSignals={{
           primaryKeywords: ['техподдержка персональные данные', 'контакты разработчика 152фз', 'консультации защита данных'],
@@ -147,7 +147,7 @@ export default function BusinessContact() {
           }
         }}
         organizationSchema={{
-          name: "ResCrub Business",
+          name: "GrandHub Business",
           description: "Платформа автоматизации соблюдения 152фз",
           contactPoints: [
             {
@@ -238,11 +238,11 @@ export default function BusinessContact() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="text-sm font-semibold">sales@rescrub.ru</div>
+                    <div className="text-sm font-semibold">sales@grandhub.ru</div>
                     <div className="text-sm text-muted-foreground">Коммерческие вопросы</div>
-                    <div className="text-sm font-semibold">support@rescrub.ru</div>
+                    <div className="text-sm font-semibold">support@grandhub.ru</div>
                     <div className="text-sm text-muted-foreground">Техническая поддержка</div>
-                    <div className="text-sm font-semibold">partners@rescrub.ru</div>
+                    <div className="text-sm font-semibold">partners@grandhub.ru</div>
                     <div className="text-sm text-muted-foreground">Партнерство</div>
                   </div>
                 </CardContent>
@@ -379,7 +379,7 @@ export default function BusinessContact() {
                       <Label htmlFor="message">Сообщение *</Label>
                       <Textarea 
                         id="message" 
-                        placeholder="Расскажите подробнее о вашей задаче, количестве пользователей, текущих системах и ожиданиях от внедрения ResCrub Business..."
+                        placeholder="Расскажите подробнее о вашей задаче, количестве пользователей, текущих системах и ожиданиях от внедрения GrandHub Business..."
                         className="min-h-32"
                         data-testid="textarea-message"
                       />

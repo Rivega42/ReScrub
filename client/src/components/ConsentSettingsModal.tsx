@@ -12,7 +12,7 @@ interface ConsentSettingsModalProps {
 }
 
 const CONSENT_VERSION = "1.0";
-const STORAGE_KEY = "rescrub-cookie-consent";
+const STORAGE_KEY = "grandhub-cookie-consent";
 
 export default function ConsentSettingsModal({ isOpen, onClose }: ConsentSettingsModalProps) {
   const { consent } = useCookieConsent();

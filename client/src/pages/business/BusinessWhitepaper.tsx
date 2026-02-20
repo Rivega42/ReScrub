@@ -27,9 +27,9 @@ export default function BusinessWhitepaper() {
   return (
     <div className="min-h-screen bg-background">
       <BusinessDocsSEO 
-        title="Техническая документация — ResCrub Business Platform"
-        description="Подробная техническая документация платформы ResCrub Business. Архитектура защиты данных, алгоритмы атомаризации, API спецификации и руководства по интеграции для разработчиков."
-        author="ResCrub Technical Team"
+        title="Техническая документация — GrandHub Business Platform"
+        description="Подробная техническая документация платформы GrandHub Business. Архитектура защиты данных, алгоритмы атомаризации, API спецификации и руководства по интеграции для разработчиков."
+        author="GrandHub Technical Team"
         publishedTime="2024-12-01"
         modifiedTime={new Date().toISOString()}
         neuralSignals={{
@@ -78,7 +78,7 @@ export default function BusinessWhitepaper() {
                 </div>
                 
                 <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                  ResCrub Business
+                  GrandHub Business
                   <span className="text-primary"> Platform</span>
                 </h1>
                 

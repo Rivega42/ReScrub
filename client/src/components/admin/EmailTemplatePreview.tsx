@@ -43,9 +43,9 @@ export default function EmailTemplatePreview({
     planName: 'Премиум',
     planPrice: '999 ₽/мес',
     expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU'),
-    renewalUrl: 'https://rescrub.ru/subscription',
+    renewalUrl: 'https://grandhub.ru/subscription',
     daysRemaining: '30',
-    verificationUrl: 'https://rescrub.ru/verify-email?token=abc123',
+    verificationUrl: 'https://grandhub.ru/verify-email?token=abc123',
   });
 
   // Send test email mutation
@@ -143,7 +143,7 @@ export default function EmailTemplatePreview({
                     {/* Email header */}
                     <div className="p-4 border-b bg-gray-50">
                       <div className="text-xs text-gray-600 mb-1">
-                        <strong>От:</strong> {template.fromName || 'ReScrub'} &lt;{template.fromEmail || 'noreply@rescrub.ru'}&gt;
+                        <strong>От:</strong> {template.fromName || 'GrandHub'} &lt;{template.fromEmail || 'noreply@grandhub.ru'}&gt;
                       </div>
                       <div className="text-xs text-gray-600 mb-1">
                         <strong>Кому:</strong> {testData.email}
